@@ -121,7 +121,7 @@ The system SHALL let the user change the overview range: "od" and "do" each open
 
 ### Requirement: Milestone chips
 
-The system SHALL place every day-precision milestone of every visible project on its day as a chip showing the milestone's short label (rozp., konc., PB, uzup., pozw., branż.) and the project title, coloured by milestone kind, with a legend naming the six colours and full milestone names. A day shows all its chips; a title that does not fit is shortened, and hovering the chip shows the full title and milestone name.
+The system SHALL place every day-precision milestone of every visible project on its day as a chip showing the milestone's short label (rozp., konc., akc., PB, uzup., pozw., branż.) and the project title, coloured by milestone kind, with a legend naming the seven colours and full milestone names. A day shows all its chips; a title that does not fit is shortened, and hovering the chip shows the full title and milestone name.
 
 #### Scenario: Two milestones on one day
 
@@ -144,9 +144,20 @@ The system SHALL place every day-precision milestone of every visible project on
 - **WHEN** a project has no date for `pozwolenie`
 - **THEN** no chip for `pozwolenie` appears anywhere, even when it is marked done
 
+#### Scenario: Concept acceptance chip
+
+- **WHEN** a visible project "Dom Lipowa" has `akceptacja: 2026-11-14`
+- **THEN** 14 November 2026 shows a chip "akc. Dom Lipowa" in a colour no other milestone kind uses
+- **AND** the legend lists "akc. - akceptacja koncepcji" between "konc. - wydanie koncepcji" and "PB - PB do urzędu"
+
+#### Scenario: Same day as the concept
+
+- **WHEN** a visible project has `koncepcja: 2026-11-14` and `akceptacja: 2026-11-14`
+- **THEN** the day cell shows the "konc." chip before the "akc." chip
+
 ### Requirement: Chip state
 
-The system SHALL show a done milestone as dimmed and struck through, and a milestone that is not done and due before today as overdue: outlined in a colour none of the six milestone colours uses, with "!" before its short label. This applies to day chips and month-strip entries alike.
+The system SHALL show a done milestone as dimmed and struck through, and a milestone that is not done and due before today as overdue: outlined in a colour none of the seven milestone colours uses, with "!" before its short label. This applies to day chips and month-strip entries alike.
 
 #### Scenario: Done and overdue in one month
 

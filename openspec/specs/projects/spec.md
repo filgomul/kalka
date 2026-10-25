@@ -102,7 +102,7 @@ The system SHALL offer the lead architect as a choice from the `architects` list
 
 ### Requirement: Edit project
 
-The system SHALL edit l.p., title, location (city, address), lead architect, status, six milestones, six branch scopes and notes, and save all of them at once.
+The system SHALL edit l.p., title, location (city, address), lead architect, status, seven milestones, six branch scopes and notes, and save all of them at once.
 
 #### Scenario: Edit and cancel
 
@@ -133,38 +133,9 @@ The system SHALL hold a free-text scope for each of the six branches, where empt
 - **WHEN** a project has an empty `sanitarna` scope
 - **THEN** the form shows the field empty and any summary shows "brak"
 
-### Requirement: CSV import
-
-The system SHALL provide a script that converts the studio's CSV export of the old sheet into one project file per filled row, without needing the browser.
-
-#### Scenario: Import a row
-
-- **WHEN** the script runs on a CSV with the sheet's Polish headers and a row with l.p. `7`, title "Dom testowy", location "Gdańsk," followed by "ul. Przykładowa 1" on the next line, dates `12/06/2026` and `11.2026`, and `brak` in a branch column
-- **THEN** it writes a file with `lp: 7`, `title: "Dom testowy"`, `location: { city: "Gdańsk", address: "ul. Przykładowa 1" }`, `"2026-06-12"` and `"2026-11"` as the milestones, an empty string for that branch and status `aktywny`
-
-#### Scenario: Architect with an academic title
-
-- **WHEN** the lead architect cell reads "mgr inż. arch. Anna Nowak"
-- **THEN** `leadArchitect` is "Anna Nowak", so it matches the name in `kalka.json`
-
-#### Scenario: MINIMUM prefix
-
-- **WHEN** a branch cell reads "MINIMUM - inwentaryzacja instalacji"
-- **THEN** the branch scope holds that text unchanged
-
-#### Scenario: Empty and dash cells
-
-- **WHEN** a date cell is empty or `-`
-- **THEN** that milestone key is absent
-
-#### Scenario: Numbered empty rows
-
-- **WHEN** a row has only a running number and no title
-- **THEN** it is skipped
-
 ### Requirement: Milestone done
 
-The system SHALL let the user mark each of the six milestones as done or not done in the project form, whether or not it has a date, and keep the done milestones in the project file. A project file without done marks counts as nothing done.
+The system SHALL let the user mark each of the seven milestones as done or not done in the project form, whether or not it has a date, and keep the done milestones in the project file. A project file without done marks counts as nothing done.
 
 #### Scenario: Tick and save
 
@@ -174,7 +145,7 @@ The system SHALL let the user mark each of the six milestones as done or not don
 
 #### Scenario: File without done marks
 
-- **WHEN** a project file has no `done` key, for example one written before this change or by the CSV import
+- **WHEN** a project file has no `done` key, for example one written before milestones could be marked done
 - **THEN** every milestone of that project counts as not done
 
 #### Scenario: Done without a date
@@ -186,3 +157,27 @@ The system SHALL let the user mark each of the six milestones as done or not don
 
 - **WHEN** the user unticks the last done milestone and saves
 - **THEN** the project file holds no done milestones
+
+### Requirement: Concept acceptance milestone
+
+The system SHALL hold a milestone "akceptacja koncepcji" (key `akceptacja`) that comes right after "wydanie koncepcji" and before "PB do urzędu" wherever milestones are listed, and that is optional, accepts day or month precision, can be marked done and counts for the next milestone like the others. Project files without it stay valid.
+
+#### Scenario: Form order
+
+- **WHEN** the user opens the project form
+- **THEN** the milestones section shows "data rozpoczęcia", "wydanie koncepcji", "akceptacja koncepcji", "PB do urzędu", "uzupełnienie do urzędu", "uzyskanie pozwolenia" and "termin branżystów", in that order
+
+#### Scenario: Save a date
+
+- **WHEN** the user enters 14.11.2026 as "akceptacja koncepcji" and saves
+- **THEN** the project file holds `"akceptacja": "2026-11-14"` in `milestones`
+
+#### Scenario: Next milestone
+
+- **WHEN** today is 2026-10-25 and a project has `koncepcja: 2026-10-05` done, `akceptacja: 2026-11-14` not done and `pbDoUrzedu: 2026-12-01`
+- **THEN** the list shows "akceptacja koncepcji" 14.11.2026 as the next milestone
+
+#### Scenario: Older file
+
+- **WHEN** a project file written before this change has no `akceptacja` key
+- **THEN** the form shows "akceptacja koncepcji" empty and not done, and saving without touching it writes no `akceptacja` key
