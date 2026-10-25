@@ -18,11 +18,11 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
 
   return (
     <main>
-      <header class="bar">
-        <h1>{t.appName}</h1>
-        <a class="button" href={'#/nowy' + query}>{t.newProject}</a>
+      <div class="heading">
+        <h1>{t.projects} <span class="count">{rows.length}</span></h1>
         <button type="button" onClick={onRefresh}>{t.refresh}</button>
-      </header>
+        <a class="button primary" href={'#/nowy' + query}>+ {t.newProject}</a>
+      </div>
 
       {data.broken.length > 0 && (
         <div class="error">
@@ -31,7 +31,7 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
         </div>
       )}
 
-      <div class="bar">
+      <div class="toolbar">
         <input type="search" placeholder={t.search} aria-label={t.search} value={filter.q} onInput={(e) => set({ q: e.currentTarget.value })} />
         <select aria-label={t.colArchitect} value={filter.architect} onChange={(e) => set({ architect: e.currentTarget.value })}>
           <option value="">{t.allArchitects}</option>
@@ -45,38 +45,49 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
       </div>
 
       {rows.length === 0 ? (
-        <p>{t.empty}</p>
+        <p class="empty">{t.empty}</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th class="num">{t.colLp}</th>
-              <th>{t.colTitle}</th>
-              <th>{t.colCity}</th>
-              <th>{t.colArchitect}</th>
-              <th>{t.colNext}</th>
-              <th>{t.colStatus}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ project: p, file, duplicate }) => {
-              const next = nextMilestone(p, today)
-              return (
-                <tr key={file}>
-                  <td class="num">{p.lp ?? ''}</td>
-                  <td>
-                    <a href={`#/projekt/${encodeURIComponent(file)}${query}`}>{p.title || file}</a>
-                    {duplicate && <span class="badge">{t.syncConflict}: {file}</span>}
-                  </td>
-                  <td>{p.location.city}</td>
-                  <td>{p.leadArchitect}</td>
-                  <td>{next ? `${milestoneLabels[next.key]} ${formatDate(next.value)}` : <span class="muted">{t.noUpcoming}</span>}</td>
-                  <td>{statusLabels[p.status]}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+        <div class="table">
+          <table>
+            <thead>
+              <tr>
+                <th class="num">{t.colLp}</th>
+                <th>{t.colTitle}</th>
+                <th>{t.colCity}</th>
+                <th>{t.colArchitect}</th>
+                <th>{t.colNext}</th>
+                <th>{t.colStatus}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(({ project: p, file, duplicate }) => {
+                const next = nextMilestone(p, today)
+                return (
+                  <tr key={file}>
+                    <td class="num">{p.lp ?? ''}</td>
+                    <td class="title">
+                      <a href={`#/projekt/${encodeURIComponent(file)}${query}`}>{p.title || file}</a>
+                      {duplicate && <span class="badge">{t.syncConflict}: {file}</span>}
+                    </td>
+                    <td>{p.location.city}</td>
+                    <td>{p.leadArchitect}</td>
+                    <td>
+                      {next ? (
+                        <>
+                          <span class="date">{formatDate(next.value)}</span>
+                          <span class="sub">{milestoneLabels[next.key]}</span>
+                        </>
+                      ) : (
+                        <span class="muted">{t.noUpcoming}</span>
+                      )}
+                    </td>
+                    <td><span class="pill" data-status={p.status}>{statusLabels[p.status]}</span></td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </main>
   )

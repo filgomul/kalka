@@ -1,4 +1,4 @@
-import { render } from 'preact'
+import { render, type ComponentChildren } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { t } from './pl.ts'
 import type { Filter } from './model.ts'
@@ -48,7 +48,7 @@ function App() {
     if (isSupported()) rememberedFolder().then((d) => setRemembered(d ?? null), () => {})
   }, [])
 
-  if (!isSupported()) return <main class="screen"><p>{t.unsupported}</p></main>
+  if (!isSupported()) return <Screen><p>{t.unsupported}</p></Screen>
 
   async function load(dir: FileSystemDirectoryHandle) {
     const settings = await openFolder(dir)
@@ -75,18 +75,17 @@ function App() {
 
   if (!data) {
     return (
-      <main class="screen">
-        <h1>{t.appName}</h1>
+      <Screen>
         {error && <p class="error">{error}</p>}
         {remembered ? (
-          <button disabled={busy} onClick={() => open('reopen')}>{t.openFolder}</button>
+          <button class="primary" disabled={busy} onClick={() => open('reopen')}>{t.openFolder}</button>
         ) : (
           <>
             <p>{t.pickHint}</p>
-            <button disabled={busy} onClick={() => open('pick')}>{t.pickFolder}</button>
+            <button class="primary" disabled={busy} onClick={() => open('pick')}>{t.pickFolder}</button>
           </>
         )}
-      </main>
+      </Screen>
     )
   }
 
@@ -96,33 +95,62 @@ function App() {
     toList()
   }
 
-  if (route.path === '/nowy') return <ProjectForm data={data} loaded={null} onSaved={saved} onCancel={toList} />
-  if (route.path.startsWith('/projekt/')) {
+  let content
+  if (route.path === '/nowy') {
+    content = <ProjectForm data={data} loaded={null} onSaved={saved} onCancel={toList} />
+  } else if (route.path.startsWith('/projekt/')) {
     const file = decodeURIComponent(route.path.slice('/projekt/'.length))
     const loaded = data.projects.find((p) => p.file === file)
-    if (!loaded) return <main class="screen"><p>{t.notFound}</p><a href={'#/' + route.query}>{t.back}</a></main>
-    return <ProjectForm key={file} data={data} loaded={loaded} onSaved={saved} onCancel={toList} />
+    content = loaded ? (
+      <ProjectForm key={file} data={data} loaded={loaded} onSaved={saved} onCancel={toList} />
+    ) : (
+      <main><p>{t.notFound}</p><a href={'#/' + route.query}>{t.back}</a></main>
+    )
+  } else {
+    content = (
+      <ProjectList
+        data={data}
+        filter={route.filter}
+        query={route.query}
+        onFilter={(f) => {
+          const p = new URLSearchParams()
+          if (f.architect) p.set('a', f.architect)
+          if (f.status) p.set('s', f.status)
+          if (f.q) p.set('q', f.q)
+          route.go('/' + (p.size ? '?' + p : ''), true)
+        }}
+        onRefresh={() =>
+          load(data.dir).catch((e) => {
+            setData(null)
+            setRemembered(null)
+            setError(`${t.folderUnavailable} (${(e as Error).message})`)
+          })
+        }
+      />
+    )
   }
+
   return (
-    <ProjectList
-      data={data}
-      filter={route.filter}
-      query={route.query}
-      onFilter={(f) => {
-        const p = new URLSearchParams()
-        if (f.architect) p.set('a', f.architect)
-        if (f.status) p.set('s', f.status)
-        if (f.q) p.set('q', f.q)
-        route.go('/' + (p.size ? '?' + p : ''), true)
-      }}
-      onRefresh={() =>
-        load(data.dir).catch((e) => {
-          setData(null)
-          setRemembered(null)
-          setError(`${t.folderUnavailable} (${(e as Error).message})`)
-        })
-      }
-    />
+    <>
+      <header class="top">
+        <a class="brand" href={'#/' + route.query}>{t.appName}</a>
+        <span class="folder" title={t.folder}>{data.dir.name}</span>
+      </header>
+      {content}
+    </>
+  )
+}
+
+/** Start, no-folder and unsupported-browser screens. */
+function Screen({ children }: { children: ComponentChildren }) {
+  return (
+    <main class="screen">
+      <div class="card">
+        <h1 class="brand">{t.appName}</h1>
+        <p class="tagline">{t.tagline}</p>
+        {children}
+      </div>
+    </main>
   )
 }
 

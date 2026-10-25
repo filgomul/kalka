@@ -28,6 +28,9 @@ export const statusLabels: Record<Status, string> = {
 
 export const t = {
   appName: 'Kalka',
+  tagline: 'projekty i terminy pracowni',
+  folder: 'otwarty folder danych',
+  projects: 'Projekty',
   unsupported: 'Kalka działa tylko w przeglądarkach Google Chrome i Microsoft Edge. Otwórz tę stronę w jednej z nich.',
   pickFolder: 'Wybierz folder Kalka',
   openFolder: 'Otwórz folder Kalka',
@@ -53,6 +56,7 @@ export const t = {
   colNext: 'najbliższy termin',
   colStatus: 'status',
 
+  project: 'Projekt',
   lp: 'l.p.',
   title: 'tytuł',
   city: 'miejscowość',
