@@ -1,0 +1,169 @@
+:root {
+  --fg: #1f2328;
+  --muted: #656d76;
+  --line: #d0d7de;
+  --accent: #0b5cad;
+  --error-bg: #fdecea;
+  --error-fg: #8a1c12;
+  --badge-bg: #fff4ce;
+  font: 15px/1.4 system-ui, sans-serif;
+  color: var(--fg);
+}
+
+body {
+  margin: 0;
+  background: #fff;
+}
+
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.screen {
+  max-width: 520px;
+  padding-top: 15vh;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 0 auto 0 0;
+}
+
+h2 {
+  font-size: 1.1rem;
+  margin: 24px 0 8px;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.bar input[type='search'] {
+  flex: 1 1 260px;
+}
+
+input,
+select,
+textarea,
+button,
+.button {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  color: inherit;
+}
+
+button,
+.button {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+button[type='submit'],
+.button {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.num {
+  text-align: right;
+  width: 3em;
+}
+
+a {
+  color: var(--accent);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.error {
+  background: var(--error-bg);
+  color: var(--error-fg);
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+.error ul {
+  margin: 4px 0 0;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--badge-bg);
+  font-size: 0.85em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.grid .wide {
+  grid-column: span 2;
+}
+
+label,
+fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+}
+
+label > input,
+label > select,
+label > textarea,
+fieldset > * {
+  color: var(--fg);
+}
+
+fieldset {
+  flex-direction: row;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  margin: 0;
+}
+
+.block {
+  margin-top: 16px;
+}
+
+@media (max-width: 560px) {
+  .grid .wide {
+    grid-column: auto;
+  }
+}

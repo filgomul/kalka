@@ -9,13 +9,13 @@ list and a form.
 
 ### Requirement: Project list
 
-The system SHALL list projects with title, location, lead architect, status and next milestone, sorted by next milestone date (projects without one last).
+The system SHALL list projects with running number, title, location, lead architect, status and next milestone, sorted by next milestone date (projects without one last).
 
 #### Scenario: Default view
 
 - **WHEN** the project list opens
 - **THEN** projects with status `zakończony` are hidden by default
-- **AND** each row shows title, city, lead architect, the next milestone name and date, and status
+- **AND** each row shows l.p., title, city, lead architect, the next milestone name and date, and status
 
 ### Requirement: Filter and search
 
@@ -56,9 +56,43 @@ The system SHALL create a project from a form where only the title is required; 
 - **THEN** a new file `projekty/<id>.json` exists with status `aktywny`, empty milestones and empty branch scopes
 - **AND** the list shows it
 
+### Requirement: Running number
+
+The system SHALL keep the old sheet's running number as an optional whole number `lp` per project, editable in the form, and suggest the next free number for a new project. Numbers are not checked for uniqueness.
+
+#### Scenario: New project gets the next number
+
+- **WHEN** the highest `lp` among loaded projects is 41 and the user opens "Nowy projekt"
+- **THEN** the l.p. field is pre-filled with 42 and can be changed or cleared
+
+#### Scenario: No number
+
+- **WHEN** a project has no `lp`
+- **THEN** its l.p. cell in the list is empty
+
+### Requirement: Lead architect list
+
+The system SHALL offer the lead architect as a choice from the `architects` list in `kalka.json`, which the studio edits by hand; the app has no screen to change the list.
+
+#### Scenario: Pick from the list
+
+- **WHEN** `kalka.json` holds `"architects": ["Anna Nowak", "Jan Kowalski"]` and the user opens the form
+- **THEN** the lead architect field offers an empty choice, "Anna Nowak" and "Jan Kowalski"
+
+#### Scenario: Value not on the list
+
+- **WHEN** a project's `leadArchitect` is "Piotr Zieliński", who is not in `architects`
+- **THEN** the form shows "Piotr Zieliński" as the selected choice and saving without touching the field keeps it
+- **AND** the list's architect filter offers "Piotr Zieliński" next to the names from `kalka.json`
+
+#### Scenario: Empty list
+
+- **WHEN** `kalka.json` has no `architects` or an empty one
+- **THEN** the lead architect field offers only the empty choice and a hint "Dodaj architektów w pliku kalka.json"
+
 ### Requirement: Edit project
 
-The system SHALL edit title, location (city, address), lead architect, status, six milestones, six branch scopes and notes, and save all of them at once.
+The system SHALL edit l.p., title, location (city, address), lead architect, status, six milestones, six branch scopes and notes, and save all of them at once.
 
 #### Scenario: Edit and cancel
 
@@ -95,8 +129,18 @@ The system SHALL provide a script that converts the studio's CSV export of the o
 
 #### Scenario: Import a row
 
-- **WHEN** the script runs on a CSV with the sheet's Polish headers and a row with title "Dom testowy", location "Gdańsk," followed by "ul. Przykładowa 1" on the next line, dates `12/06/2026` and `11.2026`, and `brak` in a branch column
-- **THEN** it writes a file with `title: "Dom testowy"`, `location: { city: "Gdańsk", address: "ul. Przykładowa 1" }`, `"2026-06-12"` and `"2026-11"` as the milestones, an empty string for that branch and status `aktywny`
+- **WHEN** the script runs on a CSV with the sheet's Polish headers and a row with l.p. `7`, title "Dom testowy", location "Gdańsk," followed by "ul. Przykładowa 1" on the next line, dates `12/06/2026` and `11.2026`, and `brak` in a branch column
+- **THEN** it writes a file with `lp: 7`, `title: "Dom testowy"`, `location: { city: "Gdańsk", address: "ul. Przykładowa 1" }`, `"2026-06-12"` and `"2026-11"` as the milestones, an empty string for that branch and status `aktywny`
+
+#### Scenario: Architect with an academic title
+
+- **WHEN** the lead architect cell reads "mgr inż. arch. Anna Nowak"
+- **THEN** `leadArchitect` is "Anna Nowak", so it matches the name in `kalka.json`
+
+#### Scenario: MINIMUM prefix
+
+- **WHEN** a branch cell reads "MINIMUM - inwentaryzacja instalacji"
+- **THEN** the branch scope holds that text unchanged
 
 #### Scenario: Empty and dash cells
 
@@ -107,7 +151,3 @@ The system SHALL provide a script that converts the studio's CSV export of the o
 
 - **WHEN** a row has only a running number and no title
 - **THEN** it is skipped
-
-## Open questions
-
-- The sheet's "MINIMUM" prefix in branch scopes seems to mean "minimum scope agreed with the client". Keep it as plain text for now, or make it a flag per branch?

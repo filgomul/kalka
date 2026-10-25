@@ -49,7 +49,7 @@ The system SHALL keep settings in `kalka.json` and one file per project in `proj
 #### Scenario: Empty folder chosen
 
 - **WHEN** the picked folder has no `kalka.json`
-- **THEN** the app creates `kalka.json` with `{ "schema": 1 }` and an empty `projekty/` folder
+- **THEN** the app creates `kalka.json` with `{ "schema": 1, "architects": [] }` and an empty `projekty/` folder
 - **AND** shows an empty project list
 
 ### Requirement: Read all projects
@@ -86,7 +86,4 @@ The system SHALL show every file that shares an id with another file (for exampl
 
 - **WHEN** `projekty/` holds two files with the same `id`
 - **THEN** both appear in the list with a "konflikt synchronizacji" badge and their file names
-
-## Open questions
-
-- Should the app clean up conflict copies itself (keep newest, delete the other) or leave that to the user in OneDrive? This change leaves it to the user.
+- **AND** the app deletes neither; the user removes the unwanted copy in OneDrive

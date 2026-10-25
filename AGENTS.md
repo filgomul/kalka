@@ -24,7 +24,8 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 
 | Polish (UI) | Key | Meaning |
 | --- | --- | --- |
-| arch. prowadzący | `leadArchitect` | Architect responsible for the project |
+| l.p. | `lp` | Running number carried over from the old sheet |
+| arch. prowadzący | `leadArchitect` | Architect responsible for the project; picked from `architects` in `kalka.json` |
 | data rozpoczęcia | `rozpoczecie` | Project start |
 | wydanie koncepcji | `koncepcja` | Concept design handed to the client |
 | PB do urzędu | `pbDoUrzedu` | Building-permit design (projekt budowlany) filed with the office |
