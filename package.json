@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "node --test \"src/**/*.test.ts\" \"scripts/**/*.test.ts\""
+    "test": "node --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "preact": "^11.0.1"

@@ -1,11 +1,13 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { milestoneLabels } from './pl.ts'
 import {
   architectOptions,
   emptyProject,
   filterProjects,
   formatDate,
   isDone,
+  MILESTONES,
   nextLp,
   nextMilestone,
   normalize,
@@ -115,4 +117,33 @@ test('projects: New project gets the next number', () => {
 test('projects: Value not on the list', () => {
   const ps = [project({ leadArchitect: 'Piotr Zieliński' }), project({ leadArchitect: 'Anna Nowak' }), project({})]
   assert.deepEqual(architectOptions(['Anna Nowak', 'Jan Kowalski'], ps), ['Anna Nowak', 'Jan Kowalski', 'Piotr Zieliński'])
+})
+
+test('projects: Form order', () => {
+  assert.deepEqual(MILESTONES.map((k) => milestoneLabels[k]), [
+    'data rozpoczęcia',
+    'wydanie koncepcji',
+    'akceptacja koncepcji',
+    'PB do urzędu',
+    'uzupełnienie do urzędu',
+    'uzyskanie pozwolenia',
+    'termin branżystów',
+  ])
+})
+
+test('projects: Save a date', () => {
+  const saved = prepareForSave(project({ title: 'Dom', milestones: { akceptacja: '2026-11-14' } }))
+  assert.deepEqual(saved.milestones, { akceptacja: '2026-11-14' })
+})
+
+test('projects: Next milestone', () => {
+  const p = project({ milestones: { koncepcja: '2026-10-05', akceptacja: '2026-11-14', pbDoUrzedu: '2026-12-01' }, done: ['koncepcja'] })
+  assert.deepEqual(nextMilestone(p), { key: 'akceptacja', value: '2026-11-14', due: '2026-11-14' })
+})
+
+test('projects: Older file', () => {
+  const p = normalize({ id: 'x', title: 'Dom', milestones: { koncepcja: '2026-01-10' } })
+  assert.equal(p.milestones.akceptacja, undefined)
+  assert.equal(isDone(p, 'akceptacja'), false)
+  assert.ok(!('akceptacja' in prepareForSave(p).milestones))
 })

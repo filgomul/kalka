@@ -492,6 +492,7 @@ label.check {
 
 [data-kind='rozpoczecie'] { --c: #7d776d; --t: #efede9; --x: #4d4943; }
 [data-kind='koncepcja'] { --c: #a07a3c; --t: #f5eee2; --x: #6e5226; }
+[data-kind='akceptacja'] { --c: #807a35; --t: #f1f0e0; --x: #575321; }
 [data-kind='pbDoUrzedu'] { --c: #4e6b80; --t: #e7eef3; --x: #33495a; }
 [data-kind='uzupelnienie'] { --c: #7a5f7f; --t: #f0eaf1; --x: #533f57; }
 [data-kind='pozwolenie'] { --c: #697662; --t: #edf1e9; --x: #48523f; }

@@ -10,11 +10,10 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
   OneDrive client) through the File System Access API. One JSON file per project in
   `projekty/`, settings in `kalka.json`. No server, no accounts: whoever has the OneDrive
   folder has the data.
-- **projects**: list, filter (lead architect, status), search, create/edit form. The
-  one-off CSV import from the old sheet belongs here too.
+- **projects**: list, filter (lead architect, status), search, create/edit form.
 - **calendar**: month grid of milestones across all projects with the same filters, plus
   the "Terminy" list of upcoming and recently passed milestones.
-- A project has six optional milestones, each with day (`YYYY-MM-DD`) or month
+- A project has seven optional milestones, each with day (`YYYY-MM-DD`) or month
   (`YYYY-MM`) precision. The calendar shows only milestones that have a date.
 - A save never overwrites a project file that someone else changed after it was read.
 
@@ -28,6 +27,7 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 | arch. prowadzący | `leadArchitect` | Architect responsible for the project; picked from `architects` in `kalka.json` |
 | data rozpoczęcia | `rozpoczecie` | Project start |
 | wydanie koncepcji | `koncepcja` | Concept design handed to the client |
+| akceptacja koncepcji | `akceptacja` | Client accepted the concept design |
 | PB do urzędu | `pbDoUrzedu` | Building-permit design (projekt budowlany) filed with the office |
 | uzupełnienie do urzędu | `uzupelnienie` | Supplement requested by the office filed |
 | uzyskanie pozwolenia | `pozwolenie` | Building permit granted |
@@ -38,7 +38,7 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 
 ## Stack and limits
 
-- TypeScript, Vite, Preact. App code in `src/`, one-off scripts in `scripts/`. No other
+- TypeScript, Vite, Preact. App code in `src/`. No other
   runtime dependency without a stated reason; no router, date, calendar or CSS libraries.
 - Tests: `node --test` on `*.test.ts` (Node 24 runs TypeScript directly; keep to
   erasable syntax, no enums). Pure logic lives in plain modules so it is testable
