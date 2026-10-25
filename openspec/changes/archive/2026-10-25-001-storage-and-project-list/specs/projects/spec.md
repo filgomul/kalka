@@ -25,7 +25,6 @@ The system SHALL filter the list by lead architect and by status, and search by 
 
 - **WHEN** the user picks an architect in the filter
 - **THEN** only that architect's projects are shown
-- **AND** the calendar opened from this list uses the same filter
 
 #### Scenario: Search
 

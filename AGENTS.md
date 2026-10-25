@@ -66,8 +66,12 @@ The OpenSpec CLI and its `/opsx:*` commands are optional; setup is in `CLAUDE.md
 3. Once the engineer approves, work through `tasks.md` in order and tick each
    task off. Spec, code and tests change together, in one branch and one PR.
 4. Run the tests, then report what changed and how to verify it.
-5. Archive only when the engineer asks: fold the deltas into `openspec/specs/`
-   and move the folder to `openspec/changes/archive/YYYY-MM-DD-<change-id>/`.
+5. Archive as the last commit of the change's PR (`docs: archive <change-id>`),
+   once the engineer has confirmed the behaviour in the running app: fold the
+   deltas into `openspec/specs/` and move the folder to
+   `openspec/changes/archive/YYYY-MM-DD-<change-id>/`. Merge the PR with a merge
+   commit or rebase, not squash, so the change and archive commits stay apart.
+   Merging to `main` deploys, so `openspec/specs/` on `main` describes what is live.
 
 No change folder needed for:
 

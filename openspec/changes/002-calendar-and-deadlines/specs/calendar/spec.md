@@ -55,6 +55,11 @@ The system SHALL filter the calendar by lead architect and, optionally, by one p
 - **WHEN** a project is chosen in the project filter
 - **THEN** only that project's milestones are shown and the architect filter is ignored
 
+#### Scenario: Filter carried over from the project list
+
+- **WHEN** the user has picked an architect in the project list and opens the calendar
+- **THEN** the calendar starts with the same architect filter
+
 ### Requirement: Open project from calendar
 
 The system SHALL open the project form when a chip or a strip entry is clicked.
