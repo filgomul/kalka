@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks'
 import { t } from './pl.ts'
 import type { Filter } from './model.ts'
 import {
+  hasAccess,
   isSupported,
   openFolder,
   pickFolder,
@@ -43,9 +44,18 @@ function App() {
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  // true until we know whether the remembered folder opens without a click
+  const [checking, setChecking] = useState(isSupported)
 
   useEffect(() => {
-    if (isSupported()) rememberedFolder().then((d) => setRemembered(d ?? null), () => {})
+    if (!isSupported()) return
+    ;(async () => {
+      const dir = await rememberedFolder()
+      if (dir && (await hasAccess(dir))) await load(dir)
+      else setRemembered(dir ?? null)
+    })()
+      .catch(fail)
+      .finally(() => setChecking(false))
   }, [])
 
   if (!isSupported()) return <Screen><p>{t.unsupported}</p></Screen>
@@ -53,6 +63,13 @@ function App() {
   async function load(dir: FileSystemDirectoryHandle) {
     const settings = await openFolder(dir)
     setData({ dir, settings, ...(await readProjects(dir)) })
+  }
+
+  function fail(e: unknown) {
+    // closing the picker is not an error
+    if ((e as Error).name === 'AbortError') return
+    setError(`${t.folderUnavailable} (${(e as Error).message})`)
+    setRemembered(null)
   }
 
   async function open(how: 'pick' | 'reopen') {
@@ -63,11 +80,7 @@ function App() {
       if (how === 'reopen') await reopenFolder(dir)
       await load(dir)
     } catch (e) {
-      // closing the picker is not an error
-      if ((e as Error).name !== 'AbortError') {
-        setError(`${t.folderUnavailable} (${(e as Error).message})`)
-        setRemembered(null)
-      }
+      fail(e)
     } finally {
       setBusy(false)
     }
@@ -77,7 +90,9 @@ function App() {
     return (
       <Screen>
         {error && <p class="error">{error}</p>}
-        {remembered ? (
+        {checking ? (
+          <p class="muted">{t.loading}</p>
+        ) : remembered ? (
           <button class="primary" disabled={busy} onClick={() => open('reopen')}>{t.openFolder}</button>
         ) : (
           <>
