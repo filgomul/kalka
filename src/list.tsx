@@ -12,7 +12,7 @@ type Props = {
 
 export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props) {
   const today = todayIso()
-  const rows = sortProjects(filterProjects(data.projects, filter), today)
+  const rows = sortProjects(filterProjects(data.projects, filter))
   const architects = architectOptions(data.settings.architects, data.projects.map((l) => l.project))
   const set = (patch: Partial<Filter>) => onFilter({ ...filter, ...patch })
 
@@ -61,7 +61,8 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
             </thead>
             <tbody>
               {rows.map(({ project: p, file, duplicate }) => {
-                const next = nextMilestone(p, today)
+                const next = nextMilestone(p)
+                const late = next && next.due < today
                 return (
                   <tr key={file}>
                     <td class="num">{p.lp ?? ''}</td>
@@ -74,8 +75,11 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
                     <td>
                       {next ? (
                         <>
-                          <span class="date">{formatDate(next.value)}</span>
-                          <span class="sub">{milestoneLabels[next.key]}</span>
+                          <span class={late ? 'date late' : 'date'}>{formatDate(next.value)}</span>
+                          <span class="sub">
+                            {milestoneLabels[next.key]}
+                            {late && <>, <span class="late">{t.overdue}</span></>}
+                          </span>
                         </>
                       ) : (
                         <span class="muted">{t.noUpcoming}</span>

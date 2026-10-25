@@ -5,8 +5,10 @@ import {
   emptyProject,
   filterProjects,
   formatDate,
+  isDone,
   nextLp,
   nextMilestone,
+  normalize,
   prepareForSave,
   sortProjects,
   type Project,
@@ -19,18 +21,51 @@ const rows = (...ps: Project[]) => ps.map((project) => ({ project }))
 
 test('projects: Mixed precision', () => {
   const p = project({ milestones: { pbDoUrzedu: '2026-10-30', branzysci: '2026-10' } })
-  assert.deepEqual(nextMilestone(p, '2026-10-25'), { key: 'pbDoUrzedu', value: '2026-10-30', due: '2026-10-30' })
-  assert.equal(nextMilestone(p, '2026-10-31')?.due, '2026-10-31')
+  assert.deepEqual(nextMilestone(p), { key: 'pbDoUrzedu', value: '2026-10-30', due: '2026-10-30' })
+})
+
+test('projects: Overdue', () => {
+  const late = project({ title: 'B', milestones: { pbDoUrzedu: '2026-10-10', pozwolenie: '2026-12-01' } })
+  const soon = project({ title: 'A', milestones: { koncepcja: '2026-10-25' } })
+  const next = nextMilestone(late)
+  assert.deepEqual(next, { key: 'pbDoUrzedu', value: '2026-10-10', due: '2026-10-10' })
+  assert.ok(next!.due < '2026-10-25')
+  assert.deepEqual(sortProjects(rows(soon, late)).map((r) => r.project.title), ['B', 'A'])
+})
+
+test('projects: Done milestone skipped', () => {
+  const p = project({ milestones: { pbDoUrzedu: '2026-10-10', pozwolenie: '2026-12-01' }, done: ['pbDoUrzedu'] })
+  assert.equal(nextMilestone(p)?.key, 'pozwolenie')
 })
 
 test('projects: All in the past', () => {
-  const past = project({ title: 'B', milestones: { koncepcja: '2026-01-10', pozwolenie: '2026-09' } })
+  const past = project({ title: 'B', milestones: { koncepcja: '2026-01-10', pozwolenie: '2026-09' }, done: ['koncepcja', 'pozwolenie'] })
+  const none = project({ title: 'C' })
   const soon = project({ title: 'A', milestones: { koncepcja: '2026-11-02' } })
-  assert.equal(nextMilestone(past, '2026-10-25'), null)
-  assert.deepEqual(
-    sortProjects(rows(past, soon), '2026-10-25').map((r) => r.project.title),
-    ['A', 'B'],
-  )
+  assert.equal(nextMilestone(past), null)
+  assert.equal(nextMilestone(none), null)
+  assert.deepEqual(sortProjects(rows(past, none, soon)).map((r) => r.project.title), ['A', 'B', 'C'])
+})
+
+test('projects: File without done marks', () => {
+  const p = normalize({ id: 'x', title: 'Dom', milestones: { koncepcja: '2026-01-10' } })
+  assert.deepEqual(p.done, [])
+  assert.equal(isDone(p, 'koncepcja'), false)
+  assert.equal(nextMilestone(p)?.key, 'koncepcja')
+  // a hand-edited file with junk in done
+  assert.deepEqual(normalize({ id: 'x', done: 'koncepcja' as never }).done, [])
+  assert.deepEqual(normalize({ id: 'x', done: ['pozwolenie', 'nic' as never, 'koncepcja'] }).done, ['koncepcja', 'pozwolenie'])
+})
+
+test('projects: Done without a date', () => {
+  const saved = prepareForSave(project({ title: 'Dom', done: ['koncepcja'] }))
+  assert.deepEqual(saved.done, ['koncepcja'])
+  assert.equal('koncepcja' in saved.milestones, false)
+})
+
+test('projects: Untick', () => {
+  const saved = prepareForSave(project({ title: 'Dom', done: [] }))
+  assert.equal('done' in saved, false)
 })
 
 test('projects: Month only', () => {
