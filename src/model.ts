@@ -1,6 +1,6 @@
 // Project data and the pure logic around it. No DOM here, so node --test can run it.
 
-export const MILESTONES = ['rozpoczecie', 'koncepcja', 'pbDoUrzedu', 'uzupelnienie', 'pozwolenie', 'branzysci'] as const
+export const MILESTONES = ['rozpoczecie', 'koncepcja', 'akceptacja', 'pbDoUrzedu', 'uzupelnienie', 'pozwolenie', 'branzysci'] as const
 export const BRANCHES = ['konstrukcja', 'sanitarna', 'elektryczna', 'drogowa', 'ppoz', 'bhpSanepid'] as const
 export const STATUSES = ['aktywny', 'wstrzymany', 'zakończony'] as const
 

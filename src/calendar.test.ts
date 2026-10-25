@@ -196,3 +196,14 @@ test('calendar: Range cap', () => {
 test('calendar: Whole year', () => {
   assert.deepEqual(withLength(withFrom(OCT_MAR, '2026-01'), 12), { from: '2026-01', to: '2026-12' })
 })
+
+test('calendar: Concept acceptance chip', () => {
+  const all = entries([row({ title: 'Dom Lipowa', milestones: { akceptacja: '2026-11-14' } })], TODAY)
+  const day = monthEntries(all, '2026-11').byDay.get('2026-11-14')!
+  assert.deepEqual(day.map((e) => [e.project.title, e.key, e.state]), [['Dom Lipowa', 'akceptacja', 'open']])
+})
+
+test('calendar: Same day as the concept', () => {
+  const all = entries([row({ title: 'Dom', milestones: { akceptacja: '2026-11-14', koncepcja: '2026-11-14' } })], TODAY)
+  assert.deepEqual(all.map((e) => e.key), ['koncepcja', 'akceptacja'])
+})

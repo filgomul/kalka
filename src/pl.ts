@@ -5,6 +5,7 @@ import type { BranchKey, MilestoneKey, Status } from './model.ts'
 export const milestoneLabels: Record<MilestoneKey, string> = {
   rozpoczecie: 'data rozpoczęcia',
   koncepcja: 'wydanie koncepcji',
+  akceptacja: 'akceptacja koncepcji',
   pbDoUrzedu: 'PB do urzędu',
   uzupelnienie: 'uzupełnienie do urzędu',
   pozwolenie: 'uzyskanie pozwolenia',
@@ -14,6 +15,7 @@ export const milestoneLabels: Record<MilestoneKey, string> = {
 export const milestoneShort: Record<MilestoneKey, string> = {
   rozpoczecie: 'rozp.',
   koncepcja: 'konc.',
+  akceptacja: 'akc.',
   pbDoUrzedu: 'PB',
   uzupelnienie: 'uzup.',
   pozwolenie: 'pozw.',
