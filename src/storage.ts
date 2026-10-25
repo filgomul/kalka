@@ -39,6 +39,11 @@ export async function pickFolder(): Promise<FileSystemDirectoryHandle> {
   return dir
 }
 
+/** True when the browser kept read/write access ("Allow on every visit"); never prompts. */
+export async function hasAccess(dir: FileSystemDirectoryHandle): Promise<boolean> {
+  return (await dir.queryPermission({ mode: 'readwrite' })) === 'granted'
+}
+
 /** Asks for read/write permission again; must run inside a click. */
 export async function reopenFolder(dir: FileSystemDirectoryHandle): Promise<void> {
   if ((await dir.requestPermission({ mode: 'readwrite' })) !== 'granted') throw new Error('permission denied')
