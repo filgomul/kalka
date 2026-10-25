@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+.claude/
+.hypa/
+
+# Project data never enters the repo (contains personal data)
+*.csv
+*.xlsx
+kalka-data/
+
+.DS_Store
+Thumbs.db

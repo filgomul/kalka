@@ -1,0 +1,32 @@
+# openspec/config.yaml
+# Rules for the spec artifacts (specs, tasks, archive). What the app is, the
+# stack and the workflow live in AGENTS.md, which every AI tool reads.
+schema: spec-driven
+
+context: |
+  Read AGENTS.md first: it describes the app, the stack and the workflow.
+
+rules:
+  specs:
+    - Describe observable behaviour (what), never implementation (how).
+    - One requirement per behaviour, each with at least one WHEN/THEN scenario.
+    - Detail where behaviour is subtle or risky, short where it is obvious. A
+      reviewer must be able to check every requirement.
+    - Only spec what the change touches.
+    - Unknowns go under "## Open questions"; stop and ask, never guess.
+    - Requirements described from existing code but not yet verified carry
+      "(baseline)" in the title.
+    - Examples use made-up project names and addresses, never rows from the
+      studio's real sheet.
+  tasks:
+    - Every scenario that pure logic can observe (date parsing, calendar grid,
+      milestone listing, CSV import, conflict check) gets a node --test case
+      named "<area>: <scenario name>".
+    - Last task is always "verify in the running dev environment" (pnpm dev,
+      Chrome or Edge, a scratch data folder outside the repo).
+
+operations:
+  archive:
+    guidance:
+      - Archive only after the engineer confirmed the behaviour in a running
+        environment.

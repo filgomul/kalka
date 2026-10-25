@@ -1,0 +1,2 @@
+# pnpm settings (pnpm 10 reads them from here)
+minimumReleaseAge: 4320
