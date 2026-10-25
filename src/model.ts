@@ -17,6 +17,8 @@ export type Project = {
   status: Status
   /** `YYYY-MM-DD` or `YYYY-MM`; a key without a date is absent */
   milestones: Partial<Record<MilestoneKey, string>>
+  /** milestones marked done, dated or not; absent means none */
+  done?: MilestoneKey[]
   /** empty string means "brak" */
   branches: Record<BranchKey, string>
   notes: string
@@ -53,13 +55,15 @@ export function todayIso(now = new Date()): string {
 
 export type NextMilestone = { key: MilestoneKey; value: string; due: string }
 
-/** The dated milestone with the earliest due date on or after today. */
-export function nextMilestone(p: Project, today: string): NextMilestone | null {
+export const isDone = (p: Project, key: MilestoneKey) => p.done?.includes(key) ?? false
+
+/** The dated, not-done milestone with the earliest due date; before `today` means overdue. */
+export function nextMilestone(p: Project): NextMilestone | null {
   let next: NextMilestone | null = null
   for (const key of MILESTONES) {
     const value = p.milestones[key]
     const d = parseDate(value)
-    if (d && d.due >= today && (!next || d.due < next.due)) next = { key, value: value!, due: d.due }
+    if (d && !isDone(p, key) && (!next || d.due < next.due)) next = { key, value: value!, due: d.due }
   }
   return next
 }
@@ -100,12 +104,13 @@ export function normalize(raw: Partial<Project> & { id: string }): Project {
     ...raw,
     location: { ...base.location, ...raw.location },
     milestones: { ...raw.milestones },
+    done: MILESTONES.filter((k) => Array.isArray(raw.done) && raw.done.includes(k)),
     branches: { ...base.branches, ...raw.branches },
     status: STATUSES.includes(raw.status as Status) ? raw.status! : 'aktywny',
   }
 }
 
-/** Trims text and drops cleared milestones before a save. */
+/** Trims text and drops cleared milestones and an empty done list before a save. */
 export function prepareForSave(p: Project): Project {
   const milestones: Project['milestones'] = {}
   for (const key of MILESTONES) if (parseDate(p.milestones[key])) milestones[key] = p.milestones[key]
@@ -114,8 +119,10 @@ export function prepareForSave(p: Project): Project {
     title: p.title.trim(),
     location: { city: p.location.city.trim(), address: p.location.address.trim() },
     milestones,
+    done: MILESTONES.filter((k) => isDone(p, k)),
   }
   if (out.lp === undefined || !Number.isInteger(out.lp)) delete out.lp
+  if (!out.done!.length) delete out.done
   return out
 }
 
@@ -133,9 +140,9 @@ export function filterProjects<T extends { project: Project }>(rows: T[], f: Fil
   })
 }
 
-/** By next milestone, projects without one last; then by l.p. and title. */
-export function sortProjects<T extends { project: Project }>(rows: T[], today: string): T[] {
-  const key = (p: Project) => nextMilestone(p, today)?.due ?? '9999'
+/** By next milestone (overdue first), projects without one last; then by l.p. and title. */
+export function sortProjects<T extends { project: Project }>(rows: T[]): T[] {
+  const key = (p: Project) => nextMilestone(p)?.due ?? '9999'
   return [...rows].sort(
     (a, b) =>
       key(a.project).localeCompare(key(b.project)) ||

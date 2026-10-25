@@ -15,11 +15,14 @@ import {
 } from './storage.ts'
 import { ProjectList } from './list.tsx'
 import { ProjectForm } from './form.tsx'
+import { CalendarView } from './calendar-view.tsx'
+import { Deadlines } from './deadlines.tsx'
 import './style.css'
 
 export type Data = { dir: FileSystemDirectoryHandle; settings: Settings } & ReadResult
 
-// Routes live in the hash: #/?a=&s=&q= (list), #/nowy, #/projekt/<file>; the query is the list filter.
+// Routes live in the hash: #/?a=&s=&q= (list), #/kalendarz?a=&s=&p=&m=, #/terminy?a=&s=&p=,
+// #/nowy and #/projekt/<file>. The query holds the filters; z= on a form link names the view to go back to.
 function useRoute() {
   const [hash, setHash] = useState(location.hash.slice(1) || '/')
   useEffect(() => {
@@ -35,8 +38,11 @@ function useRoute() {
     else location.hash = to
     setHash(to)
   }
-  return { path, query: query ? '?' + query : '', filter, go }
+  return { path, query: query ? '?' + query : '', params, filter, go }
 }
+
+const qs = (p: URLSearchParams) => (p.size ? '?' + p : '')
+const VIEWS = ['kalendarz', 'terminy']
 
 function App() {
   const route = useRoute()
@@ -104,23 +110,35 @@ function App() {
     )
   }
 
-  const toList = () => route.go('/' + route.query)
+  // back to the view the form was opened from, with its filters
+  const back = () => {
+    const p = new URLSearchParams(route.params)
+    const z = p.get('z') ?? ''
+    p.delete('z')
+    route.go('/' + (VIEWS.includes(z) ? z : '') + qs(p))
+  }
   const saved = async () => {
     await load(data.dir)
-    toList()
+    back()
   }
+  // the form keeps the tab of the view it was opened from
+  const view = route.path === '/nowy' || route.path.startsWith('/projekt/') ? (route.params.get('z') ?? '') : route.path.slice(1)
+  const tabQuery = qs(new URLSearchParams([...route.params].filter(([k]) => k === 'a' || k === 's')))
 
   let content
   if (route.path === '/nowy') {
-    content = <ProjectForm data={data} loaded={null} onSaved={saved} onCancel={toList} />
+    content = <ProjectForm data={data} loaded={null} onSaved={saved} onCancel={back} />
   } else if (route.path.startsWith('/projekt/')) {
     const file = decodeURIComponent(route.path.slice('/projekt/'.length))
     const loaded = data.projects.find((p) => p.file === file)
     content = loaded ? (
-      <ProjectForm key={file} data={data} loaded={loaded} onSaved={saved} onCancel={toList} />
+      <ProjectForm key={file} data={data} loaded={loaded} onSaved={saved} onCancel={back} />
     ) : (
       <main><p>{t.notFound}</p><a href={'#/' + route.query}>{t.back}</a></main>
     )
+  } else if (route.path === '/kalendarz' || route.path === '/terminy') {
+    const View = route.path === '/kalendarz' ? CalendarView : Deadlines
+    content = <View data={data} params={route.params} onParams={(p) => route.go(route.path + qs(p), true)} />
   } else {
     content = (
       <ProjectList
@@ -148,7 +166,14 @@ function App() {
   return (
     <>
       <header class="top">
-        <a class="brand" href={'#/' + route.query}>{t.appName}</a>
+        <a class="brand" href={'#/' + tabQuery}>{t.appName}</a>
+        <nav class="tabs">
+          {[['', t.projects], ['kalendarz', t.calendar], ['terminy', t.deadlines]].map(([v, label]) => (
+            <a key={v} class="tab" href={`#/${v}${tabQuery}`} aria-current={(VIEWS.includes(view) ? view : '') === v ? 'page' : undefined}>
+              {label}
+            </a>
+          ))}
+        </nav>
         <span class="folder" title={t.folder}>{data.dir.name}</span>
       </header>
       {content}

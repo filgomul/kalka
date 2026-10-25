@@ -11,6 +11,19 @@ export const milestoneLabels: Record<MilestoneKey, string> = {
   branzysci: 'termin branżystów',
 }
 
+export const milestoneShort: Record<MilestoneKey, string> = {
+  rozpoczecie: 'rozp.',
+  koncepcja: 'konc.',
+  pbDoUrzedu: 'PB',
+  uzupelnienie: 'uzup.',
+  pozwolenie: 'pozw.',
+  branzysci: 'branż.',
+}
+
+export const months = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień']
+export const monthsShort = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru']
+export const weekdays = ['pon', 'wt', 'śr', 'czw', 'pt', 'sob', 'nie']
+
 export const branchLabels: Record<BranchKey, string> = {
   konstrukcja: 'branża konstrukcyjna',
   sanitarna: 'branża sanitarna',
@@ -48,6 +61,7 @@ export const t = {
   statusAll: 'wszystkie statusy',
   empty: 'Brak projektów.',
   noUpcoming: 'brak nadchodzących terminów',
+  overdue: 'po terminie',
 
   colLp: 'l.p.',
   colTitle: 'tytuł',
@@ -66,6 +80,7 @@ export const t = {
   status: 'status',
   milestones: 'Terminy',
   day: 'dzień',
+  done: 'zrobione',
   month: 'miesiąc',
   branches: 'Zakres branż',
   notes: 'uwagi',
@@ -76,5 +91,30 @@ export const t = {
   conflict: 'Ktoś inny zapisał ten projekt w międzyczasie. Odśwież i wprowadź zmiany ponownie.',
   saveFailed: 'Nie udało się zapisać:',
   notFound: 'Nie ma takiego projektu.',
-  back: 'Wróć do listy',
+  back: 'Wróć',
+
+  calendar: 'Kalendarz',
+  deadlines: 'Terminy',
+  today: 'Dziś',
+  prevMonth: 'poprzedni miesiąc',
+  nextMonth: 'następny miesiąc',
+  prevRange: 'poprzedni okres',
+  nextRange: 'następny okres',
+  from: 'od',
+  to: 'do',
+  rangeLength: 'liczba miesięcy',
+  pickMonth: 'wybierz miesiąc',
+  viewMonth: 'Miesiąc',
+  viewOverview: 'Przegląd',
+  noMilestones: 'brak terminów',
+  more: 'więcej',
+  wholeMonth: 'mies.',
+  allProjects: 'wszystkie projekty',
+  thisMonth: 'w tym miesiącu',
+  legend: 'legenda',
+  weekOf: 'tydzień od',
+  noDeadlines: 'Brak terminów.',
+  colDate: 'data',
+  colMilestone: 'etap',
+  colProject: 'projekt',
 }

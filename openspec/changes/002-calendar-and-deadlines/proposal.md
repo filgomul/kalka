@@ -19,6 +19,10 @@ becomes a planned date, and a past date that is not done is overdue.
 - A month calendar showing every dated milestone of every visible project as a chip on
   its day, with a short label and a colour per milestone kind; done chips are dimmed,
   overdue ones marked. Month-precision milestones appear in a strip above the grid.
+- A "Miesiąc" / "Przegląd" switch: the overview shows a range of whole months ("od" to
+  "do", by default the current month and the five following) as blocks, three per row,
+  each listing that month's milestones, with "3 / 6 / 12" shortcuts. Clicking the month
+  name in the month view opens the browser's month picker to jump straight to any month.
 - The calendar takes the list's architect and status filters plus an optional
   single-project filter. Opening a project from the calendar or Terminy and then
   saving or cancelling returns to where the user came from.
@@ -39,7 +43,7 @@ becomes a planned date, and a past date that is not done is overdue.
 
 ## Impact
 
-- Specs: `calendar` (ADDED: views navigation, month grid, milestone chips, chip state,
+- Specs: `calendar` (ADDED: views navigation, month grid, overview, overview range, milestone chips, chip state,
   month-precision strip, filters, open project from calendar, deadlines list),
   `projects` (ADDED: milestone done; MODIFIED: next milestone)
 - Code: `src/model.ts` (done flag, next milestone), `src/form.tsx`, `src/list.tsx`,
@@ -72,3 +76,14 @@ Settled with the engineer on 2026-10-25:
 8. **Narrow screens: the grid scrolls sideways inside its card**, like the project
    table; Terminy is the view for a phone. No separate phone layout.
 9. **The project filter lists "l.p. title"** in l.p. order, like the list.
+10. **Overview blocks are compact lists**, not mini day grids: day, short label,
+    project title, at most eight per block, then "+N więcej" opening that month.
+11. **Jumping to a month uses the browser's own month picker**, opened from the
+    Polish month name or the "od" / "do" buttons; no custom date picker.
+12. **The overview replaces a fixed January-December year view** (studio request: see
+    the next three or six months). Its range is whole months, "od" to "do", one to 24
+    months, opening at the current month plus five; "3 / 6 / 12" set the length,
+    previous / next move by it, and changing "od" keeps it. Day-level windows stay in
+    Terminy.
+13. **Overview and month picker are part of this change**, added during the
+    engineer's check before 002 was committed.

@@ -24,7 +24,7 @@ The system SHALL show a header with three tabs, "Projekty", "Kalendarz" and "Ter
 
 ### Requirement: Month grid
 
-The system SHALL show one month at a time as a Monday-first grid with Polish day and month names, today highlighted, and controls for previous month, next month and "Dziś". The shown month is kept in the URL so it survives a refresh.
+The system SHALL show one month at a time as a Monday-first grid with Polish day and month names, today highlighted, and controls for previous month, next month and "Dziś". Clicking the month name opens the browser's month picker to jump straight to any month. The shown month is kept in the URL so it survives a refresh.
 
 #### Scenario: October 2026
 
@@ -36,6 +36,88 @@ The system SHALL show one month at a time as a Monday-first grid with Polish day
 
 - **WHEN** the calendar shows March 2027 and the user refreshes the page
 - **THEN** the calendar still shows March 2027
+
+#### Scenario: Jump to a month
+
+- **WHEN** the calendar shows October 2026 and the user clicks "październik 2026" and picks March 2028
+- **THEN** the calendar shows March 2028 with the same filters
+
+### Requirement: Overview
+
+The system SHALL let the user switch the calendar between "Miesiąc" and "Przegląd", keeping the choice in the URL. The overview shows a range of whole months, from an "od" month to a "do" month, as blocks three per row, each headed by month and year and listing that month's visible milestones in date order. The range is kept in the URL; without one, it starts at the current month and shows six months.
+
+#### Scenario: Default range
+
+- **WHEN** today is 2026-10-25 and the user clicks "Przegląd"
+- **THEN** six blocks from "październik 2026" to "marzec 2027" are shown, three per row, with "od" showing październik 2026, "do" showing marzec 2027 and the shortcut "6" highlighted
+- **AND** clicking "Miesiąc" shows October 2026 again
+
+#### Scenario: Refresh keeps the range
+
+- **WHEN** the overview shows January to June 2027 and the user refreshes the page
+- **THEN** the overview still shows January to June 2027
+
+#### Scenario: Month block content
+
+- **WHEN** a visible project has `pbDoUrzedu: 2026-10-16` not done, `koncepcja: 2026-10-05` done and `branzysci: 2026-10`, and today is 2026-10-25
+- **THEN** the "październik 2026" block lists "05 konc.", "16 PB" and "mies. branż.", each with the project title, in that order
+- **AND** the `koncepcja` entry is dimmed and struck through and the `pbDoUrzedu` entry is marked overdue, as in the month grid
+
+#### Scenario: Busy month
+
+- **WHEN** eleven visible milestones fall in March 2027 and the overview includes March 2027
+- **THEN** the "marzec 2027" block lists the first eight and a link "+3 więcej"
+- **AND** clicking the link or the month name shows March 2027 in the month view
+
+#### Scenario: Empty month
+
+- **WHEN** no visible milestone falls in a month of the range
+- **THEN** its block shows "brak terminów"
+
+### Requirement: Overview range
+
+The system SHALL let the user change the overview range: "od" and "do" each open the browser's month picker; the shortcuts "3", "6" and "12" set "do" so the range has that many months from "od"; previous and next move the whole range by its length; "Dziś" moves "od" to the current month keeping the length. Changing "od" keeps the length. A range has one to 24 months.
+
+#### Scenario: Shortcut
+
+- **WHEN** the overview shows październik 2026 to marzec 2027 and the user clicks "3"
+- **THEN** it shows październik to grudzień 2026 and "3" is highlighted
+
+#### Scenario: Custom end
+
+- **WHEN** the overview shows październik 2026 to marzec 2027 and the user picks maj 2027 as "do"
+- **THEN** it shows eight blocks from październik 2026 to maj 2027 and no shortcut is highlighted
+
+#### Scenario: End before start
+
+- **WHEN** "od" is październik 2026 and the user picks sierpień 2026 as "do"
+- **THEN** "do" becomes październik 2026 and one block is shown
+
+#### Scenario: Move the start
+
+- **WHEN** the overview shows październik 2026 to marzec 2027 and the user picks styczeń 2027 as "od"
+- **THEN** it shows styczeń to czerwiec 2027
+
+#### Scenario: Step
+
+- **WHEN** the overview shows październik 2026 to marzec 2027 and the user clicks next
+- **THEN** it shows kwiecień to wrzesień 2027 with the same filters
+- **AND** clicking previous shows październik 2026 to marzec 2027 again
+
+#### Scenario: Back to today
+
+- **WHEN** today is 2026-10-25, the overview shows kwiecień to wrzesień 2027 and the user clicks "Dziś"
+- **THEN** it shows październik 2026 to marzec 2027
+
+#### Scenario: Range cap
+
+- **WHEN** "od" is październik 2026 and the user picks grudzień 2029 as "do"
+- **THEN** "do" becomes wrzesień 2028, so 24 months are shown
+
+#### Scenario: Whole year
+
+- **WHEN** the user picks styczeń 2026 as "od" and clicks "12"
+- **THEN** it shows styczeń to grudzień 2026
 
 ### Requirement: Milestone chips
 
@@ -123,13 +205,18 @@ The system SHALL filter the calendar by lead architect and status with the same 
 
 ### Requirement: Open project from calendar
 
-The system SHALL open the project form when a chip, a strip entry or a deadlines-list entry is clicked, and return to the view it came from, with the same month and filters, when the form is saved or cancelled.
+The system SHALL open the project form when a chip, a strip entry, an overview entry or a deadlines-list entry is clicked, and return to the view it came from, with the same month or range and filters, when the form is saved or cancelled.
 
 #### Scenario: Click chip
 
 - **WHEN** the user clicks a chip in November 2026 with the architect filter set
 - **THEN** the form for that project opens
 - **AND** clicking "Anuluj" or saving returns to November 2026 with the same architect filter
+
+#### Scenario: From the overview
+
+- **WHEN** the user opens a project from the overview of styczeń to czerwiec 2027 and clicks "Anuluj"
+- **THEN** the overview of styczeń to czerwiec 2027 is shown again with the same filters
 
 #### Scenario: From the deadlines list
 
