@@ -19,7 +19,8 @@ rules:
     - Examples use made-up project names and addresses, never rows from the
       studio's real sheet.
   tasks:
-    - Every scenario that pure logic can observe (date parsing, calendar grid,
+    - >-
+      Every scenario that pure logic can observe (date parsing, calendar grid,
       milestone listing, CSV import, conflict check) gets a node --test case
       named "<area>: <scenario name>".
     - Last task is always "verify in the running dev environment" (pnpm dev,

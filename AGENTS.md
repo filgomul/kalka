@@ -54,6 +54,7 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 ## How to work here
 
 Write specs and tasks by the rules in `openspec/config.yaml`.
+The OpenSpec CLI and its `/opsx:*` commands are optional; setup is in `CLAUDE.md`.
 
 1. Read the spec of every area you touch.
 2. A behaviour change starts as a change folder, never as code:
