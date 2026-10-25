@@ -11,7 +11,7 @@ architect and the scope handed to branch engineers. Replaces an Excel sheet. Pol
 
 ```bash
 pnpm install --ignore-scripts
-pnpm dev      # http://localhost:5173
+pnpm dev      # http://localhost:5173/kalka/
 pnpm test     # node --test
 pnpm build    # dist/
 ```
