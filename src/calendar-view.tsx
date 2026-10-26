@@ -1,5 +1,5 @@
 import { useRef } from 'preact/hooks'
-import { architectOptions, MILESTONES, STATUSES, todayIso } from './model.ts'
+import { architectOptions, MILESTONES, type MilestoneKey, STATUSES, todayIso } from './model.ts'
 import {
   addMonths,
   entries,
@@ -73,13 +73,19 @@ export function CalendarFilters({ data, params, onParams }: ViewProps) {
   )
 }
 
+/** The "?" before a date that is only planned, in the milestone's colour. */
+export function PlannedMark({ kind }: { kind?: MilestoneKey }) {
+  return <abbr class="q" data-kind={kind} title={t.unconfirmed}>?</abbr>
+}
+
 /** `day` puts the day of the month (or "mies.") in front, for the overview's lists. */
 export function Chip({ e, href, day }: { e: Entry; href: string; day?: boolean }) {
-  const state = e.state === 'overdue' ? `, ${t.overdue}` : e.state === 'done' ? `, ${t.done}` : ''
+  const planned = !e.confirmed && e.state !== 'done'
+  const state = [planned && t.unconfirmed, e.state === 'overdue' && t.overdue, e.state === 'done' && t.done].filter(Boolean).map((s) => `, ${s}`).join('')
   return (
-    <a class="chip" data-kind={e.key} data-state={e.state} href={href} title={`${e.project.title || e.file} - ${milestoneLabels[e.key]}${state}`}>
+    <a class="chip" data-kind={e.key} data-state={e.state} data-planned={planned || undefined} href={href} title={`${e.project.title || e.file} - ${milestoneLabels[e.key]}${state}`}>
       {day && <i class="d">{e.precision === 'day' ? e.value.slice(8) : t.wholeMonth}</i>}
-      <b>{milestoneShort[e.key]}</b>
+      <b>{planned && <PlannedMark />}{milestoneShort[e.key]}</b>
       <span>{e.project.title || e.file}</span>
     </a>
   )
@@ -153,6 +159,7 @@ export function CalendarView(props: ViewProps) {
         {MILESTONES.map((k) => (
           <span key={k}><i data-kind={k} />{milestoneShort[k]} - {milestoneLabels[k]}</span>
         ))}
+        <span><PlannedMark />{t.unconfirmed}</span>
       </div>
 
       {isOverview ? <Overview all={all} params={params} today={today} range={range} /> : <MonthView all={all} params={params} today={today} month={month} />}

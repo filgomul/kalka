@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks'
-import { BRANCHES, emptyProject, isDone, MILESTONES, nextLp, parseDate, prepareForSave, STATUSES, type MilestoneKey, type Project } from './model.ts'
+import { BRANCHES, emptyProject, isConfirmed, isDone, MILESTONES, nextLp, parseDate, prepareForSave, STATUSES, type MilestoneKey, type Project } from './model.ts'
 import { branchLabels, milestoneLabels, statusLabels, t } from './pl.ts'
 import { ConflictError, saveProject, type Loaded } from './storage.ts'
 import type { Data } from './main.tsx'
@@ -28,6 +28,8 @@ export function ProjectForm({ data, loaded, onSaved, onCancel }: Props) {
   const setMilestone = (key: MilestoneKey, value: string) => setDraft((d) => ({ ...d, milestones: { ...d.milestones, [key]: value } }))
   const setDone = (key: MilestoneKey, on: boolean) =>
     setDraft((d) => ({ ...d, done: on ? [...(d.done ?? []), key] : d.done?.filter((k) => k !== key) }))
+  const setConfirmed = (key: MilestoneKey, on: boolean) =>
+    setDraft((d) => ({ ...d, confirmed: on ? [...(d.confirmed ?? []), key] : d.confirmed?.filter((k) => k !== key) }))
   const switchPrecision = (key: MilestoneKey, to: Precision) => {
     setPrecision((p) => ({ ...p, [key]: to }))
     // a month keeps its year and month; a day can't be guessed from a month
@@ -118,10 +120,22 @@ export function ProjectForm({ data, loaded, onSaved, onCancel }: Props) {
                   <option value="day">{t.day}</option>
                   <option value="month">{t.month}</option>
                 </select>
-                <label class="check">
-                  <input type="checkbox" checked={isDone(draft, key)} onChange={(e) => setDone(key, e.currentTarget.checked)} />
-                  {t.done}
-                </label>
+                <div class="state">
+                  <span role="radiogroup" aria-label={`${milestoneLabels[key]}: ${t.planned} / ${t.confirmed}`}>
+                    <label class="check">
+                      <input type="radio" name={`${key}-confirmed`} checked={!isConfirmed(draft, key)} onChange={() => setConfirmed(key, false)} />
+                      {t.planned}
+                    </label>
+                    <label class="check">
+                      <input type="radio" name={`${key}-confirmed`} checked={isConfirmed(draft, key)} onChange={() => setConfirmed(key, true)} />
+                      {t.confirmed}
+                    </label>
+                  </span>
+                  <label class="check">
+                    <input type="checkbox" checked={isDone(draft, key)} onChange={(e) => setDone(key, e.currentTarget.checked)} />
+                    {t.done}
+                  </label>
+                </div>
               </fieldset>
             ))}
           </div>
