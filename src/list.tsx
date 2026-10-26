@@ -1,5 +1,6 @@
-import { architectOptions, filterProjects, formatDate, nextMilestone, sortProjects, STATUSES, todayIso, type Filter } from './model.ts'
+import { architectOptions, filterProjects, formatDate, isConfirmed, nextMilestone, sortProjects, STATUSES, todayIso, type Filter } from './model.ts'
 import { milestoneLabels, statusLabels, t } from './pl.ts'
+import { PlannedMark } from './calendar-view.tsx'
 import type { Data } from './main.tsx'
 
 type Props = {
@@ -75,7 +76,7 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
                     <td>
                       {next ? (
                         <>
-                          <span class={late ? 'date late' : 'date'}>{formatDate(next.value)}</span>
+                          <span class={late ? 'date late' : 'date'}>{!isConfirmed(p, next.key) && <PlannedMark kind={next.key} />}{formatDate(next.value)}</span>
                           <span class="sub">
                             {milestoneLabels[next.key]}
                             {late && <>, <span class="late">{t.overdue}</span></>}

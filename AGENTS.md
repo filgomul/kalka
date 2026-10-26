@@ -14,7 +14,8 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
 - **calendar**: month grid of milestones across all projects with the same filters, plus
   the "Terminy" list of upcoming and recently passed milestones.
 - A project has seven optional milestones, each with day (`YYYY-MM-DD`) or month
-  (`YYYY-MM`) precision. The calendar shows only milestones that have a date.
+  (`YYYY-MM`) precision, planned or confirmed, and separately done or not. The
+  calendar shows only milestones that have a date.
 - A save never overwrites a project file that someone else changed after it was read.
 
 Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has touched it.
@@ -35,6 +36,8 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 | branża konstrukcyjna / sanitarna / elektryczna / drogowa | `konstrukcja` / `sanitarna` / `elektryczna` / `drogowa` | Scope text for that engineering branch; empty means "brak" (none) |
 | rzeczoznawca ppoż. / BHP i Sanepid | `ppoz` / `bhpSanepid` | Fire-protection and OHS/sanitary expert involvement |
 | status | `aktywny` / `wstrzymany` / `zakończony` | Active, on hold, finished |
+| planowane / potwierdzone | `confirmed` | Milestone date is a guess until marked confirmed |
+| zrealizowane | `done` | Milestone reached |
 
 ## Stack and limits
 

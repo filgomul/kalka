@@ -19,6 +19,8 @@ export type Project = {
   milestones: Partial<Record<MilestoneKey, string>>
   /** milestones marked done, dated or not; absent means none */
   done?: MilestoneKey[]
+  /** milestones whose date is confirmed; the rest are planned; absent means none */
+  confirmed?: MilestoneKey[]
   /** empty string means "brak" */
   branches: Record<BranchKey, string>
   notes: string
@@ -56,6 +58,7 @@ export function todayIso(now = new Date()): string {
 export type NextMilestone = { key: MilestoneKey; value: string; due: string }
 
 export const isDone = (p: Project, key: MilestoneKey) => p.done?.includes(key) ?? false
+export const isConfirmed = (p: Project, key: MilestoneKey) => p.confirmed?.includes(key) ?? false
 
 /** The dated, not-done milestone with the earliest due date; before `today` means overdue. */
 export function nextMilestone(p: Project): NextMilestone | null {
@@ -105,12 +108,13 @@ export function normalize(raw: Partial<Project> & { id: string }): Project {
     location: { ...base.location, ...raw.location },
     milestones: { ...raw.milestones },
     done: MILESTONES.filter((k) => Array.isArray(raw.done) && raw.done.includes(k)),
+    confirmed: MILESTONES.filter((k) => Array.isArray(raw.confirmed) && raw.confirmed.includes(k)),
     branches: { ...base.branches, ...raw.branches },
     status: STATUSES.includes(raw.status as Status) ? raw.status! : 'aktywny',
   }
 }
 
-/** Trims text and drops cleared milestones and an empty done list before a save. */
+/** Trims text and drops cleared milestones and empty done and confirmed lists before a save. */
 export function prepareForSave(p: Project): Project {
   const milestones: Project['milestones'] = {}
   for (const key of MILESTONES) if (parseDate(p.milestones[key])) milestones[key] = p.milestones[key]
@@ -120,9 +124,11 @@ export function prepareForSave(p: Project): Project {
     location: { city: p.location.city.trim(), address: p.location.address.trim() },
     milestones,
     done: MILESTONES.filter((k) => isDone(p, k)),
+    confirmed: MILESTONES.filter((k) => isConfirmed(p, k)),
   }
   if (out.lp === undefined || !Number.isInteger(out.lp)) delete out.lp
   if (!out.done!.length) delete out.done
+  if (!out.confirmed!.length) delete out.confirmed
   return out
 }
 

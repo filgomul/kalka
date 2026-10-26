@@ -1,7 +1,7 @@
 // Calendar and deadlines logic. No DOM here, so node --test can run it.
 // Dates are ISO strings (`YYYY-MM-DD`); arithmetic goes through UTC so time zones can't shift a day.
 
-import { filterProjects, isDone, MILESTONES, parseDate, type MilestoneKey, type Project } from './model.ts'
+import { filterProjects, isConfirmed, isDone, MILESTONES, parseDate, type MilestoneKey, type Project } from './model.ts'
 
 type Row = { project: Project; file: string }
 
@@ -17,6 +17,8 @@ export type Entry = {
   precision: 'day' | 'month'
   due: string
   state: 'done' | 'overdue' | 'open'
+  /** false while the date is only planned */
+  confirmed: boolean
 }
 
 const toDate = (iso: string) => new Date(iso + 'T00:00:00Z')
@@ -66,7 +68,7 @@ export function entries(rows: Row[], today: string): Entry[] {
       const d = parseDate(value)
       if (!d) continue
       const state = isDone(project, key) ? 'done' : d.due < today ? 'overdue' : 'open'
-      out.push({ project, file, key, value: value!, precision: d.precision, due: d.due, state })
+      out.push({ project, file, key, value: value!, precision: d.precision, due: d.due, state, confirmed: isConfirmed(project, key) })
     }
   }
   return out.sort(

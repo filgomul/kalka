@@ -459,6 +459,20 @@ label.check {
   cursor: pointer;
 }
 
+.milestone .state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+}
+
+.milestone .state [role='radiogroup'] {
+  display: flex;
+  gap: 12px;
+  margin-right: auto;
+}
+
 .actions {
   position: sticky;
   bottom: 0;
@@ -531,6 +545,13 @@ label.check {
   opacity: 0.5;
 }
 
+/* a planned date: fainter than a confirmed one, but not struck through like a done one */
+.chip[data-planned] {
+  background: color-mix(in srgb, var(--t) 45%, transparent);
+  border-left-color: color-mix(in srgb, var(--c) 50%, transparent);
+  color: color-mix(in srgb, var(--x) 70%, transparent);
+}
+
 .chip[data-state='done'] b,
 .chip[data-state='done'] span {
   text-decoration: line-through;
@@ -542,17 +563,38 @@ label.check {
   outline-offset: -1.5px;
 }
 
-.chip[data-state='overdue'] b::before {
-  content: '!';
+/* the overdue "!" and the planned "?" share one shape so they line up side by side.
+   The line is trimmed to cap height and padded evenly, so the glyph sits in the middle
+   of the circle; the lift puts the circle's middle on the middle of the capitals around
+   it (the mark is 0.9 of that text, so it rises by 1/18 of its own cap height). */
+.chip[data-state='overdue'] b::before,
+.q {
   display: inline-block;
+  box-sizing: border-box;
   width: 1.1em;
+  height: 1.1em;
+  padding-top: calc((1.1em - 1cap) / 2);
   margin-right: 3px;
   text-align: center;
+  text-box: trim-both cap alphabetic;
   border-radius: 50%;
-  background: var(--error);
   color: #fff;
-  font-size: 0.7rem;
-  line-height: 1.1em;
+  font-size: 0.9em;
+  font-weight: 600;
+  line-height: 1;
+  vertical-align: calc(1cap / 18);
+}
+
+.chip[data-state='overdue'] b::before {
+  content: '!';
+  background: var(--error);
+}
+
+/* "?" before a planned date */
+.q {
+  text-decoration: none;
+  background: var(--c, var(--muted));
+  cursor: help;
 }
 
 /* Calendar */
@@ -661,6 +703,10 @@ button.pick::after {
   height: 10px;
   border-radius: 2px;
   background: var(--c);
+}
+
+.legend .q {
+  margin-right: 0;
 }
 
 .strip {

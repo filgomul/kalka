@@ -6,6 +6,7 @@ import {
   emptyProject,
   filterProjects,
   formatDate,
+  isConfirmed,
   isDone,
   MILESTONES,
   nextLp,
@@ -146,4 +147,75 @@ test('projects: Older file', () => {
   assert.equal(p.milestones.akceptacja, undefined)
   assert.equal(isDone(p, 'akceptacja'), false)
   assert.ok(!('akceptacja' in prepareForSave(p).milestones))
+})
+
+test('projects: New project', () => {
+  const p = emptyProject()
+  assert.equal(p.confirmed, undefined)
+  assert.ok(MILESTONES.every((k) => !isConfirmed(p, k)))
+})
+
+test('projects: Confirm and save', () => {
+  const saved = prepareForSave(project({ title: 'Dom', milestones: { pozwolenie: '2027-03' }, confirmed: ['pozwolenie'] }))
+  assert.deepEqual(saved.confirmed, ['pozwolenie'])
+  const reopened = normalize(JSON.parse(JSON.stringify(saved)))
+  assert.equal(isConfirmed(reopened, 'pozwolenie'), true)
+})
+
+test('projects: Back to planned', () => {
+  const saved = prepareForSave(project({ title: 'Dom', milestones: { pozwolenie: '2027-03' }, confirmed: [] }))
+  assert.equal('confirmed' in saved, false)
+})
+
+test('projects: File without confirmed marks', () => {
+  const p = normalize({ id: 'x', title: 'Dom', milestones: { koncepcja: '2026-01-10' }, done: ['koncepcja'] })
+  assert.deepEqual(p.confirmed, [])
+  assert.ok(MILESTONES.every((k) => !isConfirmed(p, k)))
+  // a hand-edited file with junk in confirmed
+  assert.deepEqual(normalize({ id: 'x', confirmed: 'koncepcja' as never }).confirmed, [])
+  assert.deepEqual(normalize({ id: 'x', confirmed: ['pozwolenie', 'nic' as never, 'koncepcja'] }).confirmed, ['koncepcja', 'pozwolenie'])
+})
+
+test('projects: Confirmed without a date', () => {
+  const saved = prepareForSave(project({ title: 'Dom', confirmed: ['koncepcja'] }))
+  assert.deepEqual(saved.confirmed, ['koncepcja'])
+  assert.equal('koncepcja' in saved.milestones, false)
+})
+
+test('projects: Date changed', () => {
+  const p = project({ title: 'Dom', milestones: { pozwolenie: '2027-03' }, confirmed: ['pozwolenie'] })
+  const saved = prepareForSave({ ...p, milestones: { pozwolenie: '2027-03-18' } })
+  assert.equal(saved.milestones.pozwolenie, '2027-03-18')
+  assert.equal(isConfirmed(saved, 'pozwolenie'), true)
+})
+
+test('projects: Independent of done', () => {
+  const done = prepareForSave(project({ title: 'Dom', milestones: { koncepcja: '2026-10-05' }, done: ['koncepcja'] }))
+  assert.equal(isDone(done, 'koncepcja'), true)
+  assert.equal(isConfirmed(done, 'koncepcja'), false)
+  const unticked = prepareForSave({ ...done, done: [] })
+  assert.equal(isDone(unticked, 'koncepcja'), false)
+  assert.equal(isConfirmed(unticked, 'koncepcja'), false)
+})
+
+test('projects: Planned next milestone', () => {
+  const p = project({ title: 'Dom Lipowa', milestones: { pozwolenie: '2027-03' } })
+  const next = nextMilestone(p)!
+  assert.equal(next.key, 'pozwolenie')
+  assert.equal(formatDate(next.value), '03.2027')
+  assert.equal(isConfirmed(p, next.key), false)
+})
+
+test('projects: Confirmed next milestone', () => {
+  const p = project({ milestones: { pozwolenie: '2027-03' }, confirmed: ['pozwolenie'] })
+  assert.equal(nextMilestone(p)?.key, 'pozwolenie')
+  assert.equal(isConfirmed(p, 'pozwolenie'), true)
+})
+
+test('projects: Planned and overdue', () => {
+  const p = project({ milestones: { pbDoUrzedu: '2026-10-10', pozwolenie: '2026-12-01' }, confirmed: ['pozwolenie'] })
+  const next = nextMilestone(p)!
+  assert.equal(next.key, 'pbDoUrzedu')
+  assert.ok(next.due < '2026-10-25')
+  assert.equal(isConfirmed(p, next.key), false)
 })

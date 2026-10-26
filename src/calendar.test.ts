@@ -47,8 +47,8 @@ test('calendar: Undated milestone', () => {
 })
 
 test('calendar: Done and overdue in one month', () => {
-  const all = entries([row({ title: 'Dom', milestones: { koncepcja: '2026-10-05', pbDoUrzedu: '2026-10-16' }, done: ['koncepcja'] })], TODAY)
-  assert.deepEqual(all.map((e) => [e.key, e.state]), [['koncepcja', 'done'], ['pbDoUrzedu', 'overdue']])
+  const all = entries([row({ title: 'Dom', milestones: { koncepcja: '2026-10-05', pbDoUrzedu: '2026-10-16' }, done: ['koncepcja'], confirmed: ['pbDoUrzedu'] })], TODAY)
+  assert.deepEqual(all.map((e) => [e.key, e.state, e.confirmed]), [['koncepcja', 'done', false], ['pbDoUrzedu', 'overdue', true]])
 })
 
 test('calendar: Due today (chip)', () => {
@@ -206,4 +206,37 @@ test('calendar: Concept acceptance chip', () => {
 test('calendar: Same day as the concept', () => {
   const all = entries([row({ title: 'Dom', milestones: { akceptacja: '2026-11-14', koncepcja: '2026-11-14' } })], TODAY)
   assert.deepEqual(all.map((e) => e.key), ['koncepcja', 'akceptacja'])
+})
+
+test('calendar: Planned chip', () => {
+  const [e] = entries([row({ title: 'Dom Lipowa', milestones: { pozwolenie: '2026-11-20' } })], TODAY)
+  assert.deepEqual([e.value, e.state, e.confirmed], ['2026-11-20', 'open', false])
+})
+
+test('calendar: Confirmed chip', () => {
+  const [e] = entries([row({ title: 'Dom Lipowa', milestones: { pozwolenie: '2026-11-20' }, confirmed: ['pozwolenie'] })], TODAY)
+  assert.deepEqual([e.state, e.confirmed], ['open', true])
+})
+
+test('calendar: Planned month', () => {
+  const all = entries([row({ title: 'Dom', milestones: { branzysci: '2026-11' } })], TODAY)
+  const { strip } = monthEntries(all, '2026-11')
+  assert.deepEqual(strip.map((e) => [e.key, e.confirmed]), [['branzysci', false]])
+})
+
+test('calendar: Planned and overdue', () => {
+  const [e] = entries([row({ milestones: { pbDoUrzedu: '2026-10-16' } })], TODAY)
+  assert.deepEqual([e.state, e.confirmed], ['overdue', false])
+})
+
+test('calendar: Planned and done', () => {
+  const [e] = entries([row({ milestones: { koncepcja: '2026-10-05' }, done: ['koncepcja'] })], TODAY)
+  assert.deepEqual([e.state, e.confirmed], ['done', false])
+})
+
+test('calendar: Planned entry', () => {
+  const d = deadlines(entries([row({ milestones: { pozwolenie: '2026-11-20' } })], TODAY), TODAY)
+  assert.deepEqual(d.weeks.map((w) => [w.monday, w.entries.map((e) => [e.value, e.confirmed])]), [['2026-11-16', [['2026-11-20', false]]]])
+  const confirmed = deadlines(entries([row({ milestones: { pozwolenie: '2026-11-20' }, confirmed: ['pozwolenie'] })], TODAY), TODAY)
+  assert.equal(confirmed.weeks[0].entries[0].confirmed, true)
 })
