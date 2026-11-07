@@ -2,7 +2,6 @@ import { useRef } from 'preact/hooks'
 import { architectOptions, STATUSES, styleOf, titleOf, todayIso } from './model.ts'
 import {
   addMonths,
-  entries,
   legendStyles,
   isMonth,
   monthEntries,
@@ -11,16 +10,21 @@ import {
   overviewRange,
   projectChoices,
   rangeLength,
+  showOf,
+  shownOnCalendar,
   stepRange,
-  visibleRows,
   withFrom,
   withLength,
   withTo,
   type CalendarFilter,
   type Entry,
   type Range,
+  type Show,
 } from './calendar.ts'
 import { months, monthsShort, statusLabels, t, weekdays } from './pl.ts'
+import { formatRange, formatShortRange, leavesInMonth, weekLanes } from './leaves.ts'
+import { leaveColor, useLeaveEdit } from './leaves-view.tsx'
+import type { LoadedLeave } from './storage.ts'
 import type { Data } from './main.tsx'
 
 export type ViewProps = {
@@ -50,26 +54,48 @@ export function withParam(params: URLSearchParams, key: string, value: string): 
   return p
 }
 
-/** Architect, status and project filters shared by the calendar and Terminy. */
-export function CalendarFilters({ data, params, onParams }: ViewProps) {
+/** Architect, status and project filters shared by the calendar and Terminy; `kind` adds "Pokaż" (calendar only). */
+export function CalendarFilters({ data, params, onParams, kind }: ViewProps & { kind?: boolean }) {
   const f = calendarFilter(params)
-  const architects = architectOptions(data.settings.architects, data.projects.map((l) => l.project))
+  const show = kind ? showOf(params.get('k')) : ''
+  const architects = architectOptions(data.settings.architects, data.projects.map((l) => l.project.leadArchitect))
   const set = (key: string) => (e: { currentTarget: HTMLSelectElement }) => onParams(withParam(params, key, e.currentTarget.value))
+  // these narrow milestones only, so they do nothing while only leaves are shown
+  const milestonesOff = show === 'urlopy'
   return (
     <div class="toolbar">
-      <select aria-label={t.colArchitect} value={f.architect} onChange={set('a')} disabled={!!f.project}>
-        <option value="">{t.allArchitects}</option>
-        {architects.map((a) => <option key={a} value={a}>{a}</option>)}
-      </select>
-      <select aria-label={t.colStatus} value={f.status} onChange={set('s')} disabled={!!f.project}>
-        <option value="">{t.statusDefault}</option>
-        {STATUSES.map((s) => <option key={s} value={s}>{statusLabels[s]}</option>)}
-        <option value="wszystkie">{t.statusAll}</option>
-      </select>
-      <select aria-label={t.colProject} value={f.project} onChange={set('p')}>
-        <option value="">{t.allProjects}</option>
-        {projectChoices(data.projects).map((c) => <option key={c.file} value={c.file}>{c.label}</option>)}
-      </select>
+      <label>
+        {t.filterArchitect}
+        <select value={f.architect} onChange={set('a')} disabled={!!f.project || milestonesOff}>
+          <option value="">{t.allArchitects}</option>
+          {architects.map((a) => <option key={a} value={a}>{a}</option>)}
+        </select>
+      </label>
+      <label>
+        {t.filterStatus}
+        <select value={f.status} onChange={set('s')} disabled={!!f.project || milestonesOff}>
+          <option value="">{t.statusDefault}</option>
+          {STATUSES.map((s) => <option key={s} value={s}>{statusLabels[s]}</option>)}
+          <option value="wszystkie">{t.statusAll}</option>
+        </select>
+      </label>
+      <label>
+        {t.filterProject}
+        <select value={f.project} onChange={set('p')} disabled={milestonesOff}>
+          <option value="">{t.allProjects}</option>
+          {projectChoices(data.projects).map((c) => <option key={c.file} value={c.file}>{c.label}</option>)}
+        </select>
+      </label>
+      {kind && (
+        <label>
+          {t.filterShow}
+          <select value={show} onChange={set('k')}>
+            <option value="">{t.showAll}</option>
+            <option value="terminy">{t.showMilestones}</option>
+            <option value="urlopy">{t.showLeaves}</option>
+          </select>
+        </label>
+      )}
     </div>
   )
 }
@@ -108,14 +134,17 @@ function MonthPick({ value, label, class: cls, onPick }: { value: string; label:
 
 const SHORTCUTS = [3, 6, 12]
 
-export function CalendarView(props: ViewProps) {
-  const { data, params, onParams } = props
+export function CalendarView(props: ViewProps & { reloadLeaves: () => Promise<void> }) {
+  const { data, params, onParams, reloadLeaves } = props
   const today = todayIso()
   const current = today.slice(0, 7)
   const month = isMonth(params.get('m')) ? params.get('m')! : current
   const isOverview = params.get('w') === 'przeglad'
   const range = overviewRange(params.get('od'), params.get('do'), current)
-  const all = entries(visibleRows(data.projects, calendarFilter(params)), today)
+  const show = showOf(params.get('k'))
+  const { all, leaves } = shownOnCalendar(data.projects, data.leaves, calendarFilter(params), show, today)
+  const edit = useLeaveEdit(data, reloadLeaves, true)
+  const parts = { all, leaves, data, params, today, onLeave: edit.edit }
   const go = (m: string) => onParams(withParam(params, 'm', m === current ? '' : m))
   const setRange = (r: Range) => onParams(withParam(withParam(params, 'od', r.from), 'do', r.to))
   const short = (m: string) => `${monthsShort[+m.slice(5) - 1]} ${m.slice(0, 4)}`
@@ -157,23 +186,37 @@ export function CalendarView(props: ViewProps) {
         )}
       </div>
 
-      <CalendarFilters {...props} />
+      <CalendarFilters {...props} kind />
 
-      <div class="legend" aria-label={t.legend}>
-        {legendStyles(all).map((s) => (
-          <span key={s.id}><i style={colorOf(s.id)} />{s.short} - {s.name}</span>
-        ))}
-        <span><PlannedMark />{t.unconfirmed}</span>
-      </div>
+      {show !== 'urlopy' && (
+        <div class="legend" aria-label={t.legend}>
+          {legendStyles(all).map((s) => (
+            <span key={s.id}><i style={colorOf(s.id)} />{s.short} - {s.name}</span>
+          ))}
+          <span><PlannedMark />{t.unconfirmed}</span>
+        </div>
+      )}
 
-      {isOverview ? <Overview all={all} params={params} today={today} range={range} /> : <MonthView all={all} params={params} today={today} month={month} />}
+      {edit.error && <p class="error" role="alert">{edit.error}</p>}
+
+      {isOverview ? <Overview {...parts} show={show} range={range} /> : <MonthView {...parts} month={month} />}
+      {edit.dialog}
     </main>
   )
 }
 
-type PartProps = { all: Entry[]; params: URLSearchParams; today: string }
+type PartProps = {
+  all: Entry[]
+  leaves: LoadedLeave[]
+  data: Data
+  params: URLSearchParams
+  today: string
+  onLeave: (l: LoadedLeave) => void
+}
 
-function MonthView({ all, params, today, month }: PartProps & { month: string }) {
+const leaveTitle = (l: LoadedLeave) => t.leaveTitle(l.leave.architect, formatRange(l.leave))
+
+function MonthView({ all, leaves, data, params, today, month, onLeave }: PartProps & { month: string }) {
   const { byDay, strip } = monthEntries(all, month)
   const href = (e: Entry) => projectHref(e.file, params, 'kalendarz')
   return (
@@ -187,13 +230,40 @@ function MonthView({ all, params, today, month }: PartProps & { month: string })
 
       <div class="month-scroll">
         <div class="month-grid">
-          {weekdays.map((d) => <div key={d} class="dow">{d}</div>)}
-          {monthGrid(month).flat().map((day, i) => {
-            const cls = ['day', day.slice(0, 7) !== month && 'out', i % 7 > 4 && 'weekend', day === today && 'today'].filter(Boolean).join(' ')
+          <div class="dows">{weekdays.map((d) => <div key={d} class="dow">{d}</div>)}</div>
+          {monthGrid(month).map((week) => {
+            // each week is its own grid: day cells over every row, leave lines under the day numbers, chips last
+            const pieces = weekLanes(leaves, week)
+            const lanes = Math.max(0, ...pieces.map((p) => p.lane + 1))
             return (
-              <div key={day} class={cls}>
-                <span class="n">{+day.slice(8)}</span>
-                {byDay.get(day)?.map((e) => <Chip key={e.file + e.milestone.id} e={e} href={href(e)} />)}
+              <div key={week[0]} class="week" style={`grid-template-rows: var(--num-row) ${'var(--lane-row) '.repeat(lanes)}1fr`}>
+                {week.map((day, i) => {
+                  const cls = ['day', day.slice(0, 7) !== month && 'out', i > 4 && 'weekend', day === today && 'today'].filter(Boolean).join(' ')
+                  return <div key={day} class={cls} style={`grid-column: ${i + 1}`}><span class="n">{+day.slice(8)}</span></div>
+                })}
+                {pieces.map(({ row: l, start, span, lane }) => {
+                  // a thin line in the architect's colour with "urlop" and the name above it
+                  return (
+                    <button
+                      key={l.file}
+                      type="button"
+                      class="leave-bar"
+                      style={`${leaveColor(data, l.leave.architect)}; grid-column: ${start} / span ${span}; grid-row: ${lane + 2}`}
+                      title={leaveTitle(l)}
+                      onClick={() => onLeave(l)}
+                    >
+                      <span><b>{t.leaveShort}</b> {l.leave.architect}</span>
+                    </button>
+                  )
+                })}
+                {week.map((day, i) => {
+                  const chips = byDay.get(day)
+                  return chips && (
+                    <div key={day} class="chips" style={`grid-column: ${i + 1}; grid-row: ${lanes + 2}`}>
+                      {chips.map((e) => <Chip key={e.file + e.milestone.id} e={e} href={href(e)} />)}
+                    </div>
+                  )
+                })}
               </div>
             )
           })}
@@ -203,7 +273,7 @@ function MonthView({ all, params, today, month }: PartProps & { month: string })
   )
 }
 
-function Overview({ all, params, today, range }: PartProps & { range: Range }) {
+function Overview({ all, leaves, data, params, today, range, show, onLeave }: PartProps & { range: Range; show: Show }) {
   const href = (e: Entry) => projectHref(e.file, params, 'kalendarz')
   // month view of `m` with the same filters; the range stays in the URL for the way back
   const monthHref = (m: string) => {
@@ -215,7 +285,10 @@ function Overview({ all, params, today, range }: PartProps & { range: Range }) {
       {overviewMonths(all, range).map(({ month, shown, more }) => (
         <section key={month} class={month === today.slice(0, 7) ? 'card overview-month now' : 'card overview-month'}>
           <h2><a href={monthHref(month)}>{months[+month.slice(5) - 1]} {month.slice(0, 4)}</a></h2>
-          {shown.length === 0 ? (
+          <OverviewLeaves rows={leavesInMonth(leaves, month)} data={data} onLeave={onLeave} />
+          {show === 'urlopy' ? (
+            leavesInMonth(leaves, month).length === 0 && <p class="muted">{t.noLeavesInMonth}</p>
+          ) : shown.length === 0 ? (
             <p class="muted">{t.noMilestones}</p>
           ) : (
             <ul>{shown.map((e) => <li key={e.file + e.milestone.id}><Chip e={e} href={href(e)} day /></li>)}</ul>
@@ -224,5 +297,23 @@ function Overview({ all, params, today, range }: PartProps & { range: Range }) {
         </section>
       ))}
     </div>
+  )
+}
+
+/** The leaves of an overview month block, above its milestones; each opens the leave dialog. */
+function OverviewLeaves({ rows, data, onLeave }: { rows: LoadedLeave[]; data: Data; onLeave: (l: LoadedLeave) => void }) {
+  if (!rows.length) return null
+  return (
+    <ul class="overview-leaves">
+      {rows.map((l) => (
+        <li key={l.file}>
+          <button type="button" class="chip leave" style={leaveColor(data, l.leave.architect)} title={leaveTitle(l)} onClick={() => onLeave(l)}>
+            <b>{t.leaveShort}</b>
+            <span>{l.leave.architect}</span>
+            <b class="dates">{formatShortRange(l.leave)}</b>
+          </button>
+        </li>
+      ))}
+    </ul>
   )
 }

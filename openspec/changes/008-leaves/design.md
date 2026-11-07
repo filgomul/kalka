@@ -68,20 +68,31 @@ its column. The grid's height grows with the lanes of that row only. Alternative
 absolutely positioned bars measured from cell positions, which breaks on resize and
 horizontal scroll.
 
-### 5. Colour
+### 5. Colour and line
 
-Rows, bars and overview entries use `badgeFor(settings.badges, name).color`. Bars are
-solid with `textOn` text, as the spec asks for contrast. List rows and overview entries
-set `--c` to that colour and reuse the chip tint (`--t`, `--x` and the left border),
-so they look like milestone entries.
+Rows, lines and overview entries set `--c` to `badgeFor(settings.badges, name).color`
+and reuse the chip tokens (`--t` tint, `--x` darker text). A leave piece is a button
+whose `::after` is the 3 px line in `--c`, with "urlop" and the name above it in `--x`;
+a lane row is 19 px, so a week grows little per overlapping leave. Solid bars with
+`textOn` text were the first version; QA found them too heavy.
+
+### 5a. Range calendar
+
+The browser's date input can't pick a range, so the dialog has a small month grid of day
+buttons (`RangePicker` in `leaves-view.tsx`), reusing `monthGrid` and `addMonths` from
+`calendar.ts`. The click rule is the pure `pickDay` in `leaves.ts` (tested); the pointer
+preview is view state only. Day buttons are real buttons named by their date, so keyboard
+users tab through them. Alternative: two date inputs (the first version), which the
+engineer asked to replace.
 
 ### 6. Filters
 
 URL key `k` = `''` (Terminy i urlopy), `terminy` or `urlopy`. `CalendarFilters` wraps each
 select in a `<label>` with the visible text and takes a `kind` flag so only the calendar
-renders "Pokaż"; with `k=urlopy` it disables the other three selects. `CalendarView`
-computes milestone entries only when `k` is not `urlopy` and leaves only when it is not
-`terminy`; `visibleRows` stays milestone-only, so the calendar filters never reach leaves.
+renders "Pokaż"; with `k=urlopy` it disables the other three selects. A pure
+`shownOnCalendar` in `calendar.ts` gives `CalendarView` the milestone entries (none when
+`k=urlopy`) and the leaves (none when `k=terminy`); `visibleRows` stays milestone-only, so
+the calendar filters never reach leaves.
 `architectOptions(listed, projects)` becomes `architectOptions(listed, extraNames)` so the
 leaves view passes the leave architects and the other callers pass lead architects.
 

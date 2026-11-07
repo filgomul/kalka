@@ -134,9 +134,9 @@ export function nextLp(projects: Project[]): number {
   return Math.max(0, ...projects.map((p) => p.lp ?? 0)) + 1
 }
 
-/** Names from kalka.json first, then any other value projects already use. */
-export function architectOptions(listed: string[], projects: Project[]): string[] {
-  const extra = projects.map((p) => p.leadArchitect).filter((a) => a && !listed.includes(a))
+/** Names from kalka.json first, then any other name already in use (lead architects, leave architects), by name. */
+export function architectOptions(listed: string[], used: string[]): string[] {
+  const extra = used.filter((a) => a && !listed.includes(a))
   return [...listed, ...[...new Set(extra)].sort((a, b) => a.localeCompare(b, 'pl'))]
 }
 

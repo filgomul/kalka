@@ -350,5 +350,5 @@ test('projects: New project gets the next number', () => {
 
 test('projects: Value not on the list', () => {
   const ps = [project({ leadArchitect: 'Piotr Zieliński' }), project({ leadArchitect: 'Anna Nowak' }), project({})]
-  assert.deepEqual(architectOptions(['Anna Nowak', 'Jan Kowalski'], ps), ['Anna Nowak', 'Jan Kowalski', 'Piotr Zieliński'])
+  assert.deepEqual(architectOptions(['Anna Nowak', 'Jan Kowalski'], ps.map((p) => p.leadArchitect)), ['Anna Nowak', 'Jan Kowalski', 'Piotr Zieliński'])
 })

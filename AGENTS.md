@@ -8,16 +8,23 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
 
 - **storage**: opens the data folder on the shared OneDrive (synced to every PC by the
   OneDrive client) through the File System Access API. One JSON file per project in
-  `projekty/`, one per task in `zadania/`, settings in `kalka.json`. No server, no
+  `projekty/`, one per task in `zadania/`, one per leave in `urlopy/`, settings in
+  `kalka.json`. No server, no
   accounts: whoever has the OneDrive folder has the data.
 - **settings**: `kalka.json` lists the architects, each a name or
-  `{ "name", "initials", "color" }` (hex); initials and colour fill the task card circle.
+  `{ "name", "initials", "color" }` (hex); initials and colour fill the task card circle; the colour
+  also marks the architect's leaves.
 - **projects**: list, filter (lead architect, status), search, create/edit form.
 - **tasks**: a board on a saved project's page ("Do zrobienia", "W trakcie",
   "Wykonane"), cards dragged between and within columns. Each task change is written at
   once to its own file, apart from the project form's "Zapisz" / "Anuluj".
 - **calendar**: month grid of milestones across all projects with the same filters, plus
-  the "Terminy" list of upcoming and recently passed milestones.
+  the "Terminy" list of upcoming and recently passed milestones. Leaves show as bars in
+  the month grid and at the top of overview blocks, for every architect whatever the
+  filters; "Pokaż" picks milestones, leaves or both.
+- **leaves**: the "Urlopy" tab lists architects' leaves (current and upcoming, then past)
+  and adds, edits and deletes them; clicking a leave in the calendar opens the same
+  dialog. Each leave change is written at once to its own file.
 - A project's milestones are an ordered list (`timeline`) seeded from a template
   ("projekt budowlany", "projekt wnętrz", "inny") when the project is created; the
   project does not keep the template. Each milestone has a style (name, short label,
@@ -61,6 +68,8 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 | zadanie | task | A job inside a project, file `zadania/<id>.json` with `projectId` |
 | osoba | `assignee` | Architect doing a task; any architect, not only the lead one |
 | do zrobienia / w trakcie / wykonane | `todo` / `doing` / `done` | Task state, one board column each |
+| urlop | leave | An architect's absence, file `urlopy/<id>.json` with `{ id, architect, from, to }` (whole days, both included) |
+| pokaż | `k` | Calendar filter: "Terminy i urlopy" (default), "Terminy", "Urlopy" |
 
 ## Stack and limits
 
