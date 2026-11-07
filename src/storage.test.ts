@@ -163,7 +163,7 @@ test('storage: Minimal project', async () => {
   await saveProject(dir, p, `${p.id}.json`, '')
   const onDisk = JSON.parse(projectsOf(root).get(`${p.id}.json`) as string)
   assert.equal(onDisk.status, 'aktywny')
-  assert.deepEqual(onDisk.milestones, {})
+  assert.deepEqual(onDisk.timeline, [])
   assert.equal(onDisk.branches.sanitarna, '')
   // the same file can't be created twice
   await assert.rejects(saveProject(dir, p, `${p.id}.json`, ''), ConflictError)

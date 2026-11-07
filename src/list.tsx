@@ -1,5 +1,5 @@
-import { architectOptions, filterProjects, formatDate, isConfirmed, nextMilestone, sortProjects, STATUSES, todayIso, type Filter } from './model.ts'
-import { milestoneLabels, statusLabels, t } from './pl.ts'
+import { architectOptions, filterProjects, formatDate, nextMilestone, sortProjects, STATUSES, TEMPLATES, titleOf, todayIso, type Filter } from './model.ts'
+import { statusLabels, t } from './pl.ts'
 import { PlannedMark } from './calendar-view.tsx'
 import type { Data } from './main.tsx'
 
@@ -9,6 +9,13 @@ type Props = {
   query: string
   onFilter: (f: Filter) => void
   onRefresh: () => void
+}
+
+/** New-project form link for a template, keeping the list's filters for the way back. */
+function newProjectHref(query: string, template: string): string {
+  const p = new URLSearchParams(query)
+  p.set('t', template)
+  return `#/nowy?${p}`
 }
 
 export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props) {
@@ -22,7 +29,10 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
       <div class="heading">
         <h1>{t.projects} <span class="count">{rows.length}</span></h1>
         <button type="button" onClick={onRefresh}>{t.refresh}</button>
-        <a class="button primary" href={'#/nowy' + query}>+ {t.newProject}</a>
+        <button type="button" class="primary new-project" popovertarget="templates">+ {t.newProject}</button>
+        <div id="templates" popover="auto" class="menu" role="menu" aria-label={t.newProject}>
+          {TEMPLATES.map((tpl) => <a key={tpl.id} role="menuitem" href={newProjectHref(query, tpl.id)}>{tpl.name}</a>)}
+        </div>
       </div>
 
       {data.broken.length > 0 && (
@@ -76,9 +86,9 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
                     <td>
                       {next ? (
                         <>
-                          <span class={late ? 'date late' : 'date'}>{!isConfirmed(p, next.key) && <PlannedMark kind={next.key} />}{formatDate(next.value)}</span>
+                          <span class={late ? 'date late' : 'date'}>{!next.milestone.confirmed && <PlannedMark style={next.milestone.style} />}{formatDate(next.milestone.date)}</span>
                           <span class="sub">
-                            {milestoneLabels[next.key]}
+                            {titleOf(next.milestone)}
                             {late && <>, <span class="late">{t.overdue}</span></>}
                           </span>
                         </>

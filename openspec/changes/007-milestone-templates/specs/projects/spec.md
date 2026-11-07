@@ -40,7 +40,7 @@ The system SHALL give every milestone a style with a name, a short label and a c
 
 ### Requirement: Add milestone
 
-The system SHALL let the user add a milestone to a project with "+ Dodaj termin" below the milestone list, which opens a dialog with a title (required) and a style chosen from the 14 styles, "inny" by default. The new milestone goes to the end of the list, undated, planned and not done. Only the project changes, never a template.
+The system SHALL let the user add a milestone to a project with "+ Dodaj termin" in the top right corner of the milestones section (where "+ Dodaj zadanie" sits in the tasks section), which opens a dialog with a title (required) and a style chosen from the 14 styles, "inny" by default. The new milestone goes to the end of the list, undated, planned and not done. Only the project changes, never a template.
 
 #### Scenario: Second supplement
 

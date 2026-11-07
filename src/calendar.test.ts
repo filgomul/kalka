@@ -1,9 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { emptyProject, type Project } from './model.ts'
+import { moveMilestone, normalize, styleOf, titleOf, type Project, type RawProject } from './model.ts'
 import {
   deadlines,
   entries,
+  legendStyles,
   monthEntries,
   monthGrid,
   overviewMonths,
@@ -19,8 +20,9 @@ import {
 
 const TODAY = '2026-10-25'
 
-function row(fields: Partial<Project>, file = (fields.title ?? 'p') + '.json') {
-  return { project: { ...emptyProject(), ...fields }, file }
+/** Fixtures go through `normalize`, so the older shape (`milestones`, `done`, `confirmed`) still works here. */
+function row(fields: Partial<RawProject>, file = (fields.title ?? 'p') + '.json') {
+  return { project: normalize({ id: 'p', ...fields }), file }
 }
 const titles = (rs: { project: Project }[]) => rs.map((r) => r.project.title)
 const noFilter = { architect: '', status: '', project: '' }
@@ -38,17 +40,17 @@ test('calendar: October 2026', () => {
 test('calendar: Two milestones on one day', () => {
   const all = entries([row({ title: 'Dom Lipowa', milestones: { pbDoUrzedu: '2026-10-16' } }), row({ title: 'Hala Brzozowa', milestones: { uzupelnienie: '2026-10-16' } })], TODAY)
   const day = monthEntries(all, '2026-10').byDay.get('2026-10-16')!
-  assert.deepEqual(day.map((e) => [e.project.title, e.key]), [['Dom Lipowa', 'pbDoUrzedu'], ['Hala Brzozowa', 'uzupelnienie']])
+  assert.deepEqual(day.map((e) => [e.project.title, e.milestone.style]), [['Dom Lipowa', 'pbDoUrzedu'], ['Hala Brzozowa', 'uzupelnienie']])
 })
 
 test('calendar: Undated milestone', () => {
   const all = entries([row({ title: 'Dom', milestones: { koncepcja: '2026-10-05' }, done: ['pozwolenie'] })], TODAY)
-  assert.deepEqual(all.map((e) => e.key), ['koncepcja'])
+  assert.deepEqual(all.map((e) => e.milestone.style), ['koncepcja'])
 })
 
 test('calendar: Done and overdue in one month', () => {
   const all = entries([row({ title: 'Dom', milestones: { koncepcja: '2026-10-05', pbDoUrzedu: '2026-10-16' }, done: ['koncepcja'], confirmed: ['pbDoUrzedu'] })], TODAY)
-  assert.deepEqual(all.map((e) => [e.key, e.state, e.confirmed]), [['koncepcja', 'done', false], ['pbDoUrzedu', 'overdue', true]])
+  assert.deepEqual(all.map((e) => [e.milestone.style, e.state, e.confirmed]), [['koncepcja', 'done', false], ['pbDoUrzedu', 'overdue', true]])
 })
 
 test('calendar: Due today (chip)', () => {
@@ -59,7 +61,7 @@ test('calendar: Due today (chip)', () => {
 test('calendar: Branch designs due in November', () => {
   const all = entries([row({ title: 'Dom', milestones: { branzysci: '2026-11' } })], TODAY)
   const nov = monthEntries(all, '2026-11')
-  assert.deepEqual(nov.strip.map((e) => e.key), ['branzysci'])
+  assert.deepEqual(nov.strip.map((e) => e.milestone.style), ['branzysci'])
   assert.equal(nov.byDay.size, 0)
   assert.equal(monthEntries(all, '2026-10').strip.length, 0)
 })
@@ -137,7 +139,7 @@ test('calendar: Default range', () => {
 test('calendar: Month block content', () => {
   const all = entries([row({ title: 'Dom', milestones: { pbDoUrzedu: '2026-10-16', koncepcja: '2026-10-05', branzysci: '2026-10' }, done: ['koncepcja'] })], TODAY)
   const [oct] = overviewMonths(all, OCT_MAR)
-  assert.deepEqual(oct.shown.map((e) => [e.key, e.precision, e.state]), [
+  assert.deepEqual(oct.shown.map((e) => [e.milestone.style, e.precision, e.state]), [
     ['koncepcja', 'day', 'done'],
     ['pbDoUrzedu', 'day', 'overdue'],
     ['branzysci', 'month', 'open'],
@@ -200,12 +202,48 @@ test('calendar: Whole year', () => {
 test('calendar: Concept acceptance chip', () => {
   const all = entries([row({ title: 'Dom Lipowa', milestones: { akceptacja: '2026-11-14' } })], TODAY)
   const day = monthEntries(all, '2026-11').byDay.get('2026-11-14')!
-  assert.deepEqual(day.map((e) => [e.project.title, e.key, e.state]), [['Dom Lipowa', 'akceptacja', 'open']])
+  assert.deepEqual(day.map((e) => [e.project.title, e.milestone.style, e.state]), [['Dom Lipowa', 'akceptacja', 'open']])
+  const legend = legendStyles(entries([row({ milestones: { pbDoUrzedu: '2026-12-01', akceptacja: '2026-11-14', koncepcja: '2026-10-05' } })], TODAY))
+  assert.deepEqual(legend.map((s) => `${s.short} - ${s.name}`), ['konc. - wydanie koncepcji', 'akc. - akceptacja koncepcji', 'PB - PB do urzędu'])
 })
 
 test('calendar: Same day as the concept', () => {
-  const all = entries([row({ title: 'Dom', milestones: { akceptacja: '2026-11-14', koncepcja: '2026-11-14' } })], TODAY)
-  assert.deepEqual(all.map((e) => e.key), ['koncepcja', 'akceptacja'])
+  const r = row({ title: 'Dom', milestones: { akceptacja: '2026-11-14', koncepcja: '2026-11-14' } })
+  assert.deepEqual(entries([r], TODAY).map((e) => e.milestone.style), ['koncepcja', 'akceptacja'])
+  // after moving "akceptacja koncepcji" above "wydanie koncepcji" the order follows
+  const swapped = { ...r, project: { ...r.project, timeline: moveMilestone(r.project.timeline, 2, 1) } }
+  assert.deepEqual(entries([swapped], TODAY).map((e) => e.milestone.style), ['akceptacja', 'koncepcja'])
+})
+
+test('calendar: Added milestone', () => {
+  const r = row({
+    title: 'Dom Lipowa',
+    timeline: [
+      { id: 'uzupelnienie', style: 'uzupelnienie' },
+      { id: 'k3f9a2c1', style: 'uzupelnienie', title: 'drugie uzupełnienie', date: '2026-12-03' },
+    ],
+  })
+  const day = monthEntries(entries([r], TODAY), '2026-12').byDay.get('2026-12-03')!
+  assert.deepEqual(day.map((e) => [styleOf(e.milestone.style).short, titleOf(e.milestone), e.project.title]), [['uzup.', 'drugie uzupełnienie', 'Dom Lipowa']])
+})
+
+test('calendar: Other style', () => {
+  const [e] = entries([row({ timeline: [{ id: 'p81c0d2e', style: 'inny', title: 'zmiana inwestora', date: '2026-12-08' }] })], TODAY)
+  assert.deepEqual([styleOf(e.milestone.style).short, styleOf(e.milestone.style).color, titleOf(e.milestone)], ['inny', '#000000', 'zmiana inwestora'])
+})
+
+test('calendar: Legend of the styles in use', () => {
+  const all = entries(
+    [
+      row({ title: 'A', timeline: [{ id: 'nadzor', style: 'nadzor', date: '2026-11' }, { id: 'pbDoUrzedu', style: 'pbDoUrzedu', date: '2026-10-30' }, { id: 'pozwolenie', style: 'pozwolenie' }] }),
+      row({ title: 'B', timeline: [{ id: 'koncepcja', style: 'koncepcja', date: '2026-10-05' }] }),
+    ],
+    TODAY,
+  )
+  // in the order of the style list; "uzyskanie pozwolenia" has no date, so it is not listed
+  assert.deepEqual(legendStyles(all).map((s) => s.id), ['koncepcja', 'pbDoUrzedu', 'nadzor'])
+  // an unknown style is listed as "inny"
+  assert.deepEqual(legendStyles(entries([row({ timeline: [{ id: 'x', style: 'odbior', title: 'odbiór', date: '2026-11-02' }] })], TODAY)).map((s) => s.id), ['inny'])
 })
 
 test('calendar: Planned chip', () => {
@@ -221,7 +259,7 @@ test('calendar: Confirmed chip', () => {
 test('calendar: Planned month', () => {
   const all = entries([row({ title: 'Dom', milestones: { branzysci: '2026-11' } })], TODAY)
   const { strip } = monthEntries(all, '2026-11')
-  assert.deepEqual(strip.map((e) => [e.key, e.confirmed]), [['branzysci', false]])
+  assert.deepEqual(strip.map((e) => [e.milestone.style, e.confirmed]), [['branzysci', false]])
 })
 
 test('calendar: Planned and overdue', () => {

@@ -1,27 +1,9 @@
 // Every UI string, in Polish.
 
-import type { BranchKey, MilestoneKey, Status } from './model.ts'
+import type { BranchKey, Status } from './model.ts'
 import type { TaskStatus } from './tasks.ts'
 
-export const milestoneLabels: Record<MilestoneKey, string> = {
-  rozpoczecie: 'data rozpoczęcia',
-  koncepcja: 'wydanie koncepcji',
-  akceptacja: 'akceptacja koncepcji',
-  pbDoUrzedu: 'PB do urzędu',
-  uzupelnienie: 'uzupełnienie do urzędu',
-  pozwolenie: 'uzyskanie pozwolenia',
-  branzysci: 'termin branżystów',
-}
-
-export const milestoneShort: Record<MilestoneKey, string> = {
-  rozpoczecie: 'rozp.',
-  koncepcja: 'konc.',
-  akceptacja: 'akc.',
-  pbDoUrzedu: 'PB',
-  uzupelnienie: 'uzup.',
-  pozwolenie: 'pozw.',
-  branzysci: 'branż.',
-}
+// Milestone style and template names live in model.ts as default data (STYLES, TEMPLATES).
 
 export const months = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień']
 export const monthsShort = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru']
@@ -117,6 +99,17 @@ export const t = {
   taskState: 'stan',
   remove: 'Usuń',
   confirmRemove: (title: string) => `Usunąć zadanie „${title}”?`,
+  addMilestone: 'Dodaj termin',
+  newMilestone: 'Nowy termin',
+  milestone: 'Termin',
+  milestoneTitle: 'nazwa',
+  milestoneStyle: 'styl',
+  milestoneTitleRequired: 'Podaj nazwę terminu.',
+  add: 'Dodaj',
+  change: 'Zmień',
+  edit: 'Edytuj',
+  moveMilestone: 'Przesuń termin',
+  confirmRemoveMilestone: (name: string) => `Usunąć termin „${name}”?`,
   taskTitleRequired: 'Podaj tytuł zadania.',
   taskConflict: 'Ktoś inny zmienił to zadanie w międzyczasie. Zadania są odświeżone, wprowadź zmianę ponownie.',
 

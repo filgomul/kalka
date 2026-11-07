@@ -90,7 +90,7 @@ export function TaskBoard({ data, projectId, reloadTasks }: Props) {
 
   return (
     <section class="card tasks">
-      <div class="tasks-head">
+      <div class="section-head">
         <h2>{t.tasks}</h2>
         <span class="muted">{t.tasksHint}</span>
         <button type="button" onClick={() => setOpen({ task: emptyTask(projectId), file: '', duplicate: false })}>+ {t.addTask}</button>
@@ -311,7 +311,7 @@ function TaskDialog({ loaded, architects, onSave, onRemove, onClose }: DialogPro
 }
 
 /** Renders `children` into a div on <body>, so the dialog's form is not nested in the project form. */
-function Portal({ children }: { children: ComponentChildren }) {
+export function Portal({ children }: { children: ComponentChildren }) {
   const [el] = useState(() => document.createElement('div'))
   useEffect(() => {
     document.body.append(el)

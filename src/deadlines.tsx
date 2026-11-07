@@ -1,7 +1,7 @@
-import { formatDate, todayIso } from './model.ts'
+import { formatDate, titleOf, todayIso } from './model.ts'
 import { deadlines, entries, visibleRows, type Entry } from './calendar.ts'
-import { CalendarFilters, calendarFilter, PlannedMark, projectHref, type ViewProps } from './calendar-view.tsx'
-import { milestoneLabels, t } from './pl.ts'
+import { CalendarFilters, calendarFilter, colorOf, PlannedMark, projectHref, type ViewProps } from './calendar-view.tsx'
+import { t } from './pl.ts'
 
 export function Deadlines(props: ViewProps) {
   const { data, params } = props
@@ -11,9 +11,9 @@ export function Deadlines(props: ViewProps) {
 
   const rows = (list: Entry[]) =>
     list.map((e) => (
-      <tr key={e.file + e.key}>
-        <td class={e.state === 'overdue' ? 'when late' : 'when'}>{!e.confirmed && <PlannedMark kind={e.key} />}{formatDate(e.value)}</td>
-        <td><span class="kind" data-kind={e.key}>{milestoneLabels[e.key]}</span></td>
+      <tr key={e.file + e.milestone.id}>
+        <td class={e.state === 'overdue' ? 'when late' : 'when'}>{!e.confirmed && <PlannedMark style={e.milestone.style} />}{formatDate(e.value)}</td>
+        <td><span class="kind" style={colorOf(e.milestone.style)}>{titleOf(e.milestone)}</span></td>
         <td class="title"><a href={projectHref(e.file, params, 'terminy')}>{e.project.title || e.file}</a></td>
         <td>{e.project.leadArchitect}</td>
       </tr>
