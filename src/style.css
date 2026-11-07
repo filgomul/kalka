@@ -475,36 +475,63 @@ label.check {
 
 /* Project milestones: cards in the project's order, dragged by their handle */
 
+/* The style colour (--c, set on the card) as on a calendar chip: a bar down the left,
+   the tint behind the name row and dark text from the same colour. */
 .milestones > .milestone {
   position: relative;
-  padding: 8px 10px 10px;
+  padding: 0 10px 10px;
   border: 1px solid var(--line);
+  border-left: 4px solid var(--c);
   border-radius: var(--radius);
 }
 
-/* floated, so the legend sits inside the card instead of cutting into its border */
+/* floated, so the legend sits inside the card instead of cutting into its border;
+   the negative margins take the tint to the card's edges */
 .milestones > .milestone > legend {
   float: left;
-  width: 100%;
+  width: calc(100% + 20px);
+  margin: 0 -10px 4px;
+  padding: 6px 10px;
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 8px;
+  border-radius: 0 calc(var(--radius) - 1px) 0 0;
+  background: var(--t);
+  color: var(--x);
 }
 
+.milestones .short {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* the name is what people look for, so it is larger and stronger than the grey labels below */
 .milestones .name {
   margin-right: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .milestones .handle {
   padding: 0 2px;
   border: 0;
   background: none;
-  color: var(--muted);
+  color: inherit;
+  opacity: 0.7;
   font-size: 1rem;
   line-height: 1;
   letter-spacing: 0;
   cursor: grab;
+}
+
+.milestones legend button.link {
+  color: inherit;
+  opacity: 0.8;
 }
 
 button.link {
@@ -535,8 +562,9 @@ button.link:hover {
   background: var(--sage);
 }
 
+/* centred in the 16px gap, past the 4px colour bar */
 .milestone[data-drop='before']::before {
-  left: -10px;
+  left: -12px;
 }
 
 .milestone[data-drop='after']::before {
@@ -805,6 +833,7 @@ button.task:hover {
 .chip,
 .kind,
 .legend i,
+.milestones > .milestone,
 .q {
   --t: color-mix(in oklab, var(--c) 12%, white);
   --x: color-mix(in oklab, var(--c), black 32%);
