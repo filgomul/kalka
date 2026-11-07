@@ -502,6 +502,197 @@ label.check {
   }
 }
 
+/* Task board */
+
+.tasks-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  margin-bottom: 12px;
+}
+
+.tasks-head h2 {
+  margin: 0;
+}
+
+.tasks-head .muted {
+  font-size: 0.85rem;
+  margin-right: auto;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 120px;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px dashed transparent;
+  border-radius: var(--radius);
+}
+
+.col[data-over] {
+  border-color: var(--sage);
+  background: var(--sage-tint);
+}
+
+.col h3 {
+  margin: 0 0 2px;
+  font: 400 0.8rem var(--font-head);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.col h3 .count {
+  font-size: 0.8rem;
+}
+
+/* a card is a button, reset to look like a card */
+button.task {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  cursor: grab;
+}
+
+button.task:hover {
+  background: var(--surface);
+  border-color: #cfcac2;
+}
+
+.task.dragging {
+  opacity: 0.4;
+}
+
+.task[data-drop]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--sage);
+}
+
+.task[data-drop='before']::before {
+  top: -6px;
+}
+
+.task[data-drop='after']::before {
+  bottom: -6px;
+}
+
+.task-title {
+  overflow-wrap: anywhere;
+}
+
+.task .badge {
+  margin: 0;
+  align-self: flex-start;
+}
+
+.task-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  font-size: 0.85rem;
+}
+
+.task-foot .date {
+  margin-right: auto;
+  color: var(--muted);
+}
+
+.task-foot .date.late {
+  color: var(--error);
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.task-dialog {
+  width: min(560px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink);
+}
+
+.task-dialog::backdrop {
+  background: rgb(47 46 46 / 0.35);
+}
+
+.task-dialog form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.task-dialog h2 {
+  margin: 0;
+}
+
+.dialog-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.dialog-row .milestone {
+  grid-column: 1 / -1;
+}
+
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.dialog-actions .error {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.dialog-actions .danger {
+  margin-right: auto;
+  color: var(--error);
+}
+
+@media (max-width: 700px) {
+  .board {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Milestone kinds: bar, tint, text */
 
 [data-kind='rozpoczecie'] { --c: #7d776d; --t: #efede9; --x: #4d4943; }

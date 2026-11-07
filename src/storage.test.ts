@@ -1,7 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { emptyProject } from './model.ts'
-import { ConflictError, openFolder, readProjects, saveProject } from './storage.ts'
+import { emptyTask } from './tasks.ts'
+import { ConflictError, deleteTask, openFolder, readProjects, readTasks, saveProject, saveTask } from './storage.ts'
 
 // In-memory stand-in for FileSystemDirectoryHandle: nested Maps, files as strings.
 type Tree = Map<string, string | Tree>
@@ -38,6 +39,10 @@ function dirHandle(tree: Tree): FileSystemDirectoryHandle {
       }
       return fileHandle(tree, name)
     },
+    async removeEntry(name: string) {
+      if (!tree.has(name)) throw notFound()
+      tree.delete(name)
+    },
     async *entries() {
       for (const [name, v] of tree) yield [name, typeof v === 'string' ? fileHandle(tree, name) : dirHandle(v)]
     },
@@ -47,18 +52,58 @@ function dirHandle(tree: Tree): FileSystemDirectoryHandle {
 
 const json = (v: unknown) => JSON.stringify(v)
 const projectsOf = (root: Tree) => root.get('projekty') as Tree
+const tasksOf = (root: Tree) => root.get('zadania') as Tree
 
 test('storage: Empty folder chosen', async () => {
   const root: Tree = new Map()
   const settings = await openFolder(dirHandle(root))
-  assert.deepEqual(settings, { schema: 1, architects: [] })
+  assert.deepEqual(settings, { schema: 1, architects: [], badges: {} })
   assert.deepEqual(JSON.parse(root.get('kalka.json') as string), { schema: 1, architects: [] })
   assert.equal(projectsOf(root).size, 0)
+  assert.equal(tasksOf(root).size, 0)
+})
+
+test('storage: Folder from before tasks', async () => {
+  const project = json({ id: 'a', title: 'Dom' })
+  const root: Tree = new Map<string, string | Tree>([['kalka.json', json({ schema: 1, architects: ['Anna Nowak'] })], ['projekty', new Map([['a.json', project]])]])
+  await openFolder(dirHandle(root))
+  assert.equal(tasksOf(root).size, 0)
+  assert.equal(projectsOf(root).get('a.json'), project)
+  assert.deepEqual(JSON.parse(root.get('kalka.json') as string).architects, ['Anna Nowak'])
+})
+
+test('storage: One broken task file', async () => {
+  const root: Tree = new Map([
+    ['zadania', new Map([
+      ['t1.json', json({ id: 't1', projectId: 'a', title: 'Rysunki' })],
+      ['t2.json', '{ nie json'],
+      ['t3.json', json({ id: 't3', title: 'Bez projektu' })],
+    ])],
+  ])
+  const { tasks, broken } = await readProjects(dirHandle(root))
+  assert.deepEqual(tasks.map((l) => l.task.title), ['Rysunki'])
+  assert.deepEqual(broken.map((b) => b.file), ['zadania/t2.json', 'zadania/t3.json'])
 })
 
 test('storage: kalka.json architects are read', async () => {
   const root: Tree = new Map([['kalka.json', json({ schema: 1, architects: ['Anna Nowak', 3] })]])
   assert.deepEqual((await openFolder(dirHandle(root))).architects, ['Anna Nowak'])
+})
+
+test('projects: Entries with initials and colour', async () => {
+  const architects = [{ name: 'Anna Nowak', initials: 'AN', color: '#697662' }, 'Jan Kowalski']
+  const root: Tree = new Map([['kalka.json', json({ schema: 1, architects })]])
+  const settings = await openFolder(dirHandle(root))
+  assert.deepEqual(settings.architects, ['Anna Nowak', 'Jan Kowalski'])
+  assert.deepEqual(settings.badges, { 'Anna Nowak': { initials: 'AN', color: '#697662' } })
+})
+
+test('projects: Entry without a name', async () => {
+  const architects = [{ initials: 'XX' }, { name: 3 }, { name: 'Anna Nowak' }, 'Jan Kowalski']
+  const root: Tree = new Map([['kalka.json', json({ schema: 1, architects })]])
+  const settings = await openFolder(dirHandle(root))
+  assert.deepEqual(settings.architects, ['Anna Nowak', 'Jan Kowalski'])
+  assert.deepEqual(settings.badges, { 'Anna Nowak': {} })
 })
 
 test('storage: One broken file', async () => {
@@ -122,4 +167,55 @@ test('storage: Minimal project', async () => {
   assert.equal(onDisk.branches.sanitarna, '')
   // the same file can't be created twice
   await assert.rejects(saveProject(dir, p, `${p.id}.json`, ''), ConflictError)
+})
+
+test('tasks: Add', async () => {
+  const root: Tree = new Map()
+  const dir = dirHandle(root)
+  await openFolder(dir)
+  const task = { ...emptyTask('dom-lipowa'), title: 'Rysunki elewacji' }
+  await saveTask(dir, task, `${task.id}.json`, '')
+  const onDisk = JSON.parse(tasksOf(root).get(`${task.id}.json`) as string)
+  assert.deepEqual([onDisk.projectId, onDisk.title, onDisk.status], ['dom-lipowa', 'Rysunki elewacji', 'todo'])
+  assert.ok(onDisk.updatedAt)
+})
+
+test('tasks: Confirm', async () => {
+  const root: Tree = new Map([['zadania', new Map([['t1.json', json({ id: 't1', projectId: 'a', updatedAt: 't1' })]])]])
+  await deleteTask(dirHandle(root), 't1.json', 't1')
+  assert.equal(tasksOf(root).has('t1.json'), false)
+})
+
+test('tasks: Someone else moved the task first', async () => {
+  const root: Tree = new Map([['zadania', new Map([['t1.json', json({ id: 't1', projectId: 'a', status: 'todo', updatedAt: 't1' })]])]])
+  const dir = dirHandle(root)
+  const [loaded] = (await readTasks(dir)).tasks
+  const theirs = json({ id: 't1', projectId: 'a', status: 'doing', updatedAt: 't2' })
+  tasksOf(root).set('t1.json', theirs)
+  await assert.rejects(saveTask(dir, { ...loaded.task, status: 'done' }, loaded.file, 't1'), ConflictError)
+  await assert.rejects(deleteTask(dir, loaded.file, 't1'), ConflictError)
+  assert.equal(tasksOf(root).get('t1.json'), theirs)
+})
+
+test('tasks: Task already deleted', async () => {
+  const root: Tree = new Map([['zadania', new Map()]])
+  const dir = dirHandle(root)
+  const task = { ...emptyTask('a'), id: 't1', title: 'Rysunki', updatedAt: 't1' }
+  await assert.rejects(saveTask(dir, task, 't1.json', 't1'), ConflictError)
+  await assert.rejects(deleteTask(dir, 't1.json', 't1'), ConflictError)
+  assert.equal(tasksOf(root).size, 0)
+})
+
+test('tasks: Two copies', async () => {
+  const root: Tree = new Map([
+    ['zadania', new Map([
+      ['t1.json', json({ id: 't1', projectId: 'a', title: 'Rysunki', updatedAt: 'x' })],
+      ['t1-LAPTOP.json', json({ id: 't1', projectId: 'a', title: 'Rysunki (kopia)', updatedAt: 'y' })],
+    ])],
+  ])
+  const dir = dirHandle(root)
+  const { tasks } = await readTasks(dir)
+  assert.deepEqual(tasks.map((l) => [l.file, l.duplicate]), [['t1.json', true], ['t1-LAPTOP.json', true]])
+  await deleteTask(dir, 't1-LAPTOP.json', 'y')
+  assert.deepEqual((await readTasks(dir)).tasks.map((l) => [l.file, l.duplicate]), [['t1.json', false]])
 })

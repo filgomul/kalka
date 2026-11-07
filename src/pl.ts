@@ -1,6 +1,7 @@
 // Every UI string, in Polish.
 
 import type { BranchKey, MilestoneKey, Status } from './model.ts'
+import type { TaskStatus } from './tasks.ts'
 
 export const milestoneLabels: Record<MilestoneKey, string> = {
   rozpoczecie: 'data rozpoczęcia',
@@ -33,6 +34,12 @@ export const branchLabels: Record<BranchKey, string> = {
   drogowa: 'branża drogowa',
   ppoz: 'rzeczoznawca ppoż.',
   bhpSanepid: 'BHP i Sanepid',
+}
+
+export const taskStatusLabels: Record<TaskStatus, string> = {
+  todo: 'Do zrobienia',
+  doing: 'W trakcie',
+  done: 'Wykonane',
 }
 
 export const statusLabels: Record<Status, string> = {
@@ -97,6 +104,21 @@ export const t = {
   saveFailed: 'Nie udało się zapisać:',
   notFound: 'Nie ma takiego projektu.',
   back: 'Wróć',
+
+  tasks: 'Zadania',
+  tasksHint: 'Zmiany zadań zapisują się od razu.',
+  addTask: 'Dodaj zadanie',
+  newTask: 'Nowe zadanie',
+  task: 'Zadanie',
+  taskTitle: 'tytuł',
+  description: 'opis',
+  due: 'termin',
+  assignee: 'osoba',
+  taskState: 'stan',
+  remove: 'Usuń',
+  confirmRemove: (title: string) => `Usunąć zadanie „${title}”?`,
+  taskTitleRequired: 'Podaj tytuł zadania.',
+  taskConflict: 'Ktoś inny zmienił to zadanie w międzyczasie. Zadania są odświeżone, wprowadź zmianę ponownie.',
 
   calendar: 'Kalendarz',
   deadlines: 'Terminy',
