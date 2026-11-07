@@ -14,6 +14,7 @@ import {
   STYLES,
   styleOf,
   titleOf,
+  withTimeline,
   type Milestone,
   type Project,
   type RawProject,
@@ -295,6 +296,23 @@ test('projects: Drag', () => {
   assert.deepEqual(moved.slice(-2).map((m) => m.style), ['wydanieProjektu', 'branzysci'])
   assert.deepEqual(moveMilestone(moved, 6, 7), list)
   assert.equal(list.at(-1)!.style, 'wydanieProjektu') // the input is left alone
+})
+
+// Milestones saved at once
+
+test('projects: Unsaved project fields stay out', () => {
+  const base = project({ title: 'Dom Lipowa', updatedAt: 't1', timeline: fromTemplate('budowlany') })
+  const draft = { ...base, title: 'Dom Lipowa 2', timeline: base.timeline.map((m) => (m.style === 'koncepcja' ? { ...m, done: true } : m)) }
+  const written = withTimeline(base, draft.timeline)
+  assert.equal(written.title, 'Dom Lipowa')
+  assert.equal(written.updatedAt, 't1')
+  assert.equal(of(written, 'koncepcja').done, true)
+})
+
+test('projects: Day to month', () => {
+  const base = project({ timeline: [{ id: 'pozwolenie', style: 'pozwolenie', date: '2027-03-18' }] })
+  const written = withTimeline(base, [{ ...base.timeline[0], date: '2027-03-18'.slice(0, 7) }])
+  assert.equal(written.timeline[0].date, '2027-03')
 })
 
 // List, filters, numbers (unchanged behaviour)

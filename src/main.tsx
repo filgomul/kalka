@@ -123,6 +123,8 @@ function App() {
     await load(data.dir)
     back()
   }
+  // after a milestone change: everything is read again without leaving the form, whose draft lives in its own state
+  const reloadProjects = () => load(data.dir)
   // after a task change: only zadania/ is read again, so an open project draft is kept
   const reloadTasks = async () => {
     const { tasks, broken } = await readTasks(data.dir)
@@ -134,12 +136,12 @@ function App() {
 
   let content
   if (route.path === '/nowy') {
-    content = <ProjectForm key={'nowy-' + (route.params.get('t') ?? '')} data={data} loaded={null} template={route.params.get('t')} onSaved={saved} onCancel={back} reloadTasks={reloadTasks} />
+    content = <ProjectForm key={'nowy-' + (route.params.get('t') ?? '')} data={data} loaded={null} template={route.params.get('t')} onSaved={saved} onCancel={back} reloadProjects={reloadProjects} reloadTasks={reloadTasks} />
   } else if (route.path.startsWith('/projekt/')) {
     const file = decodeURIComponent(route.path.slice('/projekt/'.length))
     const loaded = data.projects.find((p) => p.file === file)
     content = loaded ? (
-      <ProjectForm key={file} data={data} loaded={loaded} onSaved={saved} onCancel={back} reloadTasks={reloadTasks} />
+      <ProjectForm key={file} data={data} loaded={loaded} onSaved={saved} onCancel={back} reloadProjects={reloadProjects} reloadTasks={reloadTasks} />
     ) : (
       <main><p>{t.notFound}</p><a href={'#/' + route.query}>{t.back}</a></main>
     )

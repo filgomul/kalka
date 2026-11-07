@@ -25,7 +25,9 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
   added ones), deleted and reordered per project. Each has day (`YYYY-MM-DD`) or month
   (`YYYY-MM`) precision, is planned or confirmed, and separately done or not. The
   calendar shows only milestones that have a date. Older project files (seven fixed
-  milestones) are converted when read.
+  milestones) are converted when read. Milestone changes of a saved project are written
+  to its file at once (only the milestones), apart from the project form's "Zapisz" /
+  "Anuluj", like tasks.
 - A save never overwrites a project file that someone else changed after it was read.
 
 Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has touched it.

@@ -46,7 +46,7 @@ The system SHALL place every day-precision milestone of every visible project on
 
 - **WHEN** a visible project lists "wydanie koncepcji" before "akceptacja koncepcji" and both fall on 2026-11-14
 - **THEN** the day cell shows the "konc." chip before the "akc." chip
-- **AND** after the user moves "akceptacja koncepcji" above "wydanie koncepcji" and saves, the "akc." chip comes first
+- **AND** after the user moves "akceptacja koncepcji" above "wydanie koncepcji", the "akc." chip comes first
 
 #### Scenario: Legend of the styles in use
 

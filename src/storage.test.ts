@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { emptyProject } from './model.ts'
+import { emptyProject, withTimeline } from './model.ts'
 import { emptyTask } from './tasks.ts'
 import { ConflictError, deleteTask, openFolder, readProjects, readTasks, saveProject, saveTask } from './storage.ts'
 
@@ -153,6 +153,19 @@ test('storage: Someone else saved first', async () => {
   projectsOf(root).set('a.json', json({ id: 'a', title: 'Dom od kolegi', updatedAt: 't2' }))
   await assert.rejects(saveProject(dir, { ...loaded.project, title: 'Mój' }, loaded.file, 't1'), ConflictError)
   assert.equal(JSON.parse(projectsOf(root).get('a.json') as string).title, 'Dom od kolegi')
+})
+
+test('projects: Zapisz after a milestone change', async () => {
+  const root: Tree = new Map([['projekty', new Map([['a.json', json({ id: 'a', title: 'Dom', updatedAt: 't1', timeline: [{ id: 'koncepcja', style: 'koncepcja' }] })]])]])
+  const dir = dirHandle(root)
+  const [loaded] = (await readProjects(dir)).projects
+  // the milestone write moves the baseline on
+  const base = await saveProject(dir, withTimeline(loaded.project, [{ id: 'koncepcja', style: 'koncepcja', done: true }]), loaded.file, loaded.project.updatedAt)
+  // "Zapisz" against the old baseline would be a false conflict; against the new one it goes through
+  await assert.rejects(saveProject(dir, { ...base, title: 'Dom 2' }, loaded.file, 't1'), ConflictError)
+  await saveProject(dir, { ...base, title: 'Dom 2' }, loaded.file, base.updatedAt)
+  const onDisk = JSON.parse(projectsOf(root).get('a.json') as string)
+  assert.deepEqual([onDisk.title, onDisk.timeline[0].done], ['Dom 2', true])
 })
 
 test('storage: Minimal project', async () => {

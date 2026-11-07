@@ -150,14 +150,57 @@ milestone id, an "Edytuj" button only when it has a `title`, and an "Usuń" butt
 (`confirm()`, like tasks). The precision state becomes a map by milestone id.
 
 The add / edit dialog reuses the board's `<dialog>` + `Portal` (exported from
-`board.tsx`), outside the project `<form>` so Enter does not submit the project. It
-changes only the draft. Buttons "Dodaj" / "Zmień" and "Anuluj"; the style select lists
-`STYLES` in order.
+`board.tsx`), outside the project `<form>` so Enter does not submit the project.
+Buttons "Dodaj" / "Zmień" and "Anuluj"; the style select lists `STYLES` in order. The
+"+ Dodaj termin" button sits in the section header, top right, like "+ Dodaj zadanie".
 
-Drag: row `dragover` compares the pointer with each row's middle to find the insertion
-index and draws a line, as the board does; `drop` calls `moveMilestone`. ArrowUp /
-ArrowDown on a focused handle call `moveMilestone` by one and refocus the moved handle.
-No order numbers are needed because the whole list is saved with the project.
+Drag: the grid wraps, so `dragover` goes by reading order (rows, then the left or right
+half of a card) to find the insertion index and draws a line, as the board does; `drop`
+calls `moveMilestone`. ArrowUp / ArrowDown on a focused handle call `moveMilestone` by
+one and refocus the moved handle. No order numbers are needed because the whole list is
+written at once (decision 8).
+
+### 8. Milestones saved at once
+
+The project file holds the milestones and the other fields together, so a milestone write
+must not carry unsaved title or notes edits, and a later "Zapisz" must not trip the
+conflict check on the milestone write that came before it.
+
+```
+            base (project as last written; starts as loaded.project)
+             |
+milestone    |  withTimeline(base, list) = prepareForSave({ ...base, timeline: list })
+change ------+--> saveProject(dir, that, file, base.updatedAt) --> base = result
+             |                                                    draft.timeline = list
+"Zapisz" ----+--> saveProject(dir, prepareForSave(draft), file, base.updatedAt)
+"Anuluj" ----+--> leaves; only the non-milestone draft fields are lost
+```
+
+- `withTimeline` is a pure helper in `model.ts`, so the "fields stay out" rule is tested
+  with `node --test`.
+- Writes go through one promise chain in the form, so two quick toggles never both
+  write against the same `updatedAt` (the second would be a false conflict).
+- The date input updates the draft at once but writes after 500 ms without input; a
+  pending write is flushed before "Zapisz", before "Anuluj" and when the form unmounts.
+  Every other action (radios, checkbox, add, edit, delete, drop, arrow keys, switching
+  day to month) writes straight away.
+- Switching month to day clears the field in the draft only; `precision` says "day" and
+  the next picked date writes. The stored month stays until then.
+- After each write `main.tsx` re-reads the projects without navigating
+  (`reloadProjects`), so the list and calendar are current when the user goes back. The
+  form keeps its own draft state, so the re-read does not disturb it.
+- `ConflictError`: nothing was written. The form re-reads the projects, takes the file's
+  project as the new `base`, replaces `draft.timeline` (and the precision map) with it,
+  keeps the other draft fields, and shows the milestone conflict message.
+- "Zapisz" checks against its own baseline, `saveAt`, not `base.updatedAt`: `saveAt`
+  moves forward with our own milestone writes only. After a conflict re-read `base` is
+  the other person's version, but the draft's other fields are still older than it, so
+  "Zapisz" keeps refusing with the existing conflict message instead of overwriting
+  their title or notes. (Found while implementing; the diagram above shows the
+  no-conflict case.)
+- A project that has not been saved yet (`loaded` is null) has no file and no `base`:
+  milestone changes stay in the draft and the first "Zapisz" writes everything, as
+  before.
 
 ## Risks / Trade-offs
 
@@ -172,6 +215,12 @@ No order numbers are needed because the whole list is saved with the project.
   building and interior styles rarely meet in one view.
 - [Drag-and-drop does not work on touch] -> same accepted limit as the task board; arrow
   keys cover keyboard users.
+- ["Anuluj" no longer undoes milestone changes] -> the hint "Zmiany terminów zapisują się
+  od razu." under the heading, as on the task board.
+- [Every toggle rewrites the project file and syncs through OneDrive] -> a few writes a
+  minute at most; the date debounce avoids a write per keystroke.
+- [A conflict drops the user's milestone change] -> the message asks to repeat it; the
+  milestones on screen already show what the file holds. Merging stays out of scope.
 
 ## Migration Plan
 
