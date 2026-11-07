@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
-import { BRANCHES, emptyProject, fromTemplate, moveMilestone, newId, nextLp, parseDate, prepareForSave, STATUSES, STYLES, titleOf, withTimeline, type Milestone, type Project } from './model.ts'
+import { BRANCHES, emptyProject, fromTemplate, moveMilestone, newId, nextLp, parseDate, prepareForSave, STATUSES, STYLES, styleOf, titleOf, withTimeline, type Milestone, type Project } from './model.ts'
 import { branchLabels, statusLabels, t } from './pl.ts'
 import { ConflictError, readProjects, saveProject, type Loaded } from './storage.ts'
 import type { Data } from './main.tsx'
 import { Portal, TaskBoard } from './board.tsx'
+import { colorOf } from './calendar-view.tsx'
 
 type Props = {
   data: Data
@@ -314,7 +315,7 @@ function Timeline({ list, precision, onChange, onMilestone, onPrecision, savesAt
           const drop = n === -1 || dropAt === null ? undefined : n === dropAt ? 'before' : n === others - 1 && dropAt === others ? 'after' : undefined
           const day = (precision[m.id] ?? 'day') === 'day'
           return (
-            <fieldset key={m.id} class={isDragged ? 'milestone dragging' : 'milestone'} data-drop={drop}>
+            <fieldset key={m.id} class={isDragged ? 'milestone dragging' : 'milestone'} style={colorOf(m.style)} data-drop={drop}>
               <legend>
                 <button
                   type="button"
@@ -337,6 +338,7 @@ function Timeline({ list, precision, onChange, onMilestone, onPrecision, savesAt
                 >
                   ⠿
                 </button>
+                <b class="short">{styleOf(m.style).short}</b>
                 <span class="name">{name}</span>
                 {m.title && <button type="button" class="link" onClick={() => setEditing(m)}>{t.edit}</button>}
                 <button type="button" class="link" onClick={() => remove(m)}>{t.remove}</button>
