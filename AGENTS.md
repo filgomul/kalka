@@ -8,9 +8,14 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
 
 - **storage**: opens the data folder on the shared OneDrive (synced to every PC by the
   OneDrive client) through the File System Access API. One JSON file per project in
-  `projekty/`, settings in `kalka.json`. No server, no accounts: whoever has the OneDrive
-  folder has the data.
+  `projekty/`, one per task in `zadania/`, settings in `kalka.json`. No server, no
+  accounts: whoever has the OneDrive folder has the data.
+- **settings**: `kalka.json` lists the architects, each a name or
+  `{ "name", "initials", "color" }` (hex); initials and colour fill the task card circle.
 - **projects**: list, filter (lead architect, status), search, create/edit form.
+- **tasks**: a board on a saved project's page ("Do zrobienia", "W trakcie",
+  "Wykonane"), cards dragged between and within columns. Each task change is written at
+  once to its own file, apart from the project form's "Zapisz" / "Anuluj".
 - **calendar**: month grid of milestones across all projects with the same filters, plus
   the "Terminy" list of upcoming and recently passed milestones.
 - A project has seven optional milestones, each with day (`YYYY-MM-DD`) or month
@@ -38,6 +43,9 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 | status | `aktywny` / `wstrzymany` / `zakończony` | Active, on hold, finished |
 | planowane / potwierdzone | `confirmed` | Milestone date is a guess until marked confirmed |
 | zrealizowane | `done` | Milestone reached |
+| zadanie | task | A job inside a project, file `zadania/<id>.json` with `projectId` |
+| osoba | `assignee` | Architect doing a task; any architect, not only the lead one |
+| do zrobienia / w trakcie / wykonane | `todo` / `doing` / `done` | Task state, one board column each |
 
 ## Stack and limits
 

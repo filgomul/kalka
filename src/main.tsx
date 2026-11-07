@@ -8,6 +8,7 @@ import {
   openFolder,
   pickFolder,
   readProjects,
+  readTasks,
   rememberedFolder,
   reopenFolder,
   type ReadResult,
@@ -121,18 +122,23 @@ function App() {
     await load(data.dir)
     back()
   }
+  // after a task change: only zadania/ is read again, so an open project draft is kept
+  const reloadTasks = async () => {
+    const { tasks, broken } = await readTasks(data.dir)
+    setData((d) => d && { ...d, tasks, broken: [...d.broken.filter((b) => !b.file.startsWith('zadania/')), ...broken] })
+  }
   // the form keeps the tab of the view it was opened from
   const view = route.path === '/nowy' || route.path.startsWith('/projekt/') ? (route.params.get('z') ?? '') : route.path.slice(1)
   const tabQuery = qs(new URLSearchParams([...route.params].filter(([k]) => k === 'a' || k === 's')))
 
   let content
   if (route.path === '/nowy') {
-    content = <ProjectForm data={data} loaded={null} onSaved={saved} onCancel={back} />
+    content = <ProjectForm data={data} loaded={null} onSaved={saved} onCancel={back} reloadTasks={reloadTasks} />
   } else if (route.path.startsWith('/projekt/')) {
     const file = decodeURIComponent(route.path.slice('/projekt/'.length))
     const loaded = data.projects.find((p) => p.file === file)
     content = loaded ? (
-      <ProjectForm key={file} data={data} loaded={loaded} onSaved={saved} onCancel={back} />
+      <ProjectForm key={file} data={data} loaded={loaded} onSaved={saved} onCancel={back} reloadTasks={reloadTasks} />
     ) : (
       <main><p>{t.notFound}</p><a href={'#/' + route.query}>{t.back}</a></main>
     )

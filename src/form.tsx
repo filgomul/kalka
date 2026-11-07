@@ -3,6 +3,7 @@ import { BRANCHES, emptyProject, isConfirmed, isDone, MILESTONES, nextLp, parseD
 import { branchLabels, milestoneLabels, statusLabels, t } from './pl.ts'
 import { ConflictError, saveProject, type Loaded } from './storage.ts'
 import type { Data } from './main.tsx'
+import { TaskBoard } from './board.tsx'
 
 type Props = {
   data: Data
@@ -10,11 +11,13 @@ type Props = {
   loaded: Loaded | null
   onSaved: () => Promise<void>
   onCancel: () => void
+  /** reads the task files again after a task change */
+  reloadTasks: () => Promise<void>
 }
 
 type Precision = 'day' | 'month'
 
-export function ProjectForm({ data, loaded, onSaved, onCancel }: Props) {
+export function ProjectForm({ data, loaded, onSaved, onCancel, reloadTasks }: Props) {
   const [draft, setDraft] = useState<Project>(
     () => loaded?.project ?? { ...emptyProject(), lp: nextLp(data.projects.map((l) => l.project)) },
   )
@@ -140,6 +143,8 @@ export function ProjectForm({ data, loaded, onSaved, onCancel }: Props) {
             ))}
           </div>
         </section>
+
+        {loaded && <TaskBoard data={data} projectId={loaded.project.id} reloadTasks={reloadTasks} />}
 
         <section class="card">
           <h2>{t.branches}</h2>

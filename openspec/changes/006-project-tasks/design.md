@@ -71,9 +71,11 @@ conflict the board calls `reloadTasks()`, which re-reads only `zadania/` and rep
 `src/board.tsx` renders the "Zadania" section between "Terminy" and "Zakres branż" in
 `ProjectForm`, only when `loaded` is set. Cards are `<button type="button">` so they
 never submit the project form. The task dialog is a native `<dialog>` opened with
-`showModal()` and rendered through `createPortal` (from `preact/compat`, part of the
-installed `preact`) into `document.body`: a `<form>` cannot nest in the project form,
-and Enter in a task field must not submit the project. Delete uses `confirm()`.
+`showModal()` and rendered by a small `Portal` (Preact's `render` into a div on
+`document.body`): a `<form>` cannot nest in the project form, and Enter in a task field
+must not submit the project. `createPortal` from `preact/compat` was dropped because
+importing compat patches Preact's options globally (it remaps `onChange` and more for
+every component). Delete uses `confirm()`.
 
 ### 7. Native drag-and-drop
 
