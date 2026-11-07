@@ -59,7 +59,7 @@ The system SHALL show each leave as a row with the architect's name and its date
 
 ### Requirement: Leave fields
 
-The system SHALL hold for each leave an architect, picked from the architects in `kalka.json`, and the first and last day of the leave, "od" and "do", both whole days. All three are required and "do" may not be before "od".
+The system SHALL hold for each leave an architect, picked from the architects in `kalka.json`, and the first and last day of the leave, "od" and "do", both whole days and both required.
 
 #### Scenario: Architect missing
 
@@ -68,18 +68,43 @@ The system SHALL hold for each leave an architect, picked from the architects in
 
 #### Scenario: Date missing
 
-- **WHEN** the user saves the dialog with "od" or "do" empty
+- **WHEN** the user saves the dialog without picking any day
 - **THEN** nothing is written and the dialog shows "Podaj daty od i do."
-
-#### Scenario: End before start
-
-- **WHEN** the user saves the dialog with "od" 2026-12-05 and "do" 2026-12-01
-- **THEN** nothing is written and the dialog shows "Data „do” nie może być wcześniejsza niż „od”."
 
 #### Scenario: Architect no longer listed
 
 - **WHEN** a leave's architect is "Piotr Zieliński", who is not in `kalka.json`
 - **THEN** the dialog shows "Piotr Zieliński" as the selected architect and saving without touching the field keeps it
+
+### Requirement: Range calendar
+
+The system SHALL pick both dates of a leave in one month calendar in the dialog, labelled "termin urlopu", with previous and next month buttons. The first click makes a one-day leave on that day and asks for the last day; a click on a later or the same day then ends the leave; a click on an earlier day starts again from it. While the last day is awaited, the range follows the pointer. The picked dates show under the calendar as in the leave row.
+
+#### Scenario: Pick a range
+
+- **WHEN** the user clicks 1 and then 5 December 2026
+- **THEN** the days from 1 to 5 December are highlighted and the dialog shows "01.12.2026 - 05.12.2026"
+
+#### Scenario: Pick one day
+
+- **WHEN** the user clicks 7 December 2026 twice, or once and saves
+- **THEN** the leave runs from 2026-12-07 to 2026-12-07
+
+#### Scenario: Earlier day starts again
+
+- **WHEN** the user clicks 5 December 2026 and then 1 December 2026
+- **THEN** 1 December is the first day and the dialog asks for the last day with "Kliknij ostatni dzień urlopu (ten sam dzień dla jednodniowego)."
+
+#### Scenario: Change an existing leave
+
+- **WHEN** the dialog opens for a leave from 2026-12-01 to 2026-12-05
+- **THEN** the calendar shows December 2026 with those days highlighted
+- **AND** clicking 1 and then 8 December changes the leave to 2026-12-01 to 2026-12-08
+
+#### Scenario: Leave in another month
+
+- **WHEN** the dialog shows November 2026 and the user clicks the next month button twice and picks 4 and 15 January 2027
+- **THEN** the leave runs from 2027-01-04 to 2027-01-15
 
 #### Scenario: Empty architects list
 
@@ -92,7 +117,7 @@ The system SHALL add a leave from a button "+ Dodaj urlop" in the "Urlopy" view,
 
 #### Scenario: Add
 
-- **WHEN** the user clicks "+ Dodaj urlop", picks "Anna Nowak", "od" 2026-12-01 and "do" 2026-12-05 and clicks "Zapisz"
+- **WHEN** the user clicks "+ Dodaj urlop", picks "Anna Nowak", clicks 1 and then 5 December 2026 and clicks "Zapisz"
 - **THEN** a new file `urlopy/<id>.json` exists with those values
 - **AND** the row appears under "Bieżące i nadchodzące"
 
@@ -107,7 +132,7 @@ The system SHALL open the leave dialog "Urlop" with the leave's values when its 
 
 #### Scenario: Change and save
 
-- **WHEN** the user clicks "Edytuj" on Anna Nowak 01.12.2026 - 05.12.2026, changes "do" to 2026-12-08 and clicks "Zapisz"
+- **WHEN** the user clicks "Edytuj" on Anna Nowak 01.12.2026 - 05.12.2026, clicks 1 and then 8 December and clicks "Zapisz"
 - **THEN** the leave file holds `"to": "2026-12-08"` and a new `updatedAt`
 - **AND** the row shows "01.12.2026 - 08.12.2026"
 

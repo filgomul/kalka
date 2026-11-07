@@ -2,7 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { emptyProject, withTimeline } from './model.ts'
 import { emptyTask } from './tasks.ts'
-import { ConflictError, deleteTask, openFolder, readProjects, readTasks, saveProject, saveTask } from './storage.ts'
+import { emptyLeave } from './leaves.ts'
+import { ConflictError, deleteLeave, deleteTask, openFolder, readLeaves, readProjects, readTasks, saveLeave, saveProject, saveTask } from './storage.ts'
 
 // In-memory stand-in for FileSystemDirectoryHandle: nested Maps, files as strings.
 type Tree = Map<string, string | Tree>
@@ -53,6 +54,7 @@ function dirHandle(tree: Tree): FileSystemDirectoryHandle {
 const json = (v: unknown) => JSON.stringify(v)
 const projectsOf = (root: Tree) => root.get('projekty') as Tree
 const tasksOf = (root: Tree) => root.get('zadania') as Tree
+const leavesOf = (root: Tree) => root.get('urlopy') as Tree
 
 test('storage: Empty folder chosen', async () => {
   const root: Tree = new Map()
@@ -61,6 +63,7 @@ test('storage: Empty folder chosen', async () => {
   assert.deepEqual(JSON.parse(root.get('kalka.json') as string), { schema: 1, architects: [] })
   assert.equal(projectsOf(root).size, 0)
   assert.equal(tasksOf(root).size, 0)
+  assert.equal(leavesOf(root).size, 0)
 })
 
 test('storage: Folder from before tasks', async () => {
@@ -231,4 +234,72 @@ test('tasks: Two copies', async () => {
   assert.deepEqual(tasks.map((l) => [l.file, l.duplicate]), [['t1.json', true], ['t1-LAPTOP.json', true]])
   await deleteTask(dir, 't1-LAPTOP.json', 'y')
   assert.deepEqual((await readTasks(dir)).tasks.map((l) => [l.file, l.duplicate]), [['t1.json', false]])
+})
+
+test('storage: Folder from before leaves', async () => {
+  const project = json({ id: 'a', title: 'Dom' })
+  const task = json({ id: 't1', projectId: 'a' })
+  const root: Tree = new Map<string, string | Tree>([
+    ['kalka.json', json({ schema: 1, architects: [] })],
+    ['projekty', new Map([['a.json', project]])],
+    ['zadania', new Map([['t1.json', task]])],
+  ])
+  await openFolder(dirHandle(root))
+  assert.equal(leavesOf(root).size, 0)
+  assert.equal(projectsOf(root).get('a.json'), project)
+  assert.equal(tasksOf(root).get('t1.json'), task)
+})
+
+const leaveFile = (id: string, updatedAt = 'u1', architect = 'Anna Nowak') => json({ id, architect, from: '2026-12-01', to: '2026-12-05', updatedAt })
+
+test('storage: One broken leave file', async () => {
+  const root: Tree = new Map([['urlopy', new Map([['l1.json', leaveFile('l1')], ['l2.json', '{ nie json']])]])
+  const { leaves, broken } = await readProjects(dirHandle(root))
+  assert.deepEqual(leaves.map((l) => l.leave.architect), ['Anna Nowak'])
+  assert.deepEqual(broken.map((b) => b.file), ['urlopy/l2.json'])
+})
+
+test('leaves: Written file', async () => {
+  const root: Tree = new Map()
+  const dir = dirHandle(root)
+  await openFolder(dir)
+  const leave = { ...emptyLeave(), architect: 'Anna Nowak', from: '2026-12-01', to: '2026-12-05' }
+  await saveLeave(dir, leave, `${leave.id}.json`, '')
+  const onDisk = JSON.parse(leavesOf(root).get(`${leave.id}.json`) as string)
+  assert.deepEqual([onDisk.id, onDisk.architect, onDisk.from, onDisk.to], [leave.id, 'Anna Nowak', '2026-12-01', '2026-12-05'])
+  assert.ok(onDisk.updatedAt)
+})
+
+test('leaves: Confirm', async () => {
+  const root: Tree = new Map([['urlopy', new Map([['l1.json', leaveFile('l1')]])]])
+  await deleteLeave(dirHandle(root), 'l1.json', 'u1')
+  assert.equal(leavesOf(root).has('l1.json'), false)
+})
+
+test('leaves: Someone else changed the leave first', async () => {
+  const root: Tree = new Map([['urlopy', new Map([['l1.json', leaveFile('l1')]])]])
+  const dir = dirHandle(root)
+  const [loaded] = (await readLeaves(dir)).leaves
+  const theirs = leaveFile('l1', 'u2', 'Jan Kowalski')
+  leavesOf(root).set('l1.json', theirs)
+  await assert.rejects(saveLeave(dir, { ...loaded.leave, to: '2026-12-08' }, loaded.file, 'u1'), ConflictError)
+  await assert.rejects(deleteLeave(dir, loaded.file, 'u1'), ConflictError)
+  assert.equal(leavesOf(root).get('l1.json'), theirs)
+})
+
+test('leaves: Leave already deleted', async () => {
+  const root: Tree = new Map([['urlopy', new Map()]])
+  const dir = dirHandle(root)
+  const leave = { id: 'l1', architect: 'Anna Nowak', from: '2026-12-01', to: '2026-12-05', updatedAt: 'u1' }
+  await assert.rejects(saveLeave(dir, leave, 'l1.json', 'u1'), ConflictError)
+  await assert.rejects(deleteLeave(dir, 'l1.json', 'u1'), ConflictError)
+  assert.equal(leavesOf(root).size, 0)
+})
+
+test('leaves: Two copies', async () => {
+  const root: Tree = new Map([['urlopy', new Map([['l1.json', leaveFile('l1', 'x')], ['l1-LAPTOP.json', leaveFile('l1', 'y')]])]])
+  const dir = dirHandle(root)
+  assert.deepEqual((await readLeaves(dir)).leaves.map((l) => [l.file, l.duplicate]), [['l1.json', true], ['l1-LAPTOP.json', true]])
+  await deleteLeave(dir, 'l1-LAPTOP.json', 'y')
+  assert.deepEqual((await readLeaves(dir)).leaves.map((l) => [l.file, l.duplicate]), [['l1.json', false]])
 })

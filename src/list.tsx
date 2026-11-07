@@ -21,7 +21,7 @@ function newProjectHref(query: string, template: string): string {
 export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props) {
   const today = todayIso()
   const rows = sortProjects(filterProjects(data.projects, filter))
-  const architects = architectOptions(data.settings.architects, data.projects.map((l) => l.project))
+  const architects = architectOptions(data.settings.architects, data.projects.map((l) => l.project.leadArchitect))
   const set = (patch: Partial<Filter>) => onFilter({ ...filter, ...patch })
 
   return (

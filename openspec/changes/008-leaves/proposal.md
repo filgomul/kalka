@@ -14,12 +14,14 @@ make absences visible next to the milestones.
 - Each row shows the architect and the dates "od - do" in the architect's colour from
   `kalka.json`, like the coloured milestone column in "Terminy", with "Edytuj" and "Usuń"
   buttons. "Usuń" asks for confirmation.
-- "+ Dodaj urlop" opens a dialog: architect (from `kalka.json`), "od" and "do" (whole
-  days). "Edytuj" opens the same dialog filled in.
+- "+ Dodaj urlop" opens a dialog: architect (from `kalka.json`) and one month calendar
+  where the first click picks "od" and the second "do" (whole days). "Edytuj" opens the
+  same dialog filled in.
 - The "Urlopy" tab filters by architect (the person on leave), sharing the architect
   choice with the other tabs.
-- Calendar "Miesiąc": each leave is a bar in the architect's colour across the days from
-  "od" to "do", above the milestone chips, cut at the end of each week row.
+- Calendar "Miesiąc": each leave is a thin line in the architect's colour across the days
+  from "od" to "do", labelled "urlop" and the name above it, over the milestone chips,
+  cut at the end of each week row.
 - Calendar "Przegląd": each month block lists the leaves that touch that month at the
   top, above its milestones, with their dates.
 - Clicking a leave bar or overview leave entry opens the leave dialog, where it can be
@@ -29,7 +31,7 @@ make absences visible next to the milestones.
 - The calendar's architect, status and project filters narrow milestones only; every
   architect's leaves stay visible while "Pokaż" includes leaves.
 - The filters of "Kalendarz" and "Terminy" get visible labels: "Architekt prowadzący",
-  "Status projektu", "Projekt" and, in the calendar, "Pokaż".
+  "Status projektu", "Projekt" and, in the calendar, "Pokaż", all on one line.
 - Each leave is its own file in a new `urlopy/` folder, with the same conflict check as
   tasks.
 
@@ -43,7 +45,7 @@ make absences visible next to the milestones.
 
 ### Modified Capabilities
 
-- `calendar`: four header tabs; labelled filters plus the new "Pokaż" filter; leave bars
+- `calendar`: four header tabs; labelled filters plus the new "Pokaż" filter; leave lines
   in the month grid and leaves in the overview
 - `storage`: the folder layout gains `urlopy/`; leave files are read with the projects
   and broken leave files are reported like task files
@@ -51,7 +53,7 @@ make absences visible next to the milestones.
 ## Impact
 
 - Specs: `leaves` (new), `calendar` (MODIFIED: views navigation, filters; ADDED: show
-  filter, leave bars, leaves in the overview, edit leave from the calendar), `storage` (MODIFIED: folder layout; ADDED:
+  filter, leave lines, leaves in the overview, edit leave from the calendar), `storage` (MODIFIED: folder layout; ADDED:
   read all leaves)
 - Code: new `src/leaves.ts` (leave model and pure logic), new `src/leaves-view.tsx` (tab,
   list, dialog); `src/storage.ts` (read, save and delete leaves), `src/main.tsx` (route,
@@ -80,7 +82,7 @@ Settled with the engineer on 2026-11-07, or proposed here for review:
 6. **One file per leave** in `urlopy/<id>.json`, like tasks, so two people editing
    different leaves never block each other.
 7. **Colour**: the architect's colour from `kalka.json`; grey without one, like the task
-   circle. Text on calendar bars is light or dark, whichever reads better.
+   circle. Calendar lines use that colour, with their label in a darker shade of it.
 8. **Architect filter on "Urlopy"** reuses the shared architect choice (`a` in the URL), so
    it carries over between tabs like in "Terminy". On "Urlopy" it means the person on
    leave; in the calendar it still means the lead architect (decision 1).
@@ -89,6 +91,9 @@ Settled with the engineer on 2026-11-07, or proposed here for review:
    stays on the same month or range and filters. In "Urlopy" deleting stays a row button.
 10. **Labels only on "Kalendarz" and "Terminy"**, which share the filter bar; the project
     list filters stay as they are.
-11. **Out of scope**: leaves in the "Terminy" deadlines list, leave types (sick leave,
+11. **Review feedback** (engineer and QA, 2026-11-07): one calendar picks both dates;
+    calendar lines much thinner, with "urlop" next to the name; the four filters stay on
+    one line however long a project title is.
+12. **Out of scope**: leaves in the "Terminy" deadlines list, leave types (sick leave,
     half days), warnings when a milestone falls in a leave, adding a leave from the
     calendar.

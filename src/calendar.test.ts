@@ -16,7 +16,10 @@ import {
   withFrom,
   withLength,
   withTo,
+  showOf,
+  shownOnCalendar,
 } from './calendar.ts'
+import { leavesInMonth } from './leaves.ts'
 
 const TODAY = '2026-10-25'
 
@@ -277,4 +280,33 @@ test('calendar: Planned entry', () => {
   assert.deepEqual(d.weeks.map((w) => [w.monday, w.entries.map((e) => [e.value, e.confirmed])]), [['2026-11-16', [['2026-11-20', false]]]])
   const confirmed = deadlines(entries([row({ milestones: { pozwolenie: '2026-11-20' }, confirmed: ['pozwolenie'] })], TODAY), TODAY)
   assert.equal(confirmed.weeks[0].entries[0].confirmed, true)
+})
+
+test('calendar: Leaves ignore the filters', () => {
+  const rows = [row({ title: 'Dom Lipowa', leadArchitect: 'Anna Nowak', status: 'aktywny', milestones: { koncepcja: '2026-11-05' } }), row({ title: 'Hala', leadArchitect: 'Jan Kowalski', milestones: { koncepcja: '2026-11-06' } })]
+  const leaves = [{ leave: { architect: 'Jan Kowalski' } }]
+  const byAnna = shownOnCalendar(rows, leaves, { ...noFilter, architect: 'Anna Nowak' }, '', TODAY)
+  assert.deepEqual(byAnna.all.map((e) => e.project.title), ['Dom Lipowa'])
+  assert.deepEqual(byAnna.leaves, leaves)
+  assert.deepEqual(shownOnCalendar(rows, leaves, { ...noFilter, project: 'Hala.json', status: 'zakończony' }, '', TODAY).leaves, leaves)
+})
+
+test('calendar: Milestones only and leaves only', () => {
+  const rows = [row({ title: 'Dom Lipowa', milestones: { koncepcja: '2026-11-05' } })]
+  const leaves = [{ leave: { architect: 'Jan Kowalski' } }]
+  assert.deepEqual(shownOnCalendar(rows, leaves, noFilter, 'terminy', TODAY).leaves, [])
+  assert.equal(shownOnCalendar(rows, leaves, noFilter, 'terminy', TODAY).all.length, 1)
+  assert.deepEqual(shownOnCalendar(rows, leaves, noFilter, 'urlopy', TODAY).all, [])
+  assert.equal(showOf('urlopy'), 'urlopy')
+  assert.equal(showOf('cokolwiek'), '')
+  assert.equal(showOf(null), '')
+})
+
+test('calendar: Busy month with a leave', () => {
+  const days = Array.from({ length: 11 }, (_, i) => `2027-03-${String(i + 1).padStart(2, '0')}`)
+  const all = entries(days.map((d, i) => row({ title: `P${i}`, milestones: { koncepcja: d } })), TODAY)
+  const [march] = overviewMonths(all, { from: '2027-03', to: '2027-03' })
+  assert.deepEqual([march.shown.length, march.more], [8, 3])
+  const leaves = [{ leave: { id: 'l', architect: 'Anna Nowak', from: '2027-03-02', to: '2027-03-04', updatedAt: '' } }]
+  assert.equal(leavesInMonth(leaves, '2027-03').length, 1)
 })

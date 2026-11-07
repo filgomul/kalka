@@ -100,6 +100,15 @@ export function monthEntries(all: Entry[], month: string): { byDay: Map<string, 
   return { byDay, strip }
 }
 
+/** What the calendar shows (`k` in the URL): '' both, 'terminy' milestones only, 'urlopy' leaves only. */
+export type Show = '' | 'terminy' | 'urlopy'
+export const showOf = (k: string | null): Show => (k === 'terminy' || k === 'urlopy' ? k : '')
+
+/** The milestones and leaves the calendar draws: the filters narrow milestones only, leaves are everybody's. */
+export function shownOnCalendar<T extends Row, L>(rows: T[], leaves: L[], f: CalendarFilter, show: Show, today: string): { all: Entry[]; leaves: L[] } {
+  return { all: show === 'urlopy' ? [] : entries(visibleRows(rows, f), today), leaves: show === 'terminy' ? [] : leaves }
+}
+
 export const WINDOW_DAYS = 60
 
 /** Not-done milestones: all overdue ones, then those due within 60 days grouped by week. */

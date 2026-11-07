@@ -7,6 +7,7 @@ import {
   isSupported,
   openFolder,
   pickFolder,
+  readLeaves,
   readProjects,
   readTasks,
   rememberedFolder,
@@ -18,11 +19,12 @@ import { ProjectList } from './list.tsx'
 import { ProjectForm } from './form.tsx'
 import { CalendarView } from './calendar-view.tsx'
 import { Deadlines } from './deadlines.tsx'
+import { LeavesView } from './leaves-view.tsx'
 import './style.css'
 
 export type Data = { dir: FileSystemDirectoryHandle; settings: Settings } & ReadResult
 
-// Routes live in the hash: #/?a=&s=&q= (list), #/kalendarz?a=&s=&p=&m=, #/terminy?a=&s=&p=,
+// Routes live in the hash: #/?a=&s=&q= (list), #/kalendarz?a=&s=&p=&k=&m=, #/terminy?a=&s=&p=, #/urlopy?a=,
 // #/nowy and #/projekt/<file>. The query holds the filters; z= on a form link names the view to go back to.
 function useRoute() {
   const [hash, setHash] = useState(location.hash.slice(1) || '/')
@@ -43,7 +45,7 @@ function useRoute() {
 }
 
 const qs = (p: URLSearchParams) => (p.size ? '?' + p : '')
-const VIEWS = ['kalendarz', 'terminy']
+const VIEWS = ['kalendarz', 'terminy', 'urlopy']
 
 function App() {
   const route = useRoute()
@@ -130,6 +132,11 @@ function App() {
     const { tasks, broken } = await readTasks(data.dir)
     setData((d) => d && { ...d, tasks, broken: [...d.broken.filter((b) => !b.file.startsWith('zadania/')), ...broken] })
   }
+  // after a leave change: only urlopy/ is read again
+  const reloadLeaves = async () => {
+    const { leaves, broken } = await readLeaves(data.dir)
+    setData((d) => d && { ...d, leaves, broken: [...d.broken.filter((b) => !b.file.startsWith('urlopy/')), ...broken] })
+  }
   // the form keeps the tab of the view it was opened from
   const view = route.path === '/nowy' || route.path.startsWith('/projekt/') ? (route.params.get('z') ?? '') : route.path.slice(1)
   const tabQuery = qs(new URLSearchParams([...route.params].filter(([k]) => k === 'a' || k === 's')))
@@ -145,9 +152,12 @@ function App() {
     ) : (
       <main><p>{t.notFound}</p><a href={'#/' + route.query}>{t.back}</a></main>
     )
-  } else if (route.path === '/kalendarz' || route.path === '/terminy') {
-    const View = route.path === '/kalendarz' ? CalendarView : Deadlines
-    content = <View data={data} params={route.params} onParams={(p) => route.go(route.path + qs(p), true)} />
+  } else if (route.path === '/kalendarz' || route.path === '/terminy' || route.path === '/urlopy') {
+    const props = { data, params: route.params, onParams: (p: URLSearchParams) => route.go(route.path + qs(p), true) }
+    content =
+      route.path === '/kalendarz' ? <CalendarView {...props} reloadLeaves={reloadLeaves} />
+      : route.path === '/urlopy' ? <LeavesView {...props} reloadLeaves={reloadLeaves} />
+      : <Deadlines {...props} />
   } else {
     content = (
       <ProjectList
@@ -177,7 +187,7 @@ function App() {
       <header class="top">
         <a class="brand" href={'#/' + tabQuery}>{t.appName}</a>
         <nav class="tabs">
-          {[['', t.projects], ['kalendarz', t.calendar], ['terminy', t.deadlines]].map(([v, label]) => (
+          {[['', t.projects], ['kalendarz', t.calendar], ['terminy', t.deadlines], ['urlopy', t.leaves]].map(([v, label]) => (
             <a key={v} class="tab" href={`#/${v}${tabQuery}`} aria-current={(VIEWS.includes(view) ? view : '') === v ? 'page' : undefined}>
               {label}
             </a>

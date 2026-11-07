@@ -253,12 +253,19 @@ button:disabled {
   flex: 1 1 280px;
 }
 
-.toolbar select {
+.toolbar > select,
+.toolbar > label {
   flex: 0 1 200px;
 }
 
+.toolbar > label {
+  justify-content: flex-end;
+  min-width: 0;
+}
+
 @media (max-width: 600px) {
-  .toolbar select {
+  .toolbar > select,
+  .toolbar > label {
     flex: 1 1 140px;
   }
 }
@@ -832,6 +839,8 @@ button.task:hover {
 
 .chip,
 .kind,
+.leave-row,
+.leave-bar,
 .legend i,
 .milestones > .milestone,
 .q {
@@ -1063,9 +1072,20 @@ button.pick::after {
 }
 
 .month-grid {
+  min-width: 760px;
+  --num-row: 30px;
+  --lane-row: 19px;
+}
+
+/* the weekday header and each week are their own 7-column grids, so leave bars can span days */
+.dows,
+.week {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  min-width: 760px;
+}
+
+.week {
+  min-height: 104px;
 }
 
 .dow {
@@ -1079,7 +1099,7 @@ button.pick::after {
 }
 
 .day {
-  min-height: 104px;
+  grid-row: 1 / -1;
   padding: 6px 6px 8px;
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -1089,11 +1109,11 @@ button.pick::after {
   min-width: 0;
 }
 
-.day:nth-child(7n) {
+.day:nth-child(7) {
   border-right: 0;
 }
 
-.day:nth-last-child(-n + 7) {
+.week:last-child .day {
   border-bottom: 0;
 }
 
@@ -1213,4 +1233,233 @@ td.when {
   .overview {
     grid-template-columns: 1fr;
   }
+}
+
+/* Leaves on the calendar: bars in the month grid, entries in the overview */
+
+.chips {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 2px 6px 8px;
+}
+
+button.leave-bar {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 1px;
+  min-width: 0;
+  margin: 0 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--x);
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  text-align: left;
+}
+
+/* the line itself */
+button.leave-bar::after {
+  content: '';
+  height: 3px;
+  border-radius: 2px;
+  background: var(--c);
+}
+
+button.leave-bar span {
+  padding: 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+button.leave-bar b {
+  font-weight: 600;
+}
+
+button.leave-bar:hover {
+  background: none;
+  color: var(--ink);
+}
+
+button.leave-bar:hover::after {
+  height: 4px;
+}
+
+.overview-month ul.overview-leaves {
+  margin-bottom: 8px;
+}
+
+button.chip.leave {
+  width: 100%;
+  border: 0;
+  border-left: 3px solid var(--c);
+  border-radius: 0;
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  text-align: left;
+}
+
+button.chip.leave .dates {
+  margin-left: auto;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Urlopy */
+
+.leave-row td {
+  background: var(--t);
+  color: var(--x);
+}
+
+.leave-row td:first-child {
+  border-left: 3px solid var(--c);
+}
+
+tbody tr.leave-row:hover td {
+  filter: brightness(0.97);
+}
+
+.leave-row .who {
+  font-weight: 600;
+}
+
+.leave-row .ongoing {
+  margin-left: 8px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--c);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.leave-row .row-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.leave-row .row-actions button + button {
+  margin-left: 12px;
+}
+
+button.link.danger {
+  color: var(--error);
+}
+
+/* Range calendar in the leave dialog */
+
+fieldset.range {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+fieldset.range legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.range-picker {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px 10px;
+}
+
+.range-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-family: var(--font-head);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.85rem;
+}
+
+.range-head button.link {
+  font-size: 1.1rem;
+  padding: 0 8px;
+}
+
+.range-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px 0;
+}
+
+.range-grid .dow {
+  padding: 2px 0 4px;
+  text-align: center;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.range-grid button {
+  padding: 6px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.range-grid button:hover {
+  background: var(--bg);
+}
+
+.range-grid button.out {
+  color: #c3beb6;
+}
+
+.range-grid button.today {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.range-grid button.in {
+  background: var(--sage-tint);
+}
+
+.range-grid button.start,
+.range-grid button.end {
+  background: var(--sage);
+  color: #fff;
+}
+
+.range-grid button.start {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.range-grid button.end {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.range-grid button.start.end {
+  border-radius: var(--radius);
+}
+
+.range-sum {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 8px 0 0;
+  font-variant-numeric: tabular-nums;
 }
