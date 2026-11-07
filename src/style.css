@@ -473,6 +473,108 @@ label.check {
   margin-right: auto;
 }
 
+/* Project milestones: cards in the project's order, dragged by their handle */
+
+.milestones > .milestone {
+  position: relative;
+  padding: 8px 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+/* floated, so the legend sits inside the card instead of cutting into its border */
+.milestones > .milestone > legend {
+  float: left;
+  width: 100%;
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.milestones .name {
+  margin-right: auto;
+}
+
+.milestones .handle {
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  letter-spacing: 0;
+  cursor: grab;
+}
+
+button.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+button.link:hover {
+  background: none;
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.milestone.dragging {
+  opacity: 0.4;
+}
+
+.milestone[data-drop]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--sage);
+}
+
+.milestone[data-drop='before']::before {
+  left: -10px;
+}
+
+.milestone[data-drop='after']::before {
+  right: -10px;
+}
+
+/* "Nowy projekt": a menu of templates under its button */
+
+.new-project {
+  anchor-name: --new-project;
+}
+
+.menu[popover] {
+  position-anchor: --new-project;
+  inset: auto;
+  top: anchor(bottom);
+  right: anchor(right);
+  min-width: 200px;
+  margin: 4px 0 0;
+  padding: 4px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
+}
+
+.menu a {
+  display: block;
+  padding: 8px 14px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.menu a:hover,
+.menu a:focus-visible {
+  background: var(--bg);
+}
+
 .actions {
   position: sticky;
   bottom: 0;
@@ -504,7 +606,7 @@ label.check {
 
 /* Task board */
 
-.tasks-head {
+.section-head {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -512,11 +614,15 @@ label.check {
   margin-bottom: 12px;
 }
 
-.tasks-head h2 {
+.section-head > button {
+  margin-left: auto;
+}
+
+.section-head h2 {
   margin: 0;
 }
 
-.tasks-head .muted {
+.section-head .muted {
   font-size: 0.85rem;
   margin-right: auto;
 }
@@ -693,15 +799,16 @@ button.task:hover {
   }
 }
 
-/* Milestone kinds: bar, tint, text */
+/* Milestone styles: the colour (--c) comes from the style's data on the element;
+   the tint (--t) and the text (--x) are derived from it, so a style needs one colour */
 
-[data-kind='rozpoczecie'] { --c: #7d776d; --t: #efede9; --x: #4d4943; }
-[data-kind='koncepcja'] { --c: #a07a3c; --t: #f5eee2; --x: #6e5226; }
-[data-kind='akceptacja'] { --c: #807a35; --t: #f1f0e0; --x: #575321; }
-[data-kind='pbDoUrzedu'] { --c: #4e6b80; --t: #e7eef3; --x: #33495a; }
-[data-kind='uzupelnienie'] { --c: #7a5f7f; --t: #f0eaf1; --x: #533f57; }
-[data-kind='pozwolenie'] { --c: #697662; --t: #edf1e9; --x: #48523f; }
-[data-kind='branzysci'] { --c: #3e7d77; --t: #e3f0ee; --x: #2a5652; }
+.chip,
+.kind,
+.legend i,
+.q {
+  --t: color-mix(in oklab, var(--c) 12%, white);
+  --x: color-mix(in oklab, var(--c), black 32%);
+}
 
 .chip {
   display: flex;

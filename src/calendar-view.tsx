@@ -1,8 +1,9 @@
 import { useRef } from 'preact/hooks'
-import { architectOptions, MILESTONES, type MilestoneKey, STATUSES, todayIso } from './model.ts'
+import { architectOptions, STATUSES, styleOf, titleOf, todayIso } from './model.ts'
 import {
   addMonths,
   entries,
+  legendStyles,
   isMonth,
   monthEntries,
   monthGrid,
@@ -19,7 +20,7 @@ import {
   type Entry,
   type Range,
 } from './calendar.ts'
-import { milestoneLabels, milestoneShort, months, monthsShort, statusLabels, t, weekdays } from './pl.ts'
+import { months, monthsShort, statusLabels, t, weekdays } from './pl.ts'
 import type { Data } from './main.tsx'
 
 export type ViewProps = {
@@ -73,9 +74,12 @@ export function CalendarFilters({ data, params, onParams }: ViewProps) {
   )
 }
 
-/** The "?" before a date that is only planned, in the milestone's colour. */
-export function PlannedMark({ kind }: { kind?: MilestoneKey }) {
-  return <abbr class="q" data-kind={kind} title={t.unconfirmed}>?</abbr>
+/** Inline style that gives an element its milestone style's colour; CSS derives the tint and text from it. */
+export const colorOf = (style: string) => `--c: ${styleOf(style).color}`
+
+/** The "?" before a date that is only planned, in the milestone's colour (inherited when no style is given). */
+export function PlannedMark({ style }: { style?: string }) {
+  return <abbr class="q" style={style ? colorOf(style) : undefined} title={t.unconfirmed}>?</abbr>
 }
 
 /** `day` puts the day of the month (or "mies.") in front, for the overview's lists. */
@@ -83,9 +87,9 @@ export function Chip({ e, href, day }: { e: Entry; href: string; day?: boolean }
   const planned = !e.confirmed && e.state !== 'done'
   const state = [planned && t.unconfirmed, e.state === 'overdue' && t.overdue, e.state === 'done' && t.done].filter(Boolean).map((s) => `, ${s}`).join('')
   return (
-    <a class="chip" data-kind={e.key} data-state={e.state} data-planned={planned || undefined} href={href} title={`${e.project.title || e.file} - ${milestoneLabels[e.key]}${state}`}>
+    <a class="chip" style={colorOf(e.milestone.style)} data-state={e.state} data-planned={planned || undefined} href={href} title={`${e.project.title || e.file} - ${titleOf(e.milestone)}${state}`}>
       {day && <i class="d">{e.precision === 'day' ? e.value.slice(8) : t.wholeMonth}</i>}
-      <b>{planned && <PlannedMark />}{milestoneShort[e.key]}</b>
+      <b>{planned && <PlannedMark />}{styleOf(e.milestone.style).short}</b>
       <span>{e.project.title || e.file}</span>
     </a>
   )
@@ -156,8 +160,8 @@ export function CalendarView(props: ViewProps) {
       <CalendarFilters {...props} />
 
       <div class="legend" aria-label={t.legend}>
-        {MILESTONES.map((k) => (
-          <span key={k}><i data-kind={k} />{milestoneShort[k]} - {milestoneLabels[k]}</span>
+        {legendStyles(all).map((s) => (
+          <span key={s.id}><i style={colorOf(s.id)} />{s.short} - {s.name}</span>
         ))}
         <span><PlannedMark />{t.unconfirmed}</span>
       </div>
@@ -177,7 +181,7 @@ function MonthView({ all, params, today, month }: PartProps & { month: string })
       {strip.length > 0 && (
         <div class="card strip">
           <span class="lbl">{t.thisMonth}</span>
-          {strip.map((e) => <Chip key={e.file + e.key} e={e} href={href(e)} />)}
+          {strip.map((e) => <Chip key={e.file + e.milestone.id} e={e} href={href(e)} />)}
         </div>
       )}
 
@@ -189,7 +193,7 @@ function MonthView({ all, params, today, month }: PartProps & { month: string })
             return (
               <div key={day} class={cls}>
                 <span class="n">{+day.slice(8)}</span>
-                {byDay.get(day)?.map((e) => <Chip key={e.file + e.key} e={e} href={href(e)} />)}
+                {byDay.get(day)?.map((e) => <Chip key={e.file + e.milestone.id} e={e} href={href(e)} />)}
               </div>
             )
           })}
@@ -214,7 +218,7 @@ function Overview({ all, params, today, range }: PartProps & { range: Range }) {
           {shown.length === 0 ? (
             <p class="muted">{t.noMilestones}</p>
           ) : (
-            <ul>{shown.map((e) => <li key={e.file + e.key}><Chip e={e} href={href(e)} day /></li>)}</ul>
+            <ul>{shown.map((e) => <li key={e.file + e.milestone.id}><Chip e={e} href={href(e)} day /></li>)}</ul>
           )}
           {more > 0 && <a class="more" href={monthHref(month)}>+{more} {t.more}</a>}
         </section>

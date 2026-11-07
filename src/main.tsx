@@ -116,6 +116,7 @@ function App() {
     const p = new URLSearchParams(route.params)
     const z = p.get('z') ?? ''
     p.delete('z')
+    p.delete('t')
     route.go('/' + (VIEWS.includes(z) ? z : '') + qs(p))
   }
   const saved = async () => {
@@ -133,7 +134,7 @@ function App() {
 
   let content
   if (route.path === '/nowy') {
-    content = <ProjectForm data={data} loaded={null} onSaved={saved} onCancel={back} reloadTasks={reloadTasks} />
+    content = <ProjectForm key={'nowy-' + (route.params.get('t') ?? '')} data={data} loaded={null} template={route.params.get('t')} onSaved={saved} onCancel={back} reloadTasks={reloadTasks} />
   } else if (route.path.startsWith('/projekt/')) {
     const file = decodeURIComponent(route.path.slice('/projekt/'.length))
     const loaded = data.projects.find((p) => p.file === file)

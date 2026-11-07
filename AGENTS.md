@@ -18,9 +18,14 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
   once to its own file, apart from the project form's "Zapisz" / "Anuluj".
 - **calendar**: month grid of milestones across all projects with the same filters, plus
   the "Terminy" list of upcoming and recently passed milestones.
-- A project has seven optional milestones, each with day (`YYYY-MM-DD`) or month
-  (`YYYY-MM`) precision, planned or confirmed, and separately done or not. The
-  calendar shows only milestones that have a date.
+- A project's milestones are an ordered list (`timeline`) seeded from a template
+  ("projekt budowlany", "projekt wnętrz", "inny") when the project is created; the
+  project does not keep the template. Each milestone has a style (name, short label,
+  colour) from the built-in list in `src/model.ts`, and can be added, edited (only
+  added ones), deleted and reordered per project. Each has day (`YYYY-MM-DD`) or month
+  (`YYYY-MM`) precision, is planned or confirmed, and separately done or not. The
+  calendar shows only milestones that have a date. Older project files (seven fixed
+  milestones) are converted when read.
 - A save never overwrites a project file that someone else changed after it was read.
 
 Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has touched it.
@@ -38,6 +43,14 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 | uzupełnienie do urzędu | `uzupelnienie` | Supplement requested by the office filed |
 | uzyskanie pozwolenia | `pozwolenie` | Building permit granted |
 | termin branżystów | `branzysci` | Estimated completion of branch (engineering) designs |
+| wydanie projektu | `wydanieProjektu` | Final design handed over (both templates) |
+| układy funkcjonalne / akceptacja układów | `uklady` / `akceptacjaUkladow` | Interior layouts handed to the client / accepted |
+| pierwsze wizualizacje / akceptacja wizualizacji | `wizualizacje` / `akceptacjaWizualizacji` | First interior visualisations / accepted |
+| nadzór autorski | `nadzor` | Author's supervision, a site visit |
+| inny | `inny` | Style for any other milestone (black) |
+| szablon | template | Ordered list of styles a new project starts with |
+| styl terminu | style | Name, short label and colour of a milestone; the keys above are style ids |
+| terminy | `timeline` | A project's milestones in order, each `{ id, style, title?, date?, done?, confirmed? }` |
 | branża konstrukcyjna / sanitarna / elektryczna / drogowa | `konstrukcja` / `sanitarna` / `elektryczna` / `drogowa` | Scope text for that engineering branch; empty means "brak" (none) |
 | rzeczoznawca ppoż. / BHP i Sanepid | `ppoz` / `bhpSanepid` | Fire-protection and OHS/sanitary expert involvement |
 | status | `aktywny` / `wstrzymany` / `zakończony` | Active, on hold, finished |
@@ -60,7 +73,8 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
   data (addresses, client or contractor names). `*.csv` and `*.xlsx` are gitignored.
 - Small production tool, built lean. Out of scope for now: auth, backend, analytics,
   offline mode, merging concurrent edits.
-- Writing: UI strings in Polish, kept in `src/pl.ts`. Plain dash instead of em dash in
+- Writing: UI strings in Polish, kept in `src/pl.ts`; milestone style and template
+  names live in `src/model.ts` as default data. Plain dash instead of em dash in
   every file. No Co-Authored-By lines in commits.
 
 ## How to work here

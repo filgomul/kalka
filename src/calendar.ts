@@ -1,7 +1,7 @@
 // Calendar and deadlines logic. No DOM here, so node --test can run it.
 // Dates are ISO strings (`YYYY-MM-DD`); arithmetic goes through UTC so time zones can't shift a day.
 
-import { filterProjects, isConfirmed, isDone, MILESTONES, parseDate, type MilestoneKey, type Project } from './model.ts'
+import { filterProjects, parseDate, STYLES, styleOf, type Milestone, type MilestoneStyle, type Project } from './model.ts'
 
 type Row = { project: Project; file: string }
 
@@ -11,7 +11,9 @@ export type CalendarFilter = { architect: string; status: string; project: strin
 export type Entry = {
   project: Project
   file: string
-  key: MilestoneKey
+  milestone: Milestone
+  /** place of the milestone in its project */
+  index: number
   /** stored value, `YYYY-MM-DD` or `YYYY-MM` */
   value: string
   precision: 'day' | 'month'
@@ -59,24 +61,29 @@ export function visibleRows<T extends Row>(rows: T[], f: CalendarFilter): T[] {
   return filterProjects(rows, { architect: f.architect, status: f.status, q: '' })
 }
 
-/** Every dated milestone of the rows, by due date, then milestone order, then title. */
+/** Every dated milestone of the rows, by due date, then place in its project, then title. */
 export function entries(rows: Row[], today: string): Entry[] {
   const out: Entry[] = []
   for (const { project, file } of rows) {
-    for (const key of MILESTONES) {
-      const value = project.milestones[key]
-      const d = parseDate(value)
-      if (!d) continue
-      const state = isDone(project, key) ? 'done' : d.due < today ? 'overdue' : 'open'
-      out.push({ project, file, key, value: value!, precision: d.precision, due: d.due, state, confirmed: isConfirmed(project, key) })
-    }
+    project.timeline.forEach((milestone, index) => {
+      const d = parseDate(milestone.date)
+      if (!d) return
+      const state = milestone.done ? 'done' : d.due < today ? 'overdue' : 'open'
+      out.push({ project, file, milestone, index, value: milestone.date!, precision: d.precision, due: d.due, state, confirmed: !!milestone.confirmed })
+    })
   }
   return out.sort(
     (a, b) =>
       a.due.localeCompare(b.due) ||
-      MILESTONES.indexOf(a.key) - MILESTONES.indexOf(b.key) ||
+      a.index - b.index ||
       a.project.title.localeCompare(b.project.title, 'pl'),
   )
+}
+
+/** The styles the entries use, in the order of the style list; an unknown style counts as "inny". */
+export function legendStyles(all: Entry[]): MilestoneStyle[] {
+  const used = new Set(all.map((e) => styleOf(e.milestone.style).id))
+  return STYLES.filter((s) => used.has(s.id))
 }
 
 /** Day-precision entries by day, and the month-precision ones of `month` for the strip. */
