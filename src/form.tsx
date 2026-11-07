@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
-import { BRANCHES, emptyProject, fromTemplate, moveMilestone, newId, nextLp, parseDate, prepareForSave, STATUSES, STYLES, titleOf, type Milestone, type Project } from './model.ts'
+import { BRANCHES, emptyProject, fromTemplate, moveMilestone, newId, nextLp, parseDate, prepareForSave, STATUSES, STYLES, titleOf, withTimeline, type Milestone, type Project } from './model.ts'
 import { branchLabels, statusLabels, t } from './pl.ts'
-import { ConflictError, saveProject, type Loaded } from './storage.ts'
+import { ConflictError, readProjects, saveProject, type Loaded } from './storage.ts'
 import type { Data } from './main.tsx'
 import { Portal, TaskBoard } from './board.tsx'
 
@@ -13,13 +13,18 @@ type Props = {
   template?: string | null
   onSaved: () => Promise<void>
   onCancel: () => void
+  /** reads the folder again after a milestone change, without leaving the form */
+  reloadProjects: () => Promise<void>
   /** reads the task files again after a task change */
   reloadTasks: () => Promise<void>
 }
 
 type Precision = 'day' | 'month'
 
-export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadTasks }: Props) {
+/** A typed date is written once the user stops typing for this long. */
+const DATE_DELAY = 500
+
+export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadProjects, reloadTasks }: Props) {
   const [draft, setDraft] = useState<Project>(
     () => loaded?.project ?? { ...emptyProject(), lp: nextLp(data.projects.map((l) => l.project)), timeline: fromTemplate(template) },
   )
@@ -28,15 +33,77 @@ export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadT
     () => Object.fromEntries(draft.timeline.map((m) => [m.id, parseDate(m.date)?.precision ?? 'day'])),
   )
   const [error, setError] = useState('')
+  const [timelineError, setTimelineError] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // Milestone changes of a saved project are written at once (only the milestones); the
+  // other fields wait for "Zapisz". `base` is the project as last written and is what a
+  // milestone write starts from. `saveAt` is the updatedAt "Zapisz" checks against: it
+  // follows our own milestone writes, but not a re-read after someone else's save, so
+  // "Zapisz" still refuses to overwrite their other fields with this draft's old values.
+  const base = useRef<Project | null>(loaded?.project ?? null)
+  const saveAt = useRef(loaded?.project.updatedAt ?? '')
+  const queue = useRef<Promise<void>>(Promise.resolve())
+  const pending = useRef<{ list: Milestone[]; timer: number } | null>(null)
+  const latest = useRef(draft)
+  latest.current = draft
+
   const set = (patch: Partial<Project>) => setDraft((d) => ({ ...d, ...patch }))
-  const setTimeline = (change: (list: Milestone[]) => Milestone[]) => setDraft((d) => ({ ...d, timeline: change(d.timeline) }))
-  const setMilestone = (id: string, patch: Partial<Milestone>) => setTimeline((list) => list.map((m) => (m.id === id ? { ...m, ...patch } : m)))
+
+  /** Puts `list` in the draft and, for a saved project, writes it after `delay` ms (null: draft only). */
+  function commit(list: Milestone[], delay: number | null = 0) {
+    setDraft((d) => ({ ...d, timeline: list }))
+    if (!base.current || delay === null) return
+    if (pending.current) clearTimeout(pending.current.timer)
+    pending.current = { list, timer: window.setTimeout(flush, delay) }
+  }
+
+  /** Starts the waiting milestone write now; resolves when every write so far is done. */
+  function flush(): Promise<void> {
+    const p = pending.current
+    if (p) {
+      clearTimeout(p.timer)
+      pending.current = null
+      queue.current = queue.current.then(() => writeTimeline(p.list))
+    }
+    return queue.current
+  }
+
+  /** One milestone write. Never rejects, so the queue keeps going. */
+  async function writeTimeline(list: Milestone[]) {
+    const from = base.current!
+    try {
+      const saved = await saveProject(data.dir, withTimeline(from, list), loaded!.file, from.updatedAt)
+      if (saveAt.current === from.updatedAt) saveAt.current = saved.updatedAt
+      base.current = saved
+      setTimelineError('')
+      await reloadProjects()
+    } catch (err) {
+      if (!(err instanceof ConflictError)) return setTimelineError(`${t.saveFailed} ${(err as Error).message}`)
+      // someone else saved first: show the milestones as the file holds them, keep the other fields
+      const fresh = (await readProjects(data.dir)).projects.find((l) => l.file === loaded!.file)?.project
+      if (fresh) {
+        base.current = fresh
+        setDraft((d) => ({ ...d, timeline: fresh.timeline }))
+        setPrecision(Object.fromEntries(fresh.timeline.map((m) => [m.id, parseDate(m.date)?.precision ?? 'day'])))
+      }
+      setTimelineError(t.timelineConflict)
+      await reloadProjects()
+    }
+  }
+
+  // a date typed just before leaving still gets written
+  useEffect(() => () => void flush(), [])
+
+  const setTimeline = (change: (list: Milestone[]) => Milestone[]) => commit(change(draft.timeline))
+  const setMilestone = (id: string, patch: Partial<Milestone>, delay: number | null = 0) =>
+    commit(draft.timeline.map((m) => (m.id === id ? { ...m, ...patch } : m)), delay)
   const switchPrecision = (m: Milestone, to: Precision) => {
     setPrecision((p) => ({ ...p, [m.id]: to }))
-    // a month keeps its year and month; a day can't be guessed from a month
-    setMilestone(m.id, { date: to === 'month' ? (m.date ?? '').slice(0, 7) : '' })
+    // a month keeps its year and month and is written; a day can't be guessed from a month,
+    // so the field is emptied in the draft only and the stored month stays until a day is picked
+    if (to === 'month') setMilestone(m.id, { date: (m.date ?? '').slice(0, 7) })
+    else setMilestone(m.id, { date: '' }, null)
   }
 
   const listed = data.settings.architects
@@ -48,8 +115,9 @@ export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadT
     setSaving(true)
     setError('')
     try {
+      await flush()
       const file = loaded?.file ?? `${draft.id}.json`
-      await saveProject(data.dir, prepareForSave(draft), file, loaded?.project.updatedAt ?? '')
+      await saveProject(data.dir, prepareForSave(latest.current), file, saveAt.current)
       await onSaved()
     } catch (err) {
       setError(err instanceof ConflictError ? t.conflict : `${t.saveFailed} ${(err as Error).message}`)
@@ -57,11 +125,16 @@ export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadT
     }
   }
 
+  async function cancel() {
+    await flush()
+    onCancel()
+  }
+
   return (
     <main>
       <form onSubmit={save}>
         <div class="heading">
-          <a class="back" href="#/" onClick={(e) => { e.preventDefault(); onCancel() }}>← {t.back}</a>
+          <a class="back" href="#/" onClick={(e) => { e.preventDefault(); cancel() }}>← {t.back}</a>
           <h1>{loaded ? draft.title || loaded.file : t.newProject}</h1>
         </div>
 
@@ -113,6 +186,8 @@ export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadT
           onChange={setTimeline}
           onMilestone={setMilestone}
           onPrecision={switchPrecision}
+          savesAtOnce={!!loaded}
+          error={timelineError}
         />
 
         {loaded && <TaskBoard data={data} projectId={loaded.project.id} reloadTasks={reloadTasks} />}
@@ -136,7 +211,7 @@ export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadT
 
         <div class="actions">
           {error && <p class="error" role="alert">{error}</p>}
-          <button type="button" onClick={onCancel}>{t.cancel}</button>
+          <button type="button" onClick={cancel}>{t.cancel}</button>
           <button class="primary" type="submit" disabled={saving}>{saving ? t.saving : t.save}</button>
         </div>
       </form>
@@ -148,12 +223,17 @@ type TimelineProps = {
   list: Milestone[]
   precision: Record<string, Precision>
   onChange: (change: (list: Milestone[]) => Milestone[]) => void
-  onMilestone: (id: string, patch: Partial<Milestone>) => void
+  /** `delay` in ms before the write; the date input waits for the user to stop typing */
+  onMilestone: (id: string, patch: Partial<Milestone>, delay?: number) => void
   onPrecision: (m: Milestone, to: Precision) => void
+  /** a saved project, whose milestone changes are written at once */
+  savesAtOnce: boolean
+  /** why the last milestone write failed, if it did */
+  error: string
 }
 
-/** The project's milestones in order: dates and marks, add, edit, delete and reorder. All of it changes only the draft. */
-function Timeline({ list, precision, onChange, onMilestone, onPrecision }: TimelineProps) {
+/** The project's milestones in order: dates and marks, add, edit, delete and reorder. */
+function Timeline({ list, precision, onChange, onMilestone, onPrecision, savesAtOnce, error }: TimelineProps) {
   const [editing, setEditing] = useState<Milestone | 'new' | null>(null)
   const [dragging, setDragging] = useState<string | null>(null)
   /** where a dragged milestone would land: its index among the milestones not being dragged */
@@ -221,8 +301,10 @@ function Timeline({ list, precision, onChange, onMilestone, onPrecision }: Timel
     <section class="card">
       <div class="section-head">
         <h2>{t.milestones}</h2>
+        {savesAtOnce && <span class="muted">{t.milestonesHint}</span>}
         <button type="button" onClick={() => setEditing('new')}>+ {t.addMilestone}</button>
       </div>
+      {error && <p class="error" role="alert">{error}</p>}
       <div ref={grid} class="fields milestones" onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
         {list.map((m, i) => {
           const name = titleOf(m)
@@ -263,7 +345,7 @@ function Timeline({ list, precision, onChange, onMilestone, onPrecision }: Timel
                 type={day ? 'date' : 'month'}
                 aria-label={name}
                 value={m.date ?? ''}
-                onInput={(e) => onMilestone(m.id, { date: e.currentTarget.value })}
+                onInput={(e) => onMilestone(m.id, { date: e.currentTarget.value }, DATE_DELAY)}
               />
               <select aria-label={`${name}: ${t.day} / ${t.month}`} value={day ? 'day' : 'month'} onChange={(e) => onPrecision(m, e.currentTarget.value as Precision)}>
                 <option value="day">{t.day}</option>

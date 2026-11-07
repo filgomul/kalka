@@ -110,6 +110,8 @@ export const t = {
   edit: 'Edytuj',
   moveMilestone: 'Przesuń termin',
   confirmRemoveMilestone: (name: string) => `Usunąć termin „${name}”?`,
+  milestonesHint: 'Zmiany terminów zapisują się od razu.',
+  timelineConflict: 'Ktoś inny zmienił ten projekt w międzyczasie. Terminy wczytano ponownie - powtórz zmianę.',
   taskTitleRequired: 'Podaj tytuł zadania.',
   taskConflict: 'Ktoś inny zmienił to zadanie w międzyczasie. Zadania są odświeżone, wprowadź zmianę ponownie.',
 

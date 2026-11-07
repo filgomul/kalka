@@ -25,8 +25,11 @@ seeded from its kind and then be a list the studio can extend, trim and reorder.
   title and a style, "inny" by default; it goes to the end of the list), edit the title
   and style of a milestone they added, delete any milestone (after a confirmation) and
   drag milestones to reorder them. The same style may appear more than once in a
-  project. All of this is part of the project draft, written by "Zapisz" and undone by
-  "Anuluj".
+  project.
+- Every milestone change (date, day / month, planned / confirmed, done, add, edit,
+  delete, reorder) is written to the project file at once, like a task change. "Zapisz"
+  and "Anuluj" keep covering the other project fields. A project that has not been saved
+  yet keeps its milestones in the draft until its first "Zapisz".
 - Done, planned / confirmed and day / month precision stay as they are, now per
   milestone instead of per kind.
 - The calendar legend lists only the styles that the visible projects use. Milestones on
@@ -46,20 +49,21 @@ None. Templates, styles and the milestone list belong to `projects`.
 
 - `projects`: creating a project from a template; the milestone list replaces the seven
   fixed milestones (add, edit, delete, reorder); milestone styles; reading older project
-  files; done, confirmed and precision per milestone
+  files; done, confirmed and precision per milestone; milestone changes saved at once
 - `calendar`: chip label, colour and legend come from the milestone's style; same-day
   order follows the project's milestone order
 
 ## Impact
 
 - Specs: `projects` (ADDED: templates, styles, add / edit / delete / reorder milestones,
-  older files; MODIFIED: create, edit, precision, done, confirmed; REMOVED: concept
+  milestones saved at once, older files; MODIFIED: create, edit, precision, done, confirmed; REMOVED: concept
   acceptance milestone, folded into the building template), `calendar` (MODIFIED:
   milestone chips, chip state)
 - Code: `src/model.ts` (milestone list, styles, templates, conversion of older files,
-  next milestone), `src/form.tsx` (milestone list, dialog, drag), `src/list.tsx`
-  (template menu, next milestone title), `src/main.tsx` (template in the new-project
-  route), `src/calendar.ts` and `src/calendar-view.tsx` (entries per milestone, chip
+  next milestone), `src/form.tsx` (milestone list, dialog, drag, saving milestone changes
+  at once), `src/list.tsx` (template menu, next milestone title), `src/main.tsx`
+  (template in the new-project route, re-reading projects without leaving the form),
+  `src/calendar.ts` and `src/calendar-view.tsx` (entries per milestone, chip
   colour and legend from styles), `src/deadlines.tsx`, `src/pl.ts` (milestone labels
   move to the style list), `src/style.css` (colours from data instead of seven CSS rules)
 - Tests: `src/model.test.ts`, `src/calendar.test.ts`
@@ -83,8 +87,15 @@ Settled with the engineer on 2026-11-07:
 4. **Template milestones keep their title** (the style's name). Milestones the user
    added have their own required title and can be edited (title and style) in the same
    dialog.
-5. **Saved with "Zapisz"**: adding, editing, deleting and reordering milestones change
-   the draft; "Anuluj" undoes them, unlike tasks, which are written at once.
+5. **Saved at once** (revised 2026-11-07, replacing "saved with Zapisz"): every
+   milestone change, including add, edit, delete and reorder, writes only the milestone
+   list into the project file straight away, like tasks; the other fields wait for
+   "Zapisz" and "Anuluj" undoes only them. A hint under "Terminy" says so. A project not
+   saved yet keeps its milestones in the draft until the first "Zapisz". When someone
+   else saved the project first, nothing is written, a message says so and the
+   milestones are read again from the file. A date is written once the user stops
+   typing; switching a milestone from month to day writes nothing until a day is picked,
+   so the stored month is not lost by the switch alone.
 6. **Colours**: one colour per style; black is reserved for "inny" and the overdue red
    for overdue. The six new styles get indigo, rose, violet, green, dark green and dark
    brown (values in design.md).

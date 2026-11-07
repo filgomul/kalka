@@ -220,6 +220,9 @@ export function prepareForSave(p: Project): Project {
   return out
 }
 
+/** What a milestone change writes: the project as last written with only its milestones replaced, so unsaved fields stay out. */
+export const withTimeline = (base: Project, timeline: Milestone[]): Project => prepareForSave({ ...base, timeline })
+
 /** `status` is a Status, 'wszystkie', or empty for the default (everything but zakończony). */
 export type Filter = { architect: string; status: string; q: string }
 

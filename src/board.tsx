@@ -1,5 +1,5 @@
 import { render, type ComponentChildren } from 'preact'
-import { useEffect, useRef, useState } from 'preact/hooks'
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import { formatDate, parseDate, todayIso } from './model.ts'
 import { t, taskStatusLabels } from './pl.ts'
 import { ConflictError, deleteTask, saveTask, type LoadedTask } from './storage.ts'
@@ -313,13 +313,17 @@ function TaskDialog({ loaded, architects, onSave, onRemove, onClose }: DialogPro
 /** Renders `children` into a div on <body>, so the dialog's form is not nested in the project form. */
 export function Portal({ children }: { children: ComponentChildren }) {
   const [el] = useState(() => document.createElement('div'))
-  useEffect(() => {
+  // Layout effects, not effects: Preact runs a still-pending effect at the start of the
+  // component's next render, and a nested render() there breaks the outer render's hooks
+  // (seen when the form re-renders before the next frame, e.g. after a milestone write).
+  useLayoutEffect(() => {
     document.body.append(el)
-    return () => {
+    // unmounting happens inside the outer render, so the inner one is torn down just after it
+    return () => queueMicrotask(() => {
       render(null, el)
       el.remove()
-    }
+    })
   }, [])
-  useEffect(() => render(children, el))
+  useLayoutEffect(() => render(children, el))
   return null
 }

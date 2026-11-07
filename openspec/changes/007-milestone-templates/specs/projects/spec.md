@@ -44,7 +44,7 @@ The system SHALL let the user add a milestone to a project with "+ Dodaj termin"
 
 #### Scenario: Second supplement
 
-- **WHEN** the user clicks "+ Dodaj termin" in project "Dom Lipowa", types "drugie uzupełnienie", picks "uzupełnienie do urzędu", clicks "Dodaj" and then "Zapisz"
+- **WHEN** the user clicks "+ Dodaj termin" in project "Dom Lipowa", types "drugie uzupełnienie", picks "uzupełnienie do urzędu" and clicks "Dodaj"
 - **THEN** the project file holds a milestone with style `uzupelnienie` and title "drugie uzupełnienie" at the end of its milestones
 - **AND** the project has two milestones with the "uzupełnienie do urzędu" style, each with its own date, done and confirmed marks
 
@@ -58,10 +58,10 @@ The system SHALL let the user add a milestone to a project with "+ Dodaj termin"
 - **WHEN** the user clicks "Dodaj" with an empty title
 - **THEN** the dialog stays open and shows "Podaj nazwę terminu."
 
-#### Scenario: Cancelled project edit
+#### Scenario: Anuluj keeps an added milestone
 
-- **WHEN** the user adds a milestone and then clicks "Anuluj" in the project form
-- **THEN** nothing is written and the project has its old milestones
+- **WHEN** the user adds a milestone to a saved project and then clicks "Anuluj" in the project form
+- **THEN** the project file still holds the added milestone
 
 #### Scenario: New project
 
@@ -74,7 +74,7 @@ The system SHALL let the user change the title and style of a milestone they add
 
 #### Scenario: Rename
 
-- **WHEN** the user opens the added milestone "drugie uzupełnienie", changes the title to "uzupełnienie po wezwaniu", clicks "Zmień" and then "Zapisz"
+- **WHEN** the user opens the added milestone "drugie uzupełnienie", changes the title to "uzupełnienie po wezwaniu" and clicks "Zmień"
 - **THEN** the project file holds the new title and the milestone keeps its date, done and confirmed marks and its place in the list
 
 #### Scenario: Template milestone
@@ -84,11 +84,11 @@ The system SHALL let the user change the title and style of a milestone they add
 
 ### Requirement: Delete milestone
 
-The system SHALL let the user delete any milestone of a project, from a template or added, after confirming `Usunąć termin „<name>”?`. The deletion is written by "Zapisz" and undone by "Anuluj".
+The system SHALL let the user delete any milestone of a project, from a template or added, after confirming `Usunąć termin „<name>”?`. The deletion is written at once (see "Milestones saved at once").
 
 #### Scenario: Confirm
 
-- **WHEN** the user deletes "uzupełnienie do urzędu", confirms and clicks "Zapisz"
+- **WHEN** the user deletes "uzupełnienie do urzędu" and confirms
 - **THEN** the project file no longer holds that milestone and the calendar no longer shows it
 
 #### Scenario: Decline
@@ -98,11 +98,11 @@ The system SHALL let the user delete any milestone of a project, from a template
 
 ### Requirement: Reorder milestones
 
-The system SHALL let the user change the order of a project's milestones by dragging a milestone by its handle above or below another, or by pressing arrow up or down while its handle has focus. The order is written by "Zapisz" and undone by "Anuluj", and every place that lists a project's milestones uses it.
+The system SHALL let the user change the order of a project's milestones by dragging a milestone by its handle above or below another, or by pressing arrow up or down while its handle has focus. The new order is written at once (see "Milestones saved at once"), and every place that lists a project's milestones uses it.
 
 #### Scenario: Drag
 
-- **WHEN** the user drags "wydanie projektu" above "termin branżystów" and clicks "Zapisz"
+- **WHEN** the user drags "wydanie projektu" above "termin branżystów"
 - **THEN** reopening the form shows "wydanie projektu" before "termin branżystów"
 
 #### Scenario: Keyboard
@@ -110,10 +110,57 @@ The system SHALL let the user change the order of a project's milestones by drag
 - **WHEN** the handle of the last milestone has focus and the user presses arrow up
 - **THEN** that milestone moves one place up and its handle keeps focus
 
-#### Scenario: Cancel
+#### Scenario: Anuluj keeps the order
 
-- **WHEN** the user reorders milestones and clicks "Anuluj"
-- **THEN** the project file keeps the old order
+- **WHEN** the user reorders the milestones of a saved project and clicks "Anuluj"
+- **THEN** the project file holds the new order
+
+### Requirement: Milestones saved at once
+
+The system SHALL write every change to the milestones of a saved project (date, day / month, planned / confirmed, done, add, edit, delete, reorder) to the project file at once, without "Zapisz". Only the milestones are written; other fields changed in the form wait for "Zapisz", and "Anuluj" undoes only them. The section shows the hint "Zmiany terminów zapisują się od razu."
+
+#### Scenario: Date changed
+
+- **WHEN** the user picks 18.03.2027 for "uzyskanie pozwolenia" in project "Dom Lipowa" and leaves the form with "Anuluj"
+- **THEN** the project file holds `"date": "2027-03-18"` for that milestone
+
+#### Scenario: Unsaved project fields stay out
+
+- **WHEN** the user changes the title to "Dom Lipowa 2" and then ticks "zrealizowane" for "wydanie koncepcji"
+- **THEN** the project file holds "wydanie koncepcji" as done and still the old title
+- **AND** clicking "Anuluj" leaves the old title and the done mark
+
+#### Scenario: Zapisz after a milestone change
+
+- **WHEN** the user ticks a milestone as done, then changes the title and clicks "Zapisz"
+- **THEN** the project file holds the new title and the done mark, with no conflict message
+
+#### Scenario: New project
+
+- **WHEN** the user changes a milestone of a project that has not been saved yet
+- **THEN** nothing is written until "Zapisz", which writes the project with its milestones
+
+#### Scenario: Someone else saved first
+
+- **WHEN** the user changes a milestone but the project file on disk was changed by someone else since it was read
+- **THEN** nothing is written, the form shows "Ktoś inny zmienił ten projekt w międzyczasie. Terminy wczytano ponownie - powtórz zmianę."
+- **AND** the milestones show what the file holds, while other unsaved fields in the form keep their values
+
+#### Scenario: Typing a date
+
+- **WHEN** the user types a date by hand, digit by digit
+- **THEN** the file is written once the user stops typing, not after every digit
+
+#### Scenario: Month to day
+
+- **WHEN** a milestone holds `2027-03` and the user switches it to "dzień"
+- **THEN** the date field is empty and the file still holds `2027-03`
+- **AND** picking 18.03.2027 writes `"date": "2027-03-18"`
+
+#### Scenario: Day to month
+
+- **WHEN** a milestone holds `2027-03-18` and the user switches it to "miesiąc"
+- **THEN** the file holds `"date": "2027-03"` at once
 
 ### Requirement: Older project files
 
@@ -161,11 +208,11 @@ The system SHALL create a project from a template picked in a menu that the "Now
 
 ### Requirement: Edit project
 
-The system SHALL edit l.p., title, location (city, address), lead architect, status, the project's milestones, six branch scopes and notes, and save all of them at once.
+The system SHALL edit l.p., title, location (city, address), lead architect, status, the project's milestones, six branch scopes and notes. The fields other than the milestones are saved together with "Zapisz"; milestone changes of a saved project are written on their own at once (see "Milestones saved at once").
 
 #### Scenario: Edit and cancel
 
-- **WHEN** the user changes fields and clicks "Anuluj"
+- **WHEN** the user changes fields other than the milestones and clicks "Anuluj"
 - **THEN** nothing is written and the list shows the old values
 
 ### Requirement: Milestone precision
@@ -180,7 +227,7 @@ The system SHALL accept each milestone as a full date or a month, store it as `Y
 
 #### Scenario: Clear a milestone
 
-- **WHEN** the user clears a milestone input and saves
+- **WHEN** the user clears a milestone input
 - **THEN** the milestone stays in the project file without a `date`
 
 ### Requirement: Milestone done
@@ -189,7 +236,7 @@ The system SHALL let the user mark each milestone as done or not done with a che
 
 #### Scenario: Tick and save
 
-- **WHEN** the user ticks "zrealizowane" next to "wydanie koncepcji" and saves
+- **WHEN** the user ticks "zrealizowane" next to "wydanie koncepcji"
 - **THEN** that milestone in the project file holds `"done": true`
 - **AND** reopening the form shows that milestone ticked
 
@@ -200,12 +247,12 @@ The system SHALL let the user mark each milestone as done or not done with a che
 
 #### Scenario: Done without a date
 
-- **WHEN** the user ticks "zrealizowane" for a milestone with no date and saves
+- **WHEN** the user ticks "zrealizowane" for a milestone with no date
 - **THEN** the milestone is saved as done and still has no date
 
 #### Scenario: Untick
 
-- **WHEN** the user unticks a done milestone and saves
+- **WHEN** the user unticks a done milestone
 - **THEN** that milestone in the project file holds no `done` mark
 
 #### Scenario: Same style twice
@@ -224,13 +271,13 @@ The system SHALL let the user mark each milestone as "planowane" or "potwierdzon
 
 #### Scenario: Confirm and save
 
-- **WHEN** a project has "uzyskanie pozwolenia" at 2027-03 and the user picks "potwierdzone" for it and saves
+- **WHEN** a project has "uzyskanie pozwolenia" at 2027-03 and the user picks "potwierdzone" for it
 - **THEN** that milestone in the project file holds `"confirmed": true`
 - **AND** reopening the form shows "potwierdzone" selected
 
 #### Scenario: Back to planned
 
-- **WHEN** the user picks "planowane" for a confirmed milestone and saves
+- **WHEN** the user picks "planowane" for a confirmed milestone
 - **THEN** that milestone in the project file holds no `confirmed` mark
 
 #### Scenario: File without confirmed marks
@@ -240,17 +287,17 @@ The system SHALL let the user mark each milestone as "planowane" or "potwierdzon
 
 #### Scenario: Confirmed without a date
 
-- **WHEN** the user picks "potwierdzone" for a milestone with no date and saves
+- **WHEN** the user picks "potwierdzone" for a milestone with no date
 - **THEN** the milestone is saved as confirmed and still has no date
 
 #### Scenario: Date changed
 
-- **WHEN** "uzyskanie pozwolenia" is confirmed at `2027-03` and the user changes the date to 2027-03-18 and saves
+- **WHEN** "uzyskanie pozwolenia" is confirmed at `2027-03` and the user changes the date to 2027-03-18
 - **THEN** that milestone holds `"date": "2027-03-18"` and is still confirmed
 
 #### Scenario: Independent of done
 
-- **WHEN** the user ticks "zrealizowane" for a planned milestone and saves
+- **WHEN** the user ticks "zrealizowane" for a planned milestone
 - **THEN** the milestone is done and still planned, and unticking it later shows it planned as before
 
 ## REMOVED Requirements
