@@ -9,12 +9,12 @@ project, so the studio sees which deadline is next and which ones slipped.
 
 ### Requirement: Views navigation
 
-The system SHALL show a header with five tabs, "Kalendarz", "Projekty", "Terminy", "Spotkania" and "Urlopy", mark the current one, and keep the lead-architect and status filters when switching tabs. "Kalendarz" is the start view: the home address and the app name in the header lead to it.
+The system SHALL show a header with six tabs, "Kalendarz", "Projekty", "Terminy", "Zadania", "Spotkania" and "Urlopy", mark the current one, and keep the lead-architect and status filters when switching tabs. "Kalendarz" is the start view: the home address and the app name in the header lead to it.
 
 #### Scenario: Tab order
 
 - **WHEN** the user opens Kalka
-- **THEN** the header shows "Kalendarz", "Projekty", "Terminy", "Spotkania" and "Urlopy", in that order
+- **THEN** the header shows "Kalendarz", "Projekty", "Terminy", "Zadania", "Spotkania" and "Urlopy", in that order
 
 #### Scenario: Start view
 
@@ -31,6 +31,7 @@ The system SHALL show a header with five tabs, "Kalendarz", "Projekty", "Terminy
 - **WHEN** the project list is filtered to architect "Anna Nowak" and the user clicks "Kalendarz"
 - **THEN** the calendar opens filtered to "Anna Nowak"
 - **AND** clicking "Terminy" opens the deadlines list filtered to "Anna Nowak"
+- **AND** clicking "Zadania" opens the tasks tab filtered to tasks assigned to "Anna Nowak"
 - **AND** clicking "Spotkania" opens the meetings list filtered to "Anna Nowak"
 - **AND** clicking "Urlopy" opens the leaves list filtered to "Anna Nowak"
 
