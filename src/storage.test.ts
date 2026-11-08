@@ -87,8 +87,15 @@ test('storage: One broken task file', async () => {
     ])],
   ])
   const { tasks, broken } = await readProjects(dirHandle(root))
-  assert.deepEqual(tasks.map((l) => l.task.title), ['Rysunki'])
-  assert.deepEqual(broken.map((b) => b.file), ['zadania/t2.json', 'zadania/t3.json'])
+  assert.deepEqual(tasks.map((l) => l.task.title).sort(), ['Bez projektu', 'Rysunki'])
+  assert.deepEqual(broken.map((b) => b.file), ['zadania/t2.json'])
+})
+
+test('storage: Task without a project', async () => {
+  const root: Tree = new Map([['zadania', new Map([['t3.json', json({ id: 't3', title: 'Zamówić próbki' })], ['t4.json', json({ title: 'Bez id' })]])]])
+  const { tasks, broken } = await readProjects(dirHandle(root))
+  assert.deepEqual(tasks.map((l) => [l.task.title, l.task.projectId]), [['Zamówić próbki', '']])
+  assert.deepEqual(broken.map((b) => b.file), ['zadania/t4.json'])
 })
 
 test('storage: kalka.json architects are read', async () => {

@@ -10,6 +10,7 @@ import {
   overviewMonths,
   overviewRange,
   projectChoices,
+  projectIdChoices,
   rangeLength,
   stepRange,
   visibleRows,
@@ -101,6 +102,12 @@ test('calendar: Sync conflict copy', () => {
 test('calendar: Project choices', () => {
   const rs = [row({ title: 'Dom Lipowa', lp: 12 }), row({ title: 'Willa Sosnowa', lp: 3 }), row({ title: 'Hala Brzozowa' })]
   assert.deepEqual(projectChoices(rs).map((c) => c.label), ['3 Willa Sosnowa', '12 Dom Lipowa', 'Hala Brzozowa'])
+})
+
+test('calendar: Project choices by id', () => {
+  // a sync conflict copy shares the id and is offered once
+  const rs = [row({ id: 'lipowa', title: 'Dom Lipowa', lp: 12 }), row({ id: 'lipowa', title: 'Dom Lipowa', lp: 12 }, 'Dom Lipowa (1).json'), row({ id: 'sosnowa', title: 'Willa Sosnowa', lp: 3 })]
+  assert.deepEqual(projectIdChoices(rs), [{ id: 'sosnowa', label: '3 Willa Sosnowa' }, { id: 'lipowa', label: '12 Dom Lipowa' }])
 })
 
 test('calendar: Ordering', () => {

@@ -18,7 +18,11 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
   create/edit form. The calendar is the start view and the first tab.
 - **tasks**: a board on a saved project's page ("Do zrobienia", "W trakcie",
   "Wykonane"), cards dragged between and within columns. Each task change is written at
-  once to its own file, apart from the project form's "Zapisz" / "Anuluj".
+  once to its own file, apart from the project form's "Zapisz" / "Anuluj". The "Zadania"
+  tab shows all tasks in the same columns, filtered by assignee (or "nieprzypisane"),
+  project status and having a project, ordered by due date, with a "wykonane" checkbox,
+  the five most recently done tasks and the week's tenement on the right. It also adds
+  tasks; a task may have no project (then it shows only in that tab).
 - **calendar**: month grid of milestones across all projects with the same filters, plus
   the "Terminy" list of upcoming and recently passed milestones. Meetings show as chips
   before the milestones of their day and among them in the overview, narrowed by the
@@ -73,7 +77,7 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 | status | `aktywny` / `wstrzymany` / `zakończony` | Active, on hold, finished |
 | planowane / potwierdzone | `confirmed` | Milestone date is a guess until marked confirmed |
 | zrealizowane | `done` | Milestone reached |
-| zadanie | task | A job inside a project, file `zadania/<id>.json` with `projectId` |
+| zadanie | task | A job inside a project, file `zadania/<id>.json` with `projectId` (empty without a project); `doneAt` is when it last became done |
 | osoba | `assignee` | Architect doing a task; any architect, not only the lead one |
 | do zrobienia / w trakcie / wykonane | `todo` / `doing` / `done` | Task state, one board column each |
 | urlop | leave | An architect's absence, file `urlopy/<id>.json` with `{ id, architect, from, to }` (whole days, both included) |

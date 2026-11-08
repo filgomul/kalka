@@ -1,7 +1,8 @@
 // Tasks of a project and the pure logic around them. No DOM here, so node --test can run it.
 // One file per task in zadania/, pointing at its project by projectId.
 
-import { newId, parseDate } from './model.ts'
+import { filterProjects, newId, parseDate, todayIso, type Project } from './model.ts'
+import { monday } from './calendar.ts'
 
 export const TASK_STATUSES = ['todo', 'doing', 'done'] as const
 export type TaskStatus = (typeof TASK_STATUSES)[number]
@@ -18,6 +19,8 @@ export type Task = {
   status: TaskStatus
   /** place in its column, smaller first; absent until someone places the task */
   order?: number
+  /** ISO time the task last became done; absent unless done */
+  doneAt?: string
   updatedAt: string
 }
 
@@ -31,10 +34,11 @@ export function emptyTask(projectId: string): Task {
 }
 
 /** Fills fields a hand-edited file lacks; the caller has checked `id` and `projectId`. */
-export function normalizeTask(raw: Partial<Task> & { id: string; projectId: string }): Task {
+export function normalizeTask(raw: Partial<Task> & { id: string }): Task {
   const text = (v: unknown) => (typeof v === 'string' ? v : '')
   const task: Task = {
     ...raw,
+    projectId: text(raw.projectId),
     title: text(raw.title),
     description: text(raw.description),
     assignee: text(raw.assignee),
@@ -43,7 +47,16 @@ export function normalizeTask(raw: Partial<Task> & { id: string; projectId: stri
   }
   if (typeof task.due !== 'string') delete task.due
   if (!Number.isFinite(task.order)) delete task.order
+  if (typeof task.doneAt !== 'string') delete task.doneAt
   return task
+}
+
+/** `after` with `doneAt` set to `now` when it becomes done, removed when it is not done, kept otherwise. */
+export function stampDone(before: Task | undefined, after: Task, now: string): Task {
+  const out = { ...after }
+  if (out.status !== 'done') delete out.doneAt
+  else if (before?.status !== 'done') out.doneAt = now
+  return out
 }
 
 /** Trims text and drops a date that is not a day or a month before a save. */
@@ -94,6 +107,52 @@ export function placeAt<T extends Row>(column: T[], moved: T, index: number, sta
     r === moved || r.task.order !== i + 1 ? [{ ...r, task: { ...r.task, status: r === moved ? status : r.task.status, order: i + 1 } }] : [],
   )
 }
+
+// The "Zadania" tab
+
+/** `architect` is an assignee's name or empty for everybody; `unassigned` keeps only tasks without one. `status` as in `filterProjects`. */
+/** `withProject` is '' (all), 'z' (with a project) or 'bez' (without). */
+export type TaskFilter = { architect: string; unassigned: boolean; status: string; withProject: string }
+
+/** The task's project id, or '' without one or when no project file has that id. */
+export const taskProjectId = (task: Task, projectIds: Set<string>) => (task.projectId && projectIds.has(task.projectId) ? task.projectId : '')
+
+/** Tasks narrowed by having a project, by the status of their project (tasks without one pass), and by assignee. */
+export function filterTaskRows<T extends Row>(rows: T[], projects: { project: Project }[], f: TaskFilter): T[] {
+  const ids = new Set(projects.map((l) => l.project.id))
+  const shown = new Set(filterProjects(projects, { architect: '', status: f.status, q: '' }).map((l) => l.project.id))
+  return rows.filter(({ task }) => {
+    const id = taskProjectId(task, ids)
+    if (f.withProject === 'z' ? !id : f.withProject === 'bez' ? !!id : false) return false
+    if (id && !shown.has(id)) return false
+    if (f.unassigned) return !task.assignee
+    return !f.architect || task.assignee === f.architect
+  })
+}
+
+/** By due date (a month as its last day), undated last, then title. */
+export function byDue<T extends Row>(rows: T[]): T[] {
+  return [...rows].sort((a, b) => dueKey(a.task).localeCompare(dueKey(b.task)) || a.task.title.localeCompare(b.task.title, 'pl'))
+}
+
+export const DONE_SHOWN = 5
+
+/** Done tasks latest first (`doneAt`, else `updatedAt`), split into the first `n` and the rest. */
+export function splitDone<T extends Row>(rows: T[], n = DONE_SHOWN): { recent: T[]; older: T[] } {
+  const when = (t: Task) => t.doneAt ?? t.updatedAt
+  const sorted = [...rows].sort((a, b) => when(b.task).localeCompare(when(a.task)) || a.task.title.localeCompare(b.task.title, 'pl'))
+  return { recent: sorted.slice(0, n), older: sorted.slice(n) }
+}
+
+/** Done tasks whose `doneAt` falls (local time) in the Monday-Sunday week of `today`; files without `doneAt` don't count. */
+export function doneThisWeek<T extends Row>(rows: T[], today: string): number {
+  const week = monday(today)
+  return rows.filter(({ task }) => task.status === 'done' && task.doneAt && monday(todayIso(new Date(task.doneAt))) === week).length
+}
+
+/** Every third task marked done in the tab gets a cheer, shown this long. */
+export const CHEER_EVERY = 3
+export const CHEER_MS = 5200
 
 // Assignee circle
 
