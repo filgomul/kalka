@@ -5,6 +5,7 @@ import { ConflictError, readProjects, saveProject, type Loaded } from './storage
 import type { Data } from './main.tsx'
 import { Portal, TaskBoard } from './board.tsx'
 import { colorOf } from './calendar-view.tsx'
+import { MeetingsSection } from './meetings-view.tsx'
 
 type Props = {
   data: Data
@@ -18,6 +19,8 @@ type Props = {
   reloadProjects: () => Promise<void>
   /** reads the task files again after a task change */
   reloadTasks: () => Promise<void>
+  /** reads the meeting files again after a meeting change */
+  reloadMeetings: () => Promise<void>
 }
 
 type Precision = 'day' | 'month'
@@ -25,7 +28,7 @@ type Precision = 'day' | 'month'
 /** A typed date is written once the user stops typing for this long. */
 const DATE_DELAY = 500
 
-export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadProjects, reloadTasks }: Props) {
+export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadProjects, reloadTasks, reloadMeetings }: Props) {
   const [draft, setDraft] = useState<Project>(
     () => loaded?.project ?? { ...emptyProject(), lp: nextLp(data.projects.map((l) => l.project)), timeline: fromTemplate(template) },
   )
@@ -192,6 +195,8 @@ export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadP
         />
 
         {loaded && <TaskBoard data={data} projectId={loaded.project.id} reloadTasks={reloadTasks} />}
+
+        {loaded && <MeetingsSection data={data} project={loaded.project} reloadMeetings={reloadMeetings} />}
 
         <section class="card">
           <h2>{t.branches}</h2>

@@ -11,11 +11,12 @@ type Props = {
   onRefresh: () => void
 }
 
-/** New-project form link for a template, keeping the list's filters for the way back. */
-function newProjectHref(query: string, template: string): string {
+/** Form link that keeps the list's filters and comes back to the list. */
+function formHref(path: string, query: string, template?: string): string {
   const p = new URLSearchParams(query)
-  p.set('t', template)
-  return `#/nowy?${p}`
+  p.set('z', 'projekty')
+  if (template) p.set('t', template)
+  return `#/${path}?${p}`
 }
 
 export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props) {
@@ -31,16 +32,9 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
         <button type="button" onClick={onRefresh}>{t.refresh}</button>
         <button type="button" class="primary new-project" popovertarget="templates">+ {t.newProject}</button>
         <div id="templates" popover="auto" class="menu" role="menu" aria-label={t.newProject}>
-          {TEMPLATES.map((tpl) => <a key={tpl.id} role="menuitem" href={newProjectHref(query, tpl.id)}>{tpl.name}</a>)}
+          {TEMPLATES.map((tpl) => <a key={tpl.id} role="menuitem" href={formHref('nowy', query, tpl.id)}>{tpl.name}</a>)}
         </div>
       </div>
-
-      {data.broken.length > 0 && (
-        <div class="error">
-          {t.brokenFiles}
-          <ul>{data.broken.map((b) => <li key={b.file}>{b.file}: {b.reason}</li>)}</ul>
-        </div>
-      )}
 
       <div class="toolbar">
         <input type="search" placeholder={t.search} aria-label={t.search} value={filter.q} onInput={(e) => set({ q: e.currentTarget.value })} />
@@ -78,7 +72,7 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
                   <tr key={file}>
                     <td class="num">{p.lp ?? ''}</td>
                     <td class="title">
-                      <a href={`#/projekt/${encodeURIComponent(file)}${query}`}>{p.title || file}</a>
+                      <a href={formHref(`projekt/${encodeURIComponent(file)}`, query)}>{p.title || file}</a>
                       {duplicate && <span class="badge">{t.syncConflict}: {file}</span>}
                     </td>
                     <td>{p.location.city}</td>

@@ -2,6 +2,8 @@
 
 import type { BranchKey, Status } from './model.ts'
 import type { TaskStatus } from './tasks.ts'
+import type { MeetingType } from './meetings.ts'
+import type { Kind } from './calendar.ts'
 
 // Milestone style and template names live in model.ts as default data (STYLES, TEMPLATES).
 
@@ -22,6 +24,11 @@ export const taskStatusLabels: Record<TaskStatus, string> = {
   todo: 'Do zrobienia',
   doing: 'W trakcie',
   done: 'Wykonane',
+}
+
+export const meetingTypeLabels: Record<MeetingType, string> = {
+  stacjonarne: 'stacjonarne',
+  online: 'online',
 }
 
 export const statusLabels: Record<Status, string> = {
@@ -128,7 +135,6 @@ export const t = {
   pickMonth: 'wybierz miesiąc',
   viewMonth: 'Miesiąc',
   viewOverview: 'Przegląd',
-  noMilestones: 'brak terminów',
   more: 'więcej',
   wholeMonth: 'mies.',
   allProjects: 'wszystkie projekty',
@@ -156,18 +162,54 @@ export const t = {
   confirmRemoveLeave: (who: string, dates: string) => `Usunąć urlop: ${who}, ${dates}?`,
   leaveConflict: 'Ktoś inny zmienił ten urlop w międzyczasie. Urlopy są odświeżone, wprowadź zmianę ponownie.',
   leaveTitle: (who: string, dates: string) => `${who} - urlop ${dates}`,
-  noLeavesInMonth: 'brak urlopów',
   colDates: 'daty',
   leaveDates: 'termin urlopu',
   pickFirstDay: 'Kliknij pierwszy dzień urlopu.',
   pickLastDay: 'Kliknij ostatni dzień urlopu (ten sam dzień dla jednodniowego).',
   leaveShort: 'urlop',
 
+  meetings: 'Spotkania',
+  meeting: 'Spotkanie',
+  newMeeting: 'Nowe spotkanie',
+  addMeeting: 'Dodaj spotkanie',
+  meetingTitle: 'nazwa',
+  meetingDate: 'data',
+  meetingType: 'typ',
+  meetingNote: 'notatka',
+  noProject: 'bez projektu',
+  viewCards: 'Karty',
+  viewList: 'Lista',
+  noMeetings: 'Brak nadchodzących spotkań.',
+  meetingsHint: 'Zmiany spotkań zapisują się od razu.',
+  allMeetings: 'wszystkie spotkania',
+  withProject: 'z projektem',
+  withoutProject: 'bez projektu',
+  colNote: 'notatka',
+  colType: 'typ',
+  meetingTitleRequired: 'Podaj nazwę spotkania.',
+  meetingDateRequired: 'Podaj datę spotkania.',
+  meetingStartRequired: 'Podaj godzinę „od”.',
+  meetingOrder: 'Godzina „do” nie może być wcześniejsza niż „od”.',
+  confirmRemoveMeeting: (title: string) => `Usunąć spotkanie „${title}”?`,
+  /** "1 spotkanie", "2 spotkania", "5 spotkań", "22 spotkania" */
+  meetingCount: (n: number) => {
+    const few = n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)
+    return `${n} ${n === 1 ? 'spotkanie' : few ? 'spotkania' : 'spotkań'}`
+  },
+  meetingConflict: 'Ktoś inny zmienił to spotkanie w międzyczasie. Spotkania są odświeżone, wprowadź zmianę ponownie.',
+
   filterArchitect: 'Architekt prowadzący',
   filterStatus: 'Status projektu',
   filterProject: 'Projekt',
   filterShow: 'Pokaż',
-  showAll: 'Terminy i urlopy',
-  showMilestones: 'Terminy',
-  showLeaves: 'Urlopy',
+  showEverything: 'wszystko',
+  showNothing: 'nic',
+  noEntries: 'brak wpisów',
+}
+
+/** The "Pokaż" choices in the calendar. */
+export const kindLabels: Record<Kind, string> = {
+  terminy: 'Terminy',
+  spotkania: 'Spotkania',
+  urlopy: 'Urlopy',
 }

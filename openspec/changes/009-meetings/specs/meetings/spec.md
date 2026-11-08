@@ -61,6 +61,50 @@ The system SHALL edit a meeting in a dialog titled "Nowe spotkanie" or "Spotkani
 - **WHEN** the user changes the title in the dialog and clicks "Anuluj"
 - **THEN** nothing is written
 
+### Requirement: Meeting times
+
+The system SHALL let the user type the times in "od" and "do" or pick them from a list that opens under the field: "od" lists every quarter hour from 07:00 to 21:00, "do" every quarter hour after "od" up to eight hours later, each with the meeting's length. Typed times are read as "9", "930", "9.30" or "9:30"; unreadable text goes back to the previous value. A new "od" with an empty "do" sets "do" an hour later; changing "od" moves "do" by the same amount.
+
+#### Scenario: Pick the start
+
+- **WHEN** both times are empty and the user picks 10:00 from the "od" list
+- **THEN** "od" shows 10:00 and "do" shows 11:00
+
+#### Scenario: End list
+
+- **WHEN** "od" is 10:00 and the user opens "do"
+- **THEN** the list starts with "10:15 15 min", "10:30 30 min", "10:45 45 min", "11:00 1 h" and ends with "18:00 8 h"
+
+#### Scenario: Typed time
+
+- **WHEN** the user types "930" in "od" and leaves the field
+- **THEN** "od" shows 09:30; "9.30", "9:30" and "09:30" give the same, "9" gives 09:00
+
+#### Scenario: Length kept
+
+- **WHEN** the times are 10:00 and 11:30 and the user changes "od" to 13:00
+- **THEN** "do" shows 14:30
+
+#### Scenario: Past midnight
+
+- **WHEN** "do" is empty and the user types 23:30 in "od"
+- **THEN** "do" stays empty
+
+#### Scenario: Unreadable text
+
+- **WHEN** "od" shows 10:00 and the user types "jutro" and leaves the field
+- **THEN** "od" shows 10:00 again
+
+#### Scenario: No times
+
+- **WHEN** the user clears "od"
+- **THEN** "do" is cleared too and cannot be filled until "od" is
+
+#### Scenario: Keyboard
+
+- **WHEN** the "od" field has focus and the user presses arrow down and Enter
+- **THEN** the next time in the list is picked; Esc closes the list without closing the dialog
+
 ### Requirement: Edit meeting
 
 The system SHALL open the meeting dialog filled with a meeting's values when the meeting is clicked (a card or row on the project page, a row in "Spotkania", a chip in the calendar), and write the changed meeting on "Zapisz".

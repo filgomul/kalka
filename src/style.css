@@ -390,6 +390,17 @@ td.title a:hover {
   margin: 4px 0 0;
 }
 
+/* the broken-files notice, under the header on every tab */
+.notice {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px 16px 0;
+}
+
+.notice .error {
+  margin: 0;
+}
+
 /* Form */
 
 .card {
@@ -1462,4 +1473,280 @@ fieldset.range legend {
   gap: 4px 10px;
   margin: 8px 0 0;
   font-variant-numeric: tabular-nums;
+}
+
+/* Meetings: type mark, cards and rows on the project page and in "Spotkania" */
+
+:root {
+  --online: #3a6fa0;
+  --office: #9a6a2e;
+}
+
+.type-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.type-mark[data-type='online'] {
+  color: var(--online);
+  background: color-mix(in oklab, var(--online) 14%, white);
+}
+
+.type-mark[data-type='stacjonarne'] {
+  color: var(--office);
+  background: color-mix(in oklab, var(--office) 14%, white);
+}
+
+.meetings .section-head .seg {
+  margin-left: auto;
+}
+
+.meetings .section-head > button {
+  margin-left: 0;
+}
+
+.meeting-group {
+  margin: 12px 0 8px;
+  font: 400 0.8rem var(--font-head);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.meeting-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .meeting-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .meeting-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+button.meeting-card {
+  cursor: pointer;
+}
+
+.meeting-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.meeting-head .task-title {
+  margin-right: auto;
+}
+
+.meeting-note {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.85rem;
+  white-space: pre-line;
+}
+
+table.meetings {
+  table-layout: auto;
+}
+
+tr.meeting-row {
+  cursor: pointer;
+}
+
+/* one line per meeting */
+.meeting-row td {
+  white-space: nowrap;
+}
+
+.meeting-row .who .avatar {
+  margin-right: 6px;
+}
+
+.meeting-row .title button.link {
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--ink);
+}
+
+/* the note takes what is left of the line and is cut with "…" */
+.meeting-row .note {
+  max-width: 0;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+/* Meetings on the calendar: filled with the architect's colour (--c), text in --on,
+   raised above the flat milestone chips so a meeting stands out on a busy day */
+
+button.chip.meeting {
+  width: 100%;
+  align-items: center;
+  padding: 3px 6px 3px 4px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--c);
+  color: var(--on);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
+  font-family: inherit;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  text-align: left;
+}
+
+button.chip.meeting:hover {
+  background: var(--c);
+  filter: brightness(1.08);
+}
+
+.chip.meeting .avatar {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 3px;
+  font-size: 0.62rem;
+  background: var(--on);
+  color: var(--c);
+}
+
+.chip.meeting b {
+  font-variant-numeric: tabular-nums;
+}
+
+.chip.meeting[data-past] {
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+/* the day number of a day with meetings gets a pill with their count */
+.day-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.meeting-count {
+  min-width: 0;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "Pokaż": a select-like button opening three checkboxes */
+
+button.show-kinds {
+  anchor-name: --show-kinds;
+  position: relative;
+  padding-right: 26px;
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: normal;
+  text-transform: none;
+  letter-spacing: normal;
+  text-align: left;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+button.show-kinds::after {
+  content: '▾';
+  position: absolute;
+  right: 10px;
+  color: var(--muted);
+}
+
+.menu.kinds[popover] {
+  position-anchor: --show-kinds;
+  left: anchor(left);
+  right: auto;
+  min-width: anchor-size(width);
+  padding: 6px 0;
+}
+
+.menu.kinds label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  font-size: 0.95rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.menu.kinds label.check:hover {
+  background: var(--bg);
+}
+
+/* Meeting times: a text field with a list of quarter hours, drawn above the dialog */
+
+input.time-input {
+  font-variant-numeric: tabular-nums;
+}
+
+.time-list[popover] {
+  inset: auto;
+  top: anchor(bottom);
+  left: anchor(left);
+  width: anchor-size(width);
+  min-width: 140px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 4px 0 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.12);
+}
+
+.time-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 12px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.time-list li:hover,
+.time-list li[aria-selected='true'] {
+  background: var(--sage-tint);
+}
+
+.time-list li small {
+  color: var(--muted);
 }

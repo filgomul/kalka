@@ -2,6 +2,7 @@
 // Dates are ISO strings (`YYYY-MM-DD`); arithmetic goes through UTC so time zones can't shift a day.
 
 import { filterProjects, parseDate, STYLES, styleOf, type Milestone, type MilestoneStyle, type Project } from './model.ts'
+import { byTime, meetingsForCalendar, type Meeting } from './meetings.ts'
 
 type Row = { project: Project; file: string }
 
@@ -100,13 +101,61 @@ export function monthEntries(all: Entry[], month: string): { byDay: Map<string, 
   return { byDay, strip }
 }
 
-/** What the calendar shows (`k` in the URL): '' both, 'terminy' milestones only, 'urlopy' leaves only. */
-export type Show = '' | 'terminy' | 'urlopy'
-export const showOf = (k: string | null): Show => (k === 'terminy' || k === 'urlopy' ? k : '')
+/** The kinds the calendar can show, in the order of the "Pokaż" choices. */
+export const KINDS = ['terminy', 'spotkania', 'urlopy'] as const
+export type Kind = (typeof KINDS)[number]
+export type Show = Set<Kind>
 
-/** The milestones and leaves the calendar draws: the filters narrow milestones only, leaves are everybody's. */
-export function shownOnCalendar<T extends Row, L>(rows: T[], leaves: L[], f: CalendarFilter, show: Show, today: string): { all: Entry[]; leaves: L[] } {
-  return { all: show === 'urlopy' ? [] : entries(visibleRows(rows, f), today), leaves: show === 'terminy' ? [] : leaves }
+/** `k` in the URL: absent (or empty) shows every kind, `nic` none, otherwise the comma-separated kinds. */
+export function showOf(k: string | null): Show {
+  if (!k) return new Set(KINDS)
+  const listed = k.split(',')
+  return new Set(KINDS.filter((kind) => listed.includes(kind)))
+}
+
+/** The reverse of `showOf`: '' (no key) when every kind is shown. */
+export function showParam(show: Show): string {
+  if (show.size === KINDS.length) return ''
+  return show.size ? KINDS.filter((k) => show.has(k)).join(',') : 'nic'
+}
+
+/**
+ * What the calendar draws: milestones narrowed by every filter, meetings by the architect and
+ * project filters (never the status), leaves never narrowed; each only while its kind is shown.
+ */
+export function shownOnCalendar<T extends Row, L, M extends { meeting: Meeting }>(
+  rows: T[],
+  leaves: L[],
+  meetings: M[],
+  f: CalendarFilter,
+  show: Show,
+  today: string,
+): { all: Entry[]; leaves: L[]; meetings: M[] } {
+  return {
+    all: show.has('terminy') ? entries(visibleRows(rows, f), today) : [],
+    meetings: show.has('spotkania') ? meetingsForCalendar(meetings, f, rows).sort((a, b) => byTime(a.meeting, b.meeting)) : [],
+    leaves: show.has('urlopy') ? leaves : [],
+  }
+}
+
+/** A meeting in the overview's list; `value` is its day, like an entry's stored value. */
+export type MeetingItem<M> = { value: string; row: M }
+export function isMeetingItem<M>(item: Entry | MeetingItem<M>): item is MeetingItem<M> {
+  return 'row' in item
+}
+
+/** Milestone entries and meetings (each already in order) in one list by day; a day's meetings come first. */
+export function withMeetings<M extends { meeting: Meeting }>(all: Entry[], meetings: M[]): (Entry | MeetingItem<M>)[] {
+  const day = (item: Entry | MeetingItem<M>) => (isMeetingItem(item) ? item.value : item.due)
+  // the sort is stable, so meetings stay before the entries of their day and each keeps its own order
+  return [...meetings.map((row) => ({ value: row.meeting.date, row })), ...all].sort((a, b) => day(a).localeCompare(day(b)))
+}
+
+/** The shown meetings by day, for the month grid. */
+export function meetingsByDay<M extends { meeting: Meeting }>(meetings: M[]): Map<string, M[]> {
+  const out = new Map<string, M[]>()
+  for (const m of meetings) out.set(m.meeting.date, [...(out.get(m.meeting.date) ?? []), m])
+  return out
 }
 
 export const WINDOW_DAYS = 60
@@ -174,8 +223,8 @@ export function stepRange(r: Range, dir: 1 | -1): Range {
   return { from: addMonths(r.from, n), to: addMonths(r.to, n) }
 }
 
-/** Each month of the range with its first eight entries in date order and how many more there are. */
-export function overviewMonths(all: Entry[], r: Range): { month: string; shown: Entry[]; more: number }[] {
+/** Each month of the range with its first eight items (entries, meetings) in date order and how many more there are. */
+export function overviewMonths<I extends { value: string }>(all: I[], r: Range): { month: string; shown: I[]; more: number }[] {
   return Array.from({ length: rangeLength(r) }, (_, i) => {
     const month = addMonths(r.from, i)
     const list = all.filter((e) => e.value.startsWith(month))

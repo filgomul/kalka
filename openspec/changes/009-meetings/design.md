@@ -85,9 +85,12 @@ project title.
 
 - Month grid: per day, `meetingsByDay` (sorted with `byTime`) renders meeting chips in
   the same chips row as milestones, before them; leave lines stay above. A meeting chip
-  is a `<button>` with `--c` from `badgeFor`, a full `border` in `--c` (milestone chips
-  have none), the initials circle, times and title; `data-past` dims it with the same
-  opacity as a planned milestone.
+  is a `<button>` filled with `--c` from `badgeFor`, its text in `--on` from `textOn`
+  (the initials circle swaps the two), bold, with a small shadow so it sits above the
+  flat milestone chips; `data-past` fades it and drops the shadow. The day number gets a
+  count pill when the day has shown meetings, its wording from a pure
+  `t.meetingCount(n)` (Polish plural: 1 / 2-4 except 12-14 / the rest). A fill was
+  chosen over an outline after review: the outline got lost on busy days.
 - Overview: `overviewMonths` takes the merged, sorted list of milestone entries and
   meetings (`{ kind: 'milestone', entry } | { kind: 'meeting', row }`, a day's meetings
   first), so the eight-entry cap and "+N więcej" count both. The empty text becomes
@@ -104,9 +107,16 @@ existing meeting (no row buttons anywhere). The dialog is rendered through `Port
 `board.tsx` so it works inside the project form, as the task dialog does.
 
 The project choice reuses `projectChoices` from `calendar.ts` for order and labels but
-stores the project's `id`; sync conflict copies sharing an id appear once. Date and times
-are native `<input type="date">` and `<input type="time">`, which give `YYYY-MM-DD` and
-`HH:MM` directly.
+stores the project's `id`; sync conflict copies sharing an id appear once. The date is a
+native `<input type="date">`. The times are a small `TimeField` (text input plus a list of
+quarter hours), because the native time input proved hard to use in review: each digit
+had to be typed or scrolled and "do" knew nothing about "od". Parsing ("930", "9.30"),
+the two lists and moving "do" with "od" are pure functions in `meetings.ts`. The list is
+a `popover="manual"` element anchored to its input with CSS anchor positioning, so it
+draws above the modal dialog instead of making the dialog scroll; it is a `listbox` with
+`aria-activedescendant`-free `aria-selected` options, arrow keys move through it, Enter
+picks and Esc closes only the list. Alternative: a `<select>` per field, which can't
+take a typed time.
 
 ### 7. Views
 

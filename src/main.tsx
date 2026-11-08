@@ -8,6 +8,7 @@ import {
   openFolder,
   pickFolder,
   readLeaves,
+  readMeetings,
   readProjects,
   readTasks,
   rememberedFolder,
@@ -20,16 +21,33 @@ import { ProjectForm } from './form.tsx'
 import { CalendarView } from './calendar-view.tsx'
 import { Deadlines } from './deadlines.tsx'
 import { LeavesView } from './leaves-view.tsx'
+import { MeetingsView } from './meetings-view.tsx'
 import './style.css'
 
 export type Data = { dir: FileSystemDirectoryHandle; settings: Settings } & ReadResult
 
-// Routes live in the hash: #/?a=&s=&q= (list), #/kalendarz?a=&s=&p=&k=&m=, #/terminy?a=&s=&p=, #/urlopy?a=,
-// #/nowy and #/projekt/<file>. The query holds the filters; z= on a form link names the view to go back to.
+// Routes live in the hash: #/kalendarz?a=&s=&p=&k=&m= (the start view), #/projekty?a=&s=&q=, #/terminy?a=&s=&p=,
+// #/spotkania?a=&j=, #/urlopy?a=, #/nowy and #/projekt/<file>. The query holds the filters; z= on a form link
+// names the view to go back to.
+
+/** The calendar is the start view: an empty path becomes #/kalendarz, keeping the query. */
+function startView(hash: string): string {
+  const [path, query] = hash.split('?')
+  return path === '' || path === '/' ? '/kalendarz' + (query !== undefined ? '?' + query : '') : hash
+}
+
+/** The current hash, with an empty path replaced in the address bar by the start view. */
+function currentHash(): string {
+  const hash = location.hash.slice(1)
+  const to = startView(hash)
+  if (to !== hash) history.replaceState(null, '', '#' + to)
+  return to
+}
+
 function useRoute() {
-  const [hash, setHash] = useState(location.hash.slice(1) || '/')
+  const [hash, setHash] = useState(currentHash)
   useEffect(() => {
-    const on = () => setHash(location.hash.slice(1) || '/')
+    const on = () => setHash(currentHash())
     addEventListener('hashchange', on)
     return () => removeEventListener('hashchange', on)
   }, [])
@@ -37,6 +55,7 @@ function useRoute() {
   const params = new URLSearchParams(query)
   const filter: Filter = { architect: params.get('a') ?? '', status: params.get('s') ?? '', q: params.get('q') ?? '' }
   const go = (to: string, replace = false) => {
+    to = startView(to)
     if (replace) history.replaceState(null, '', '#' + to)
     else location.hash = to
     setHash(to)
@@ -45,7 +64,7 @@ function useRoute() {
 }
 
 const qs = (p: URLSearchParams) => (p.size ? '?' + p : '')
-const VIEWS = ['kalendarz', 'terminy', 'urlopy']
+const VIEWS = ['kalendarz', 'projekty', 'terminy', 'spotkania', 'urlopy']
 
 function App() {
   const route = useRoute()
@@ -119,7 +138,7 @@ function App() {
     const z = p.get('z') ?? ''
     p.delete('z')
     p.delete('t')
-    route.go('/' + (VIEWS.includes(z) ? z : '') + qs(p))
+    route.go('/' + (VIEWS.includes(z) ? z : 'kalendarz') + qs(p))
   }
   const saved = async () => {
     await load(data.dir)
@@ -132,6 +151,11 @@ function App() {
     const { tasks, broken } = await readTasks(data.dir)
     setData((d) => d && { ...d, tasks, broken: [...d.broken.filter((b) => !b.file.startsWith('zadania/')), ...broken] })
   }
+  // after a meeting change: only spotkania/ is read again, so an open project draft is kept
+  const reloadMeetings = async () => {
+    const { meetings, broken } = await readMeetings(data.dir)
+    setData((d) => d && { ...d, meetings, broken: [...d.broken.filter((b) => !b.file.startsWith('spotkania/')), ...broken] })
+  }
   // after a leave change: only urlopy/ is read again
   const reloadLeaves = async () => {
     const { leaves, broken } = await readLeaves(data.dir)
@@ -143,22 +167,23 @@ function App() {
 
   let content
   if (route.path === '/nowy') {
-    content = <ProjectForm key={'nowy-' + (route.params.get('t') ?? '')} data={data} loaded={null} template={route.params.get('t')} onSaved={saved} onCancel={back} reloadProjects={reloadProjects} reloadTasks={reloadTasks} />
+    content = <ProjectForm key={'nowy-' + (route.params.get('t') ?? '')} data={data} loaded={null} template={route.params.get('t')} onSaved={saved} onCancel={back} reloadProjects={reloadProjects} reloadTasks={reloadTasks} reloadMeetings={reloadMeetings} />
   } else if (route.path.startsWith('/projekt/')) {
     const file = decodeURIComponent(route.path.slice('/projekt/'.length))
     const loaded = data.projects.find((p) => p.file === file)
     content = loaded ? (
-      <ProjectForm key={file} data={data} loaded={loaded} onSaved={saved} onCancel={back} reloadProjects={reloadProjects} reloadTasks={reloadTasks} />
+      <ProjectForm key={file} data={data} loaded={loaded} onSaved={saved} onCancel={back} reloadProjects={reloadProjects} reloadTasks={reloadTasks} reloadMeetings={reloadMeetings} />
     ) : (
-      <main><p>{t.notFound}</p><a href={'#/' + route.query}>{t.back}</a></main>
+      <main><p>{t.notFound}</p><a href={'#/projekty' + route.query}>{t.back}</a></main>
     )
-  } else if (route.path === '/kalendarz' || route.path === '/terminy' || route.path === '/urlopy') {
+  } else if (route.path === '/kalendarz' || route.path === '/terminy' || route.path === '/spotkania' || route.path === '/urlopy') {
     const props = { data, params: route.params, onParams: (p: URLSearchParams) => route.go(route.path + qs(p), true) }
     content =
-      route.path === '/kalendarz' ? <CalendarView {...props} reloadLeaves={reloadLeaves} />
+      route.path === '/kalendarz' ? <CalendarView {...props} reloadLeaves={reloadLeaves} reloadMeetings={reloadMeetings} />
+      : route.path === '/spotkania' ? <MeetingsView {...props} reloadMeetings={reloadMeetings} />
       : route.path === '/urlopy' ? <LeavesView {...props} reloadLeaves={reloadLeaves} />
       : <Deadlines {...props} />
-  } else {
+  } else if (route.path === '/projekty') {
     content = (
       <ProjectList
         data={data}
@@ -169,7 +194,7 @@ function App() {
           if (f.architect) p.set('a', f.architect)
           if (f.status) p.set('s', f.status)
           if (f.q) p.set('q', f.q)
-          route.go('/' + (p.size ? '?' + p : ''), true)
+          route.go('/projekty' + qs(p), true)
         }}
         onRefresh={() =>
           load(data.dir).catch((e) => {
@@ -180,21 +205,31 @@ function App() {
         }
       />
     )
+  } else {
+    content = <main><p>{t.notFound}</p><a href={'#/kalendarz' + tabQuery}>{t.back}</a></main>
   }
 
   return (
     <>
       <header class="top">
-        <a class="brand" href={'#/' + tabQuery}>{t.appName}</a>
+        <a class="brand" href={'#/kalendarz' + tabQuery}>{t.appName}</a>
         <nav class="tabs">
-          {[['', t.projects], ['kalendarz', t.calendar], ['terminy', t.deadlines], ['urlopy', t.leaves]].map(([v, label]) => (
-            <a key={v} class="tab" href={`#/${v}${tabQuery}`} aria-current={(VIEWS.includes(view) ? view : '') === v ? 'page' : undefined}>
+          {[['kalendarz', t.calendar], ['projekty', t.projects], ['terminy', t.deadlines], ['spotkania', t.meetings], ['urlopy', t.leaves]].map(([v, label]) => (
+            <a key={v} class="tab" href={`#/${v}${tabQuery}`} aria-current={view === v ? 'page' : undefined}>
               {label}
             </a>
           ))}
         </nav>
         <span class="folder" title={t.folder}>{data.dir.name}</span>
       </header>
+      {data.broken.length > 0 && (
+        <div class="notice">
+          <div class="error">
+            {t.brokenFiles}
+            <ul>{data.broken.map((b) => <li key={b.file}>{b.file}: {b.reason}</li>)}</ul>
+          </div>
+        </div>
+      )}
       {content}
     </>
   )

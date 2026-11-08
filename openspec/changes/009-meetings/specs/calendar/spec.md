@@ -195,13 +195,18 @@ The system SHALL list at the top of each overview month block every leave that h
 
 ### Requirement: Meeting chips
 
-The system SHALL place every visible meeting on its day in the month grid as a chip with the architect's initials in a circle, the times (`10:00-11:30`, `10:00`, or none) and the title, tinted and fully outlined in the architect's colour (grey without one). A day's meeting chips come under its leave lines and before its milestone chips, by start time, untimed ones after timed ones, then by title. Meetings before today are drawn fainter, like a planned milestone. Hovering shows the title, day, times, architect, type and project.
+The system SHALL place every visible meeting on its day in the month grid as a raised chip with the architect's initials in a circle, the times (`10:00-11:30`, `10:00`, or none) and the title in bold, filled with the architect's colour (grey without one). Its text is light or dark, whichever contrasts more with the colour, and the circle is drawn in reverse. A day's meeting chips come under its leave lines and before its milestone chips, by start time, untimed ones after timed ones, then by title. Meetings before today are drawn fainter and flat. Hovering shows the title, day, times, architect, type and project.
 
 #### Scenario: Meeting on a day
 
 - **WHEN** Anna Nowak (initials "AN", colour `#697662`) has "Spotkanie z inwestorem" of "Dom Lipowa" on 2026-11-14 from 10:00 to 11:30 and the calendar shows November 2026
-- **THEN** 14 November shows a chip with an "AN" circle, "10:00-11:30" and "Spotkanie z inwestorem", tinted and outlined in `#697662`
+- **THEN** 14 November shows a chip filled with `#697662` in white text, with "AN" in a white circle, "10:00-11:30" and "Spotkanie z inwestorem"
 - **AND** hovering it shows "Spotkanie z inwestorem, 14.11.2026 10:00-11:30, Anna Nowak, stacjonarne, Dom Lipowa"
+
+#### Scenario: Light architect colour
+
+- **WHEN** an architect's colour in `kalka.json` is `#f2e6a0`
+- **THEN** their meeting chips have dark text and a dark initials circle
 
 #### Scenario: Order in a day
 
@@ -218,14 +223,38 @@ The system SHALL place every visible meeting on its day in the month grid as a c
 - **WHEN** a meeting has no architect
 - **THEN** its chip is grey and has no initials circle
 
+### Requirement: Days with meetings
+
+The system SHALL mark every day of the month grid that has a visible meeting with a dark pill next to its day number giving the number of its visible meetings: "1 spotkanie", "2 spotkania" ... "4 spotkania", "5 spotkań" and so on by Polish grammar. A day without visible meetings has no pill.
+
+#### Scenario: Two meetings
+
+- **WHEN** 2026-11-14 has two visible meetings and five milestones
+- **THEN** the number 14 is followed by a dark pill "2 spotkania"
+
+#### Scenario: Counts
+
+- **WHEN** a day has 1, 3, 5, 12 or 22 visible meetings
+- **THEN** its pill reads "1 spotkanie", "3 spotkania", "5 spotkań", "12 spotkań" or "22 spotkania"
+
+#### Scenario: Hidden meetings
+
+- **WHEN** "Spotkania" is unticked in "Pokaż", or the architect filter hides a day's only meeting
+- **THEN** that day has no pill
+
 ### Requirement: Meetings in the overview
 
-The system SHALL list each visible meeting in its overview month block among the milestones in date order, a day's meetings before its milestones in the order of the month grid, each showing the day of the month, the initials circle, the start time and the title, styled like its meeting chip. Meetings count towards the eight entries a block shows.
+The system SHALL list each visible meeting in its overview month block among the milestones in date order, a day's meetings before its milestones in the order of the month grid, each showing the day of the month, the initials circle, the times as in the month grid and the title, styled like its meeting chip. Meetings count towards the eight entries a block shows.
 
 #### Scenario: Meeting among milestones
 
 - **WHEN** a visible project has `pbDoUrzedu: 2026-11-16` and a visible meeting "Spotkanie z inwestorem" is on 2026-11-14 at 10:00
 - **THEN** the "listopad 2026" block lists "14 AN 10:00 Spotkanie z inwestorem" and then "16 PB" with the project title
+
+#### Scenario: Start and end time
+
+- **WHEN** a visible meeting "Spotkanie z inwestorem" is on 2026-11-14 from 10:00 to 12:00
+- **THEN** its overview entry reads "14 AN 10:00-12:00 Spotkanie z inwestorem"
 
 #### Scenario: Busy month with meetings
 
