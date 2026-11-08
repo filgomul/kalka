@@ -1,9 +1,10 @@
 import { render, type ComponentChildren } from 'preact'
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import { formatDate, parseDate, todayIso } from './model.ts'
+import { projectIdChoices } from './calendar.ts'
 import { t, taskStatusLabels } from './pl.ts'
 import { ConflictError, deleteTask, saveTask, type LoadedTask } from './storage.ts'
-import { badgeFor, emptyTask, placeAt, prepareTaskForSave, sortTasks, TASK_STATUSES, taskState, textOn, type Task, type TaskStatus } from './tasks.ts'
+import { badgeFor, emptyTask, placeAt, prepareTaskForSave, sortTasks, stampDone, TASK_STATUSES, taskState, textOn, type Task, type TaskStatus } from './tasks.ts'
 import type { Data } from './main.tsx'
 
 type Props = {
@@ -15,15 +16,20 @@ type Props = {
 /** Where a dragged card would land: before the `index`-th other card of the `status` column. */
 type DropAt = { status: TaskStatus; index: number }
 
-/** The "Zadania" section of a saved project. Every change is written at once, apart from the project form. */
-export function TaskBoard({ data, projectId, reloadTasks }: Props) {
-  const today = todayIso()
-  const rows = data.tasks.filter((l) => l.task.projectId === projectId)
-  const column = (s: TaskStatus) => sortTasks(rows.filter((l) => l.task.status === s))
+/**
+ * Open-task state, writes and the conflict message, shared by the project board and the "Zadania" tab.
+ * `linkTo` gives the dialog a link to the task's project; `pickProject` adds the "projekt" choice (the tab).
+ */
+export function useTaskEdit(
+  data: Data,
+  reloadTasks: () => Promise<void>,
+  { linkTo, pickProject = false }: { linkTo?: (l: LoadedTask) => { href: string; label: string } | null; pickProject?: boolean } = {},
+) {
   const [open, setOpen] = useState<LoadedTask | null>(null)
   const [error, setError] = useState('')
-  const [dragging, setDragging] = useState<LoadedTask | null>(null)
-  const [dropAt, setDropAt] = useState<DropAt | null>(null)
+
+  /** One column of a project's board, in its order. */
+  const column = (projectId: string, s: TaskStatus) => sortTasks(data.tasks.filter((l) => l.task.projectId === projectId && l.task.status === s))
 
   /** Runs a write; a conflict only shows the message. Tasks are read again either way. */
   async function run(write: () => Promise<unknown>) {
@@ -38,26 +44,67 @@ export function TaskBoard({ data, projectId, reloadTasks }: Props) {
     }
   }
 
-  // one file at a time, each with its own check; a conflict stops the rest
+  // one file at a time, each with its own check; a conflict stops the rest.
+  // doneAt follows the state change against the task as read, whichever view wrote it.
   const persist = (list: LoadedTask[]) =>
     run(async () => {
-      for (const l of list) await saveTask(data.dir, prepareTaskForSave(l.task), l.file, l.task.updatedAt)
+      const now = new Date().toISOString()
+      for (const l of list) {
+        const before = data.tasks.find((r) => r.file === l.file)?.task
+        await saveTask(data.dir, prepareTaskForSave(stampDone(before, l.task, now)), l.file, l.task.updatedAt)
+      }
     })
 
   const failed = (e: unknown) => setError(`${t.saveFailed} ${(e as Error).message}`)
 
-  /** Saves the dialog; a task that changes column (or is new) goes to the bottom of it. */
+  /** Puts a task at the bottom of `status` on its project's board; nothing when it is already there. */
+  function moveTo(l: LoadedTask, status: TaskStatus) {
+    if (l.task.status === status) return
+    const target = column(l.task.projectId, status)
+    persist(placeAt(target, l, target.length, status)).catch(failed)
+  }
+
+  /** Saves the dialog; a task that changes column or project (or is new) goes to the bottom of that column. */
   async function saveDialog(before: LoadedTask, task: Task) {
     const isNew = !before.file
     const edited = { ...before, file: before.file || `${task.id}.json`, task }
-    if (!isNew && before.task.status === task.status) return persist([edited])
-    const target = column(task.status).filter((l) => l.file !== before.file)
+    if (!isNew && before.task.status === task.status && before.task.projectId === task.projectId) return persist([edited])
+    const target = column(task.projectId, task.status).filter((l) => l.file !== before.file)
     return persist(placeAt(target, edited, target.length, task.status))
   }
 
-  async function remove(l: LoadedTask) {
-    await run(() => deleteTask(data.dir, l.file, l.task.updatedAt))
+  return {
+    error,
+    column,
+    persist,
+    failed,
+    moveTo,
+    edit: setOpen,
+    dialog: open && (
+      <Portal>
+        <TaskDialog
+          key={open.file || open.task.id}
+          loaded={open}
+          architects={data.settings.architects}
+          link={linkTo?.(open) ?? null}
+          projects={pickProject ? projectIdChoices(data.projects) : null}
+          onSave={(task) => saveDialog(open, task)}
+          onRemove={() => run(() => deleteTask(data.dir, open.file, open.task.updatedAt))}
+          // the close event comes a moment later; it must not close a dialog opened since
+          onClose={() => setOpen((o) => (o === open ? null : o))}
+        />
+      </Portal>
+    ),
   }
+}
+
+/** The "Zadania" section of a saved project. Every change is written at once, apart from the project form. */
+export function TaskBoard({ data, projectId, reloadTasks }: Props) {
+  const today = todayIso()
+  const edit = useTaskEdit(data, reloadTasks)
+  const column = (s: TaskStatus) => edit.column(projectId, s)
+  const [dragging, setDragging] = useState<LoadedTask | null>(null)
+  const [dropAt, setDropAt] = useState<DropAt | null>(null)
 
   function onDragOver(e: DragEvent, status: TaskStatus) {
     if (!dragging) return
@@ -80,7 +127,7 @@ export function TaskBoard({ data, projectId, reloadTasks }: Props) {
     setDropAt(null)
     if (!moved || !at || at.status !== status) return
     const list = placeAt(column(status), moved, at.index, status)
-    if (list.length) persist(list).catch(failed)
+    if (list.length) edit.persist(list).catch(edit.failed)
   }
 
   function onDragLeave(e: DragEvent) {
@@ -93,9 +140,9 @@ export function TaskBoard({ data, projectId, reloadTasks }: Props) {
       <div class="section-head">
         <h2>{t.tasks}</h2>
         <span class="muted">{t.tasksHint}</span>
-        <button type="button" onClick={() => setOpen({ task: emptyTask(projectId), file: '', duplicate: false })}>+ {t.addTask}</button>
+        <button type="button" onClick={() => edit.edit({ task: emptyTask(projectId), file: '', duplicate: false })}>+ {t.addTask}</button>
       </div>
-      {error && <p class="error" role="alert">{error}</p>}
+      {edit.error && <p class="error" role="alert">{edit.error}</p>}
       <div class="board">
         {TASK_STATUSES.map((status) => {
           const cards = column(status)
@@ -106,6 +153,7 @@ export function TaskBoard({ data, projectId, reloadTasks }: Props) {
             <div
               key={status}
               class="col"
+              data-status={status}
               data-over={target !== -1 || undefined}
               onDragOver={(e) => onDragOver(e, status)}
               onDragLeave={onDragLeave}
@@ -125,7 +173,7 @@ export function TaskBoard({ data, projectId, reloadTasks }: Props) {
                     today={today}
                     drop={drop}
                     dragged={isDragged}
-                    onOpen={() => setOpen(l)}
+                    onOpen={() => edit.edit(l)}
                     onDragStart={() => setDragging(l)}
                     onDragEnd={() => {
                       setDragging(null)
@@ -138,19 +186,7 @@ export function TaskBoard({ data, projectId, reloadTasks }: Props) {
           )
         })}
       </div>
-      {open && (
-        <Portal>
-          <TaskDialog
-            key={open.file || open.task.id}
-            loaded={open}
-            architects={data.settings.architects}
-            onSave={(task) => saveDialog(open, task)}
-            onRemove={() => remove(open)}
-            // the close event comes a moment later; it must not close a dialog opened since
-            onClose={() => setOpen((o) => (o === open ? null : o))}
-          />
-        </Portal>
-      )}
+      {edit.dialog}
     </section>
   )
 }
@@ -183,6 +219,7 @@ function Card({ loaded: { task, file, duplicate }, data, today, drop, dragged, o
       }}
       onDragEnd={onDragEnd}
     >
+      <span class="grip" aria-hidden="true" />
       <span class="task-title">{task.title}</span>
       {duplicate && <span class="badge">{t.syncConflict}: {file}</span>}
       {(task.due || badge) && (
@@ -205,6 +242,9 @@ function Card({ loaded: { task, file, duplicate }, data, today, drop, dragged, o
 type DialogProps = {
   loaded: LoadedTask
   architects: string[]
+  link: { href: string; label: string } | null
+  /** project choices ("bez projektu" comes first); null keeps the task's project */
+  projects: { id: string; label: string }[] | null
   onSave: (task: Task) => Promise<void>
   onRemove: () => Promise<void>
   onClose: () => void
@@ -212,9 +252,12 @@ type DialogProps = {
 
 type Precision = 'day' | 'month'
 
-function TaskDialog({ loaded, architects, onSave, onRemove, onClose }: DialogProps) {
+function TaskDialog({ loaded, architects, link, projects, onSave, onRemove, onClose }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null)
-  const [draft, setDraft] = useState<Task>(loaded.task)
+  // with a project choice, a project that is gone shows (and is saved) as none
+  const [draft, setDraft] = useState<Task>(() =>
+    projects && !projects.some((p) => p.id === loaded.task.projectId) ? { ...loaded.task, projectId: '' } : loaded.task,
+  )
   const [precision, setPrecision] = useState<Precision>(parseDate(loaded.task.due)?.precision ?? 'day')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -253,6 +296,16 @@ function TaskDialog({ loaded, architects, onSave, onRemove, onClose }: DialogPro
     <dialog ref={ref} class="task-dialog" onClose={onClose}>
       <form onSubmit={save}>
         <h2>{isNew ? t.newTask : t.task}</h2>
+        {link && <p class="dialog-link">{t.project}: <a href={link.href}>{link.label}</a></p>}
+        {projects && (
+          <label>
+            {t.colProject}
+            <select value={draft.projectId} onChange={(e) => set({ projectId: e.currentTarget.value })}>
+              <option value="">{t.noProject}</option>
+              {projects.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+            </select>
+          </label>
+        )}
         <label>
           {t.taskTitle} *
           <input aria-required="true" value={draft.title} onInput={(e) => set({ title: e.currentTarget.value })} />

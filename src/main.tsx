@@ -22,12 +22,13 @@ import { CalendarView } from './calendar-view.tsx'
 import { Deadlines } from './deadlines.tsx'
 import { LeavesView } from './leaves-view.tsx'
 import { MeetingsView } from './meetings-view.tsx'
+import { TasksView } from './tasks-view.tsx'
 import './style.css'
 
 export type Data = { dir: FileSystemDirectoryHandle; settings: Settings } & ReadResult
 
 // Routes live in the hash: #/kalendarz?a=&s=&p=&k=&m= (the start view), #/projekty?a=&s=&q=, #/terminy?a=&s=&p=,
-// #/spotkania?a=&j=, #/urlopy?a=, #/nowy and #/projekt/<file>. The query holds the filters; z= on a form link
+// #/zadania?a=&s=&n=, #/spotkania?a=&j=, #/urlopy?a=, #/nowy and #/projekt/<file>. The query holds the filters; z= on a form link
 // names the view to go back to.
 
 /** The calendar is the start view: an empty path becomes #/kalendarz, keeping the query. */
@@ -64,7 +65,7 @@ function useRoute() {
 }
 
 const qs = (p: URLSearchParams) => (p.size ? '?' + p : '')
-const VIEWS = ['kalendarz', 'projekty', 'terminy', 'spotkania', 'urlopy']
+const VIEWS = ['kalendarz', 'projekty', 'terminy', 'zadania', 'spotkania', 'urlopy']
 
 function App() {
   const route = useRoute()
@@ -176,10 +177,11 @@ function App() {
     ) : (
       <main><p>{t.notFound}</p><a href={'#/projekty' + route.query}>{t.back}</a></main>
     )
-  } else if (route.path === '/kalendarz' || route.path === '/terminy' || route.path === '/spotkania' || route.path === '/urlopy') {
+  } else if (route.path === '/kalendarz' || route.path === '/terminy' || route.path === '/zadania' || route.path === '/spotkania' || route.path === '/urlopy') {
     const props = { data, params: route.params, onParams: (p: URLSearchParams) => route.go(route.path + qs(p), true) }
     content =
       route.path === '/kalendarz' ? <CalendarView {...props} reloadLeaves={reloadLeaves} reloadMeetings={reloadMeetings} />
+      : route.path === '/zadania' ? <TasksView {...props} reloadTasks={reloadTasks} />
       : route.path === '/spotkania' ? <MeetingsView {...props} reloadMeetings={reloadMeetings} />
       : route.path === '/urlopy' ? <LeavesView {...props} reloadLeaves={reloadLeaves} />
       : <Deadlines {...props} />
@@ -214,7 +216,7 @@ function App() {
       <header class="top">
         <a class="brand" href={'#/kalendarz' + tabQuery}>{t.appName}</a>
         <nav class="tabs">
-          {[['kalendarz', t.calendar], ['projekty', t.projects], ['terminy', t.deadlines], ['spotkania', t.meetings], ['urlopy', t.leaves]].map(([v, label]) => (
+          {[['kalendarz', t.calendar], ['projekty', t.projects], ['terminy', t.deadlines], ['zadania', t.tasks], ['spotkania', t.meetings], ['urlopy', t.leaves]].map(([v, label]) => (
             <a key={v} class="tab" href={`#/${v}${tabQuery}`} aria-current={view === v ? 'page' : undefined}>
               {label}
             </a>

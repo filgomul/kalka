@@ -186,6 +186,18 @@ export function projectChoices(rows: Row[]): { file: string; label: string }[] {
     .map(({ project: p, file }) => ({ file, label: [p.lp, p.title || file].filter((x) => x !== undefined).join(' ') }))
 }
 
+/** `projectChoices` keyed by project id, once per id (sync conflict copies share one), for dialogs that store the id. */
+export function projectIdChoices(rows: Row[]): { id: string; label: string }[] {
+  const seen = new Set<string>()
+  const idOf = new Map(rows.map((r) => [r.file, r.project.id]))
+  return projectChoices(rows).flatMap((c) => {
+    const id = idOf.get(c.file)!
+    if (seen.has(id)) return []
+    seen.add(id)
+    return [{ id, label: c.label }]
+  })
+}
+
 export const isMonth = (v: string | null): v is string => !!v && /^\d{4}-(0[1-9]|1[0-2])$/.test(v)
 
 // Overview: a range of whole months, "od" to "do" inclusive

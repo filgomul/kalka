@@ -121,6 +121,18 @@ export const t = {
   timelineConflict: 'Ktoś inny zmienił ten projekt w międzyczasie. Terminy wczytano ponownie - powtórz zmianę.',
   taskTitleRequired: 'Podaj tytuł zadania.',
   taskConflict: 'Ktoś inny zmienił to zadanie w międzyczasie. Zadania są odświeżone, wprowadź zmianę ponownie.',
+  unassigned: 'nieprzypisane',
+  taskDone: 'wykonane',
+  showOlder: (n: number) => `pokaż starsze (${n})`,
+  allTasks: 'wszystkie zadania',
+  /** "1 piętro", "2 piętra", "5 pięter", "22 piętra" */
+  floorCount: (n: number) => {
+    const few = n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14)
+    return `${n} ${n === 1 ? 'piętro' : few ? 'piętra' : 'pięter'}`
+  },
+  thisWeek: 'w tym tygodniu',
+  /** the sign where this week's tenement will stand, in two lines */
+  tenementSign: ['Tu powstanie', 'kamienica'],
 
   calendar: 'Kalendarz',
   deadlines: 'Terminy',
@@ -213,3 +225,47 @@ export const kindLabels: Record<Kind, string> = {
   spotkania: 'Spotkania',
   urlopy: 'Urlopy',
 }
+
+/** Who says it and what: one is drawn at random for the bubble at every third task done in "Zadania". */
+export const cheers: [string, string][] = [
+  ['Nadzór autorski', 'Bez uwag. Pierwszy raz w historii.'],
+  ['Inwestor', 'Płacze ze szczęścia. Albo z powodu kosztorysu.'],
+  ['Urząd', 'Nie zdążył się przyczepić.'],
+  ['Kierownik budowy', 'Beton związał. Zadanie też.'],
+  ['Branżyści', 'Prosimy o jeszcze. Żartujemy.'],
+  ['Kawa', 'Zasłużona. Dwie.'],
+  ['Kreślarz', 'Kreska prosta jak nigdy.'],
+  ['Konstruktor', 'Policzone. Stoi.'],
+  ['Rzeczoznawca ppoż.', 'Nic się nie pali. Poza tempem pracy.'],
+  ['Sanepid', 'Czysta robota.'],
+  ['Geodeta', 'Wszystko w granicach działki.'],
+  ['Inwestor', 'Pyta, czy można to samo, tylko taniej.'],
+  ['Urząd', 'Wniosek kompletny. Ktoś zemdlał z wrażenia.'],
+  ['Ploter', 'Drukuje z dumą.'],
+  ['OneDrive', 'Zsynchronizowano. Chyba.'],
+  ['Kierownik budowy', 'Wpisano do dziennika budowy.'],
+  ['Elektryk', 'Iskra jest. Ta dobra.'],
+  ['Hydraulik', 'Nic nie cieknie. Termin też nie.'],
+  ['Inspektor nadzoru', 'Odbiór bez jednej uwagi. Sprawdza, czy nie śni.'],
+  ['Pozwolenie na budowę', 'Prawomocne. Prawie jak to zadanie.'],
+  ['Klient', '„A da się jeszcze jedno okno?” Nie dziś.'],
+  ['Makieta', 'Klei się sama z radości.'],
+  ['AutoCAD', 'Nie zawiesił się. Świętujemy.'],
+  ['Kalendarz', 'O jedną rzecz lżejszy.'],
+  ['Termin', 'Dotrzymany. Zapisać na pamiątkę.'],
+  ['Ekipa budowlana', 'Przyjęła do wiadomości. Prawie.'],
+  ['Plan miejscowy', 'Zgodne z MPZP. Nawet dach.'],
+  ['Kubek', 'Pusty. Czas na dolewkę.'],
+  ['Skala', '1:1 satysfakcji.'],
+  ['Konserwator zabytków', 'Ten jeden raz bez zastrzeżeń.'],
+  ['Deadline', 'Uciekł z płaczem.'],
+  ['Pracownia', 'Ktoś zasłużył na ostatnie ciastko.'],
+  ['Cegła', 'Kolejna na swoim miejscu.'],
+  ['Poziomica', 'Pęcherzyk idealnie na środku.'],
+  ['Dziennik budowy', 'Wpis bez skreśleń. Rzadkość.'],
+  ['Inwestor', 'Zapłacił fakturę w terminie. Żartujemy, ale może kiedyś.'],
+  ['Wizualizacja', 'Wygląda lepiej niż na wizualizacji.'],
+  ['Kosztorys', 'Zmieścił się w budżecie. Sam jest w szoku.'],
+  ['Dźwig', 'Podnosi kciuk. Ostrożnie.'],
+  ['Kontener na gruz', 'O jeden problem pełniejszy.'],
+]

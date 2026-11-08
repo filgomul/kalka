@@ -129,7 +129,6 @@ export async function readMeetings(dir: FileSystemDirectoryHandle): Promise<Pick
 export async function readTasks(dir: FileSystemDirectoryHandle): Promise<Pick<ReadResult, 'tasks' | 'broken'>> {
   const read = await readFolder(dir, TASKS, (raw) => {
     if (typeof raw?.id !== 'string' || !raw.id) throw new Error('brak id')
-    if (typeof raw.projectId !== 'string' || !raw.projectId) throw new Error('brak projectId')
     return normalizeTask(raw)
   })
   return {

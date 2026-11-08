@@ -26,9 +26,16 @@ both, and lets people tick a task done where they look at it.
 - Dragging a card to another column sets that state. Whether ticked or dragged, the task
   goes to the bottom of that column on its project's board.
 - Clicking a card opens the same task dialog as on the project page, with a link to the
-  project.
+  project. "+ Dodaj zadanie" on the filter line adds a task, with a project choice in the
+  dialog.
 - A task file gets a `doneAt` timestamp, set when the task becomes done and removed when
   it leaves "Wykonane". Older files without it work unchanged; their `updatedAt` stands in.
+- To make finishing tasks a bit more fun: done cards in the tab carry a "wykonane"
+  stamp that lands when a task is marked done; a small swaying Gdańsk tenement next to the
+  heading grows a floor for each task done this week; every third task marked done shows a
+  bubble with a random cheer line from the studio's life for 5.2 seconds.
+- Both boards get a six-dot grip on each card and lanes coloured burgundy (to do), ochre
+  (in progress) and sage (done); the tab's checkbox is drawn like a marker tick.
 
 ## Capabilities
 
@@ -39,7 +46,9 @@ None.
 ### Modified Capabilities
 
 - `tasks`: the "Zadania" tab with its filters, order, cards, checkbox, dragging between
-  columns, recently done tasks and dialog; the task file gains `doneAt`
+  columns, recently done tasks and dialog, done stamp, building of the week and cheers;
+  the task file gains `doneAt`
+- `storage`: a task file without `projectId` is read as a task without a project
 - `calendar`: the header gets a sixth tab "Zadania" and the architect and status
   filters carry over to it
 
@@ -47,7 +56,9 @@ None.
 
 - Specs: `tasks` (ADDED: tasks tab, tasks tab filters, order in the tasks tab, tasks tab
   card, done checkbox, change state in the tasks tab, recently done tasks, task dialog
-  from the tasks tab; MODIFIED: task file), `calendar` (MODIFIED: views navigation)
+  from the tasks tab, done stamp, building of the week, cheer every third task;
+  MODIFIED: task file), `storage` (MODIFIED: read all tasks), `calendar` (MODIFIED:
+  views navigation)
 - Code: `src/tasks.ts` (filter, order, recent split, `doneAt` stamping), new
   `src/tasks-view.tsx` (the tab), `src/board.tsx` (task edit logic and dialog shared with
   the tab, project link in the dialog), `src/main.tsx` (route, tab), `src/pl.ts`,
@@ -76,6 +87,17 @@ Settled with the engineer on 2026-11-08:
 9. **`doneAt`** is a new field, because `updatedAt` also changes when a column is
    renumbered and would make old done tasks look recent.
 10. **Tab position**: "Kalendarz", "Projekty", "Terminy", "Zadania", "Spotkania", "Urlopy".
-11. **Out of scope**: tasks in the calendar and in "Terminy" (decided on the card),
-    adding a task from this tab (the dialog has no project choice), dragging on a phone,
+11. **Rewards** (engineer, after review on mockups, 2026-11-08): checkbox "Szkic"
+    (variant C), stamp (1) and building of the week (4), plus the cheer bubble (3) at
+    every third task marked done, shown for 5.2 seconds. The building follows the tab's
+    filters (proposed), so "my tasks" shows "my building". After a second round of
+    mockups the building became the swaying Gdańsk tenement (variant "A+C 2").
+12. **Add from the tab** (engineer, 2026-11-08): "+ Dodaj zadanie" at the end of the
+    filter line; nothing is preselected, whatever the filter. A task may have no project
+    (like a meeting): the tab's dialog offers "projekt" with "bez projektu", a "Projekt"
+    filter shows all tasks, those with a project or those without, and a task whose
+    project file is gone counts as one without a project instead of disappearing. The
+    building moves to a sticky column on the right.
+13. **Out of scope**: tasks in the calendar and in "Terminy" (decided on the card),
+    dragging on a phone,
     start dates and reminders.

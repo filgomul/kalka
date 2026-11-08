@@ -14,6 +14,13 @@
   --sand-tint: #f5eee2;
   --error: #9b3b2f;
   --error-tint: #f8ebe8;
+  /* task lanes: burgundy to do, ochre in progress, sage done */
+  --lane-todo: #7d3b45;
+  --lane-todo-tint: #f6ecec;
+  --lane-doing: #a67c22;
+  --lane-doing-tint: #f8f0dc;
+  --lane-done: var(--sage);
+  --lane-done-tint: var(--sage-tint);
   --radius: 6px;
   --font: Bahnschrift, 'DIN Next', 'Segoe UI', system-ui, sans-serif;
   --font-head: 'Bahnschrift SemiCondensed', Bahnschrift, Oswald, 'Arial Narrow', sans-serif;
@@ -690,9 +697,34 @@ button.link:hover {
   border-radius: var(--radius);
 }
 
+.col[data-status='todo'] {
+  --lane: var(--lane-todo);
+  --lane-tint: var(--lane-todo-tint);
+}
+
+.col[data-status='doing'] {
+  --lane: var(--lane-doing);
+  --lane-tint: var(--lane-doing-tint);
+}
+
+.col[data-status='done'] {
+  --lane: var(--lane-done);
+  --lane-tint: var(--lane-done-tint);
+}
+
+.col[data-status] {
+  background: var(--lane-tint);
+  border-top: 3px solid var(--lane);
+}
+
+.col[data-status] h3 {
+  color: var(--lane);
+}
+
 .col[data-over] {
-  border-color: var(--sage);
-  background: var(--sage-tint);
+  border-color: var(--lane, var(--sage));
+  border-style: dashed;
+  background: color-mix(in srgb, var(--lane-tint, var(--sage-tint)) 60%, var(--lane, var(--sage)) 12%);
 }
 
 .col h3 {
@@ -755,6 +787,29 @@ button.task:hover {
   overflow-wrap: anywhere;
 }
 
+/* six dots on the left edge: the card can be dragged */
+.grip {
+  position: absolute;
+  left: 7px;
+  top: 50%;
+  width: 8px;
+  height: 14px;
+  translate: 0 -50%;
+  background: radial-gradient(circle, currentColor 1.2px, transparent 1.6px) 0 0 / 4px 5px;
+  color: #c4bfb7;
+}
+
+.task:hover .grip {
+  color: var(--muted);
+}
+
+/* no dragging on touch screens; the state changes in the dialog there */
+@media (pointer: coarse) {
+  .grip {
+    display: none;
+  }
+}
+
 .task .badge {
   margin: 0;
   align-self: flex-start;
@@ -787,6 +842,384 @@ button.task:hover {
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.02em;
+}
+
+/* Zadania tab: the card is a div holding a checkbox and a title button */
+.tasks-tab .task {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+  cursor: grab;
+  position: relative;
+}
+
+.tasks-tab .task:hover {
+  border-color: #cfcac2;
+}
+
+/* room for the grip */
+button.task,
+.tasks-tab .task {
+  padding-left: 24px;
+}
+
+@media (pointer: coarse) {
+  button.task,
+  .tasks-tab .task {
+    padding-left: 12px;
+  }
+}
+
+.tasks-tab .task.done {
+  opacity: 0.55;
+}
+
+.task-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* "wykonane": a drawing-style box ticked with a burgundy marker that runs past the frame */
+.sketch-check {
+  position: relative;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}
+
+.sketch-check input {
+  appearance: none;
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.sketch-check input:hover {
+  border-color: var(--lane-todo);
+}
+
+.sketch-check input:focus-visible {
+  outline: 2px solid var(--sage);
+  outline-offset: 2px;
+}
+
+.sketch-check svg {
+  position: absolute;
+  left: 1px;
+  top: -7px;
+  width: 24px;
+  height: 22px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.sketch-check path {
+  fill: none;
+  stroke: var(--lane-todo);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  transition: stroke-dashoffset 0.35s ease-out;
+}
+
+.sketch-check input:checked + svg path {
+  stroke-dashoffset: 0;
+}
+
+/* the stamp on done cards; it lands on the one just marked done */
+.stamp {
+  position: absolute;
+  right: 44px;
+  bottom: 8px;
+  padding: 1px 8px;
+  border: 3px double var(--lane-todo);
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.6);
+  color: var(--lane-todo);
+  font: 600 0.8rem var(--font-head);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  rotate: -9deg;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.stamp.landing {
+  animation: stamp-slam 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.task:has(.stamp.landing) {
+  animation: stamp-thud 0.45s;
+}
+
+@keyframes stamp-slam {
+  0% { opacity: 0; scale: 2.6; rotate: -20deg; }
+  60% { opacity: 0.9; scale: 0.92; }
+  100% { opacity: 0.85; scale: 1; rotate: -9deg; }
+}
+
+@keyframes stamp-thud {
+  62% { translate: 0 2px; }
+  75% { translate: 0 -1px; }
+}
+
+/* a cheer above "Wykonane" */
+.tasks-tab .col {
+  position: relative;
+}
+
+.cheer {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: -10px;
+  width: max-content;
+  max-width: min(280px, 90%);
+  margin: 0;
+  padding: 8px 12px;
+  translate: -50% -100%;
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: #fff;
+  font-size: 0.85rem;
+  animation: cheer-in 0.2s ease-out;
+}
+
+.cheer::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  translate: -50% 0;
+  border: 6px solid transparent;
+  border-top-color: var(--ink);
+}
+
+.cheer small {
+  display: block;
+  color: #a6bb95;
+  font: 400 0.7rem var(--font-head);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+@keyframes cheer-in {
+  from { opacity: 0; translate: -50% calc(-100% + 6px); }
+}
+
+/* Zadania tab: the board and, on its right, the building of the week, which stays in view while scrolling */
+.tasks-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 12px;
+  align-items: start;
+}
+
+.week-aside {
+  position: sticky;
+  top: 16px;
+}
+
+.week-build {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: center;
+}
+
+.week-aside .tenement {
+  width: 64px;
+  height: 122px;
+}
+
+@media (max-width: 900px) {
+  .tasks-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* above the columns, scrolling with the page */
+  .week-aside {
+    position: static;
+    order: -1;
+    justify-self: end;
+  }
+
+  .week-build {
+    flex-direction: row;
+    align-items: flex-end;
+    text-align: left;
+  }
+
+  .week-aside .tenement {
+    width: 44px;
+    height: 84px;
+  }
+}
+
+/* "+ Dodaj zadanie" at the right end of the filter line */
+.toolbar-add {
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+.task-project[data-none] {
+  font-style: italic;
+}
+
+/* a Gdańsk tenement, crooked and swaying a little; colours from the studio's site */
+.tenement {
+  width: 44px;
+  height: 84px;
+  overflow: visible;
+}
+
+.kb-ground {
+  fill: var(--ink);
+}
+
+.kb-wall {
+  fill: #c9d4b8;
+  stroke: var(--ink);
+  stroke-width: 0.8;
+}
+
+.kb-win {
+  fill: var(--sage-tint);
+  stroke: var(--ink);
+  stroke-width: 0.5;
+}
+
+.kb-door {
+  fill: #ae633f;
+  stroke: var(--ink);
+  stroke-width: 0.6;
+}
+
+.kb-cornice {
+  fill: #fff;
+  stroke: var(--ink);
+  stroke-width: 0.4;
+}
+
+.kb-vane line {
+  stroke: var(--ink);
+  stroke-width: 0.8;
+}
+
+.kb-vane path {
+  fill: #c9a227;
+}
+
+.kb-sign line {
+  stroke: #b8925c;
+  stroke-width: 1.5;
+}
+
+.kb-sign rect {
+  fill: #fff;
+  stroke: #b8925c;
+}
+
+.kb-sign text {
+  font: 4.2px var(--font);
+  text-anchor: middle;
+  fill: var(--ink);
+}
+
+/* sways around the middle of its ground line, more the taller it is (--a, --t set per render) */
+.kb-sway {
+  transform-box: view-box;
+  transform-origin: 40px 146px;
+  animation: kb-sway var(--t) ease-in-out infinite alternate;
+}
+
+@keyframes kb-sway {
+  from { rotate: calc(var(--a) * -1); }
+  to { rotate: var(--a); }
+}
+
+.kb-drop {
+  animation: kb-drop 0.45s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+@keyframes kb-drop {
+  from { transform: translateY(-30px); opacity: 0; }
+}
+
+.week-text {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.week-text strong {
+  display: block;
+  color: var(--ink);
+  font: 400 1.3rem var(--font-head);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp.landing,
+  .task:has(.stamp.landing),
+  .cheer,
+  .kb-sway,
+  .kb-drop {
+    animation: none;
+  }
+
+  .sketch-check path {
+    transition: none;
+  }
+}
+
+.task-head .task-title {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.task-project {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.tasks-tab .older {
+  align-self: flex-start;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.82rem;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--sage-dark);
+}
+
+.dialog-link {
+  margin: -4px 0 12px;
+  font-size: 0.9rem;
 }
 
 .task-dialog {

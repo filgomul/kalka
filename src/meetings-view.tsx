@@ -18,7 +18,7 @@ import {
   type MeetingType,
 } from './meetings.ts'
 import { badgeFor, textOn } from './tasks.ts'
-import { projectChoices } from './calendar.ts'
+import { projectIdChoices } from './calendar.ts'
 import { meetingTypeLabels, t } from './pl.ts'
 import { ConflictError, deleteMeeting, saveMeeting, type LoadedMeeting } from './storage.ts'
 import { withParam, type ViewProps } from './calendar-view.tsx'
@@ -116,15 +116,7 @@ function MeetingDialog({ loaded, data, onSave, onRemove, onClose }: DialogProps)
   const set = (patch: Partial<Meeting>) => setDraft((d) => ({ ...d, ...patch }))
   const architects = data.settings.architects
   const options = draft.architect && !architects.includes(draft.architect) ? [...architects, draft.architect] : architects
-  // the choice stores the project's id; sync conflict copies sharing an id are offered once
-  const idOf = new Map(data.projects.map((l) => [l.file, l.project.id]))
-  const seen = new Set<string>()
-  const projects = projectChoices(data.projects).flatMap((c) => {
-    const id = idOf.get(c.file)!
-    if (seen.has(id)) return []
-    seen.add(id)
-    return [{ id, label: c.label }]
-  })
+  const projects = projectIdChoices(data.projects)
 
   useEffect(() => ref.current?.showModal(), [])
 
