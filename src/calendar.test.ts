@@ -17,7 +17,10 @@ import {
   withLength,
   withTo,
   showOf,
+  showParam,
   shownOnCalendar,
+  isMeetingItem,
+  withMeetings,
 } from './calendar.ts'
 import { leavesInMonth } from './leaves.ts'
 
@@ -285,21 +288,79 @@ test('calendar: Planned entry', () => {
 test('calendar: Leaves ignore the filters', () => {
   const rows = [row({ title: 'Dom Lipowa', leadArchitect: 'Anna Nowak', status: 'aktywny', milestones: { koncepcja: '2026-11-05' } }), row({ title: 'Hala', leadArchitect: 'Jan Kowalski', milestones: { koncepcja: '2026-11-06' } })]
   const leaves = [{ leave: { architect: 'Jan Kowalski' } }]
-  const byAnna = shownOnCalendar(rows, leaves, { ...noFilter, architect: 'Anna Nowak' }, '', TODAY)
+  const byAnna = shownOnCalendar(rows, leaves, [], { ...noFilter, architect: 'Anna Nowak' }, showOf(null), TODAY)
   assert.deepEqual(byAnna.all.map((e) => e.project.title), ['Dom Lipowa'])
   assert.deepEqual(byAnna.leaves, leaves)
-  assert.deepEqual(shownOnCalendar(rows, leaves, { ...noFilter, project: 'Hala.json', status: 'zakończony' }, '', TODAY).leaves, leaves)
+  assert.deepEqual(shownOnCalendar(rows, leaves, [], { ...noFilter, project: 'Hala.json', status: 'zakończony' }, showOf(null), TODAY).leaves, leaves)
 })
 
-test('calendar: Milestones only and leaves only', () => {
-  const rows = [row({ title: 'Dom Lipowa', milestones: { koncepcja: '2026-11-05' } })]
-  const leaves = [{ leave: { architect: 'Jan Kowalski' } }]
-  assert.deepEqual(shownOnCalendar(rows, leaves, noFilter, 'terminy', TODAY).leaves, [])
-  assert.equal(shownOnCalendar(rows, leaves, noFilter, 'terminy', TODAY).all.length, 1)
-  assert.deepEqual(shownOnCalendar(rows, leaves, noFilter, 'urlopy', TODAY).all, [])
-  assert.equal(showOf('urlopy'), 'urlopy')
-  assert.equal(showOf('cokolwiek'), '')
-  assert.equal(showOf(null), '')
+// one milestone, one meeting and one leave, to see which kinds "Pokaż" lets through
+const kindsRows = [row({ title: 'Dom Lipowa', milestones: { koncepcja: '2026-11-05' } })]
+const kindsLeaves = [{ leave: { architect: 'Jan Kowalski' } }]
+const kindsMeetings = [{ meeting: { id: 'm', title: 'Spotkanie', date: '2026-11-05', architect: '', type: 'online' as const, note: '', updatedAt: '' } }]
+const shownKinds = (k: string | null) => {
+  const s = shownOnCalendar(kindsRows, kindsLeaves, kindsMeetings, noFilter, showOf(k), TODAY)
+  return [s.all.length, s.meetings.length, s.leaves.length]
+}
+
+test('calendar: Default', () => {
+  assert.deepEqual(shownKinds(null), [1, 1, 1])
+  assert.deepEqual(shownKinds(''), [1, 1, 1])
+  assert.equal(showParam(showOf(null)), '')
+})
+
+test('calendar: Milestones only', () => {
+  assert.deepEqual(shownKinds('terminy'), [1, 0, 0])
+})
+
+test('calendar: Untick meetings', () => {
+  const show = showOf(null)
+  show.delete('spotkania')
+  assert.equal(showParam(show), 'terminy,urlopy')
+  assert.deepEqual(shownKinds(showParam(show)), [1, 0, 1])
+})
+
+test('calendar: Leaves only', () => {
+  assert.deepEqual(shownKinds('urlopy'), [0, 0, 1])
+})
+
+test('calendar: Meetings only', () => {
+  assert.deepEqual(shownKinds('spotkania'), [0, 1, 0])
+})
+
+test('calendar: Nothing ticked', () => {
+  assert.equal(showParam(new Set()), 'nic')
+  assert.deepEqual(shownKinds('nic'), [0, 0, 0])
+})
+
+test('calendar: Refresh (Pokaż)', () => {
+  assert.deepEqual([...showOf(showParam(new Set(['urlopy'])))], ['urlopy'])
+})
+
+test('calendar: Meeting among milestones', () => {
+  const all = entries([row({ title: 'Dom', milestones: { pbDoUrzedu: '2026-11-16', koncepcja: '2026-11-14' } })], TODAY)
+  const meetings = [{ meeting: { ...kindsMeetings[0].meeting, title: 'Spotkanie z inwestorem', date: '2026-11-14', start: '10:00' } }]
+  const [nov] = overviewMonths(withMeetings(all, meetings), { from: '2026-11', to: '2026-11' })
+  assert.deepEqual(
+    nov.shown.map((item) => (isMeetingItem(item) ? item.row.meeting.title : item.milestone.style)),
+    ['Spotkanie z inwestorem', 'koncepcja', 'pbDoUrzedu'],
+  )
+})
+
+test('calendar: Busy month with meetings', () => {
+  const all = entries(Array.from({ length: 6 }, (_, i) => row({ title: `P${i}`, milestones: { koncepcja: `2027-03-0${i + 1}` } })), TODAY)
+  const meetings = Array.from({ length: 5 }, (_, i) => ({ meeting: { ...kindsMeetings[0].meeting, id: `m${i}`, date: `2027-03-1${i}` } }))
+  const [march] = overviewMonths(withMeetings(all, meetings), { from: '2027-03', to: '2027-03' })
+  assert.deepEqual([march.shown.length, march.more], [8, 3])
+  assert.deepEqual(march.shown.map((i) => i.value.slice(0, 10)).slice(5), ['2027-03-06', '2027-03-10', '2027-03-11'])
+})
+
+test('calendar: Meetings follow the architect and project filters', () => {
+  const rows = [row({ title: 'Dom Lipowa', leadArchitect: 'Jan Kowalski', milestones: { koncepcja: '2026-11-05' } })]
+  const meetings = [{ meeting: { ...kindsMeetings[0].meeting, architect: 'Anna Nowak', projectId: 'p' } }]
+  const byAnna = shownOnCalendar(rows, [], meetings, { ...noFilter, architect: 'Anna Nowak' }, showOf(null), TODAY)
+  assert.deepEqual([byAnna.all.length, byAnna.meetings.length], [0, 1])
+  assert.equal(shownOnCalendar(rows, [], meetings, { ...noFilter, status: 'zakończony' }, showOf(null), TODAY).meetings.length, 1)
 })
 
 test('calendar: Busy month with a leave', () => {

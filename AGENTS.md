@@ -8,20 +8,28 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
 
 - **storage**: opens the data folder on the shared OneDrive (synced to every PC by the
   OneDrive client) through the File System Access API. One JSON file per project in
-  `projekty/`, one per task in `zadania/`, one per leave in `urlopy/`, settings in
-  `kalka.json`. No server, no
+  `projekty/`, one per task in `zadania/`, one per leave in `urlopy/`, one per meeting in
+  `spotkania/`, settings in `kalka.json`. No server, no
   accounts: whoever has the OneDrive folder has the data.
 - **settings**: `kalka.json` lists the architects, each a name or
-  `{ "name", "initials", "color" }` (hex); initials and colour fill the task card circle; the colour
-  also marks the architect's leaves.
-- **projects**: list, filter (lead architect, status), search, create/edit form.
+  `{ "name", "initials", "color" }` (hex); initials and colour fill the task card and
+  meeting circles; the colour also marks the architect's leaves and meetings.
+- **projects**: list (on `#/projekty`), filter (lead architect, status), search,
+  create/edit form. The calendar is the start view and the first tab.
 - **tasks**: a board on a saved project's page ("Do zrobienia", "W trakcie",
   "Wykonane"), cards dragged between and within columns. Each task change is written at
   once to its own file, apart from the project form's "Zapisz" / "Anuluj".
 - **calendar**: month grid of milestones across all projects with the same filters, plus
-  the "Terminy" list of upcoming and recently passed milestones. Leaves show as bars in
-  the month grid and at the top of overview blocks, for every architect whatever the
-  filters; "Pokaż" picks milestones, leaves or both.
+  the "Terminy" list of upcoming and recently passed milestones. Meetings show as chips
+  before the milestones of their day and among them in the overview, narrowed by the
+  architect and project filters. Leaves show as bars in the month grid and at the top of
+  overview blocks, for every architect whatever the filters; "Pokaż" is a multi-select of
+  milestones, meetings and leaves.
+- **meetings**: a meeting belongs to a project or to none. A saved project's page has a
+  "Spotkania" section (cards or list) after "Zadania"; the "Spotkania" tab lists every
+  meeting, filtered by architect and by having a project. Clicking a meeting anywhere,
+  the calendar included, opens one dialog. Each meeting change is written at once to its
+  own file.
 - **leaves**: the "Urlopy" tab lists architects' leaves (current and upcoming, then past)
   and adds, edits and deletes them; clicking a leave in the calendar opens the same
   dialog. Each leave change is written at once to its own file.
@@ -69,7 +77,9 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 | osoba | `assignee` | Architect doing a task; any architect, not only the lead one |
 | do zrobienia / w trakcie / wykonane | `todo` / `doing` / `done` | Task state, one board column each |
 | urlop | leave | An architect's absence, file `urlopy/<id>.json` with `{ id, architect, from, to }` (whole days, both included) |
-| pokaż | `k` | Calendar filter: "Terminy i urlopy" (default), "Terminy", "Urlopy" |
+| spotkanie | meeting | File `spotkania/<id>.json` with `{ id, title, date, start?, end?, architect, projectId?, type, note }`; times `HH:MM` |
+| stacjonarne / online | `type` | Meeting in person ("@" mark for online, building icon for stacjonarne) |
+| pokaż | `k` | Calendar multi-select of "Terminy", "Spotkania", "Urlopy", all by default; `k` lists the chosen ones, `nic` none |
 
 ## Stack and limits
 

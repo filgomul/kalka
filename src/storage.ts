@@ -1,10 +1,11 @@
 // The Kalka data folder on the synced OneDrive, opened through the File System Access API.
 // kalka.json holds settings, projekty/<id>.json one project each, zadania/<id>.json one task each,
-// urlopy/<id>.json one leave each.
+// urlopy/<id>.json one leave each, spotkania/<id>.json one meeting each.
 
 import { normalize, type Project } from './model.ts'
 import { normalizeTask, type Badge, type Task } from './tasks.ts'
 import { parseLeave, type Leave } from './leaves.ts'
+import { parseMeeting, type Meeting } from './meetings.ts'
 
 /** `architects` are the names; `badges` the initials and colours of entries that define them. */
 export type Settings = { schema: number; architects: string[]; badges: Record<string, Badge> }
@@ -14,12 +15,21 @@ export type Loaded = { project: Project; file: string; duplicate: boolean }
 export type LoadedTask = { task: Task; file: string; duplicate: boolean }
 /** A leave and the file it came from, like `Loaded`. */
 export type LoadedLeave = { leave: Leave; file: string; duplicate: boolean }
-export type ReadResult = { projects: Loaded[]; tasks: LoadedTask[]; leaves: LoadedLeave[]; broken: { file: string; reason: string }[] }
+/** A meeting and the file it came from, like `Loaded`. */
+export type LoadedMeeting = { meeting: Meeting; file: string; duplicate: boolean }
+export type ReadResult = {
+  projects: Loaded[]
+  tasks: LoadedTask[]
+  leaves: LoadedLeave[]
+  meetings: LoadedMeeting[]
+  broken: { file: string; reason: string }[]
+}
 
 const SETTINGS = 'kalka.json'
 const PROJECTS = 'projekty'
 const TASKS = 'zadania'
 const LEAVES = 'urlopy'
+const MEETINGS = 'spotkania'
 
 export const isSupported = () => typeof window !== 'undefined' && 'showDirectoryPicker' in window
 
@@ -61,11 +71,9 @@ export async function reopenFolder(dir: FileSystemDirectoryHandle): Promise<void
 
 // Folder contents
 
-/** Reads kalka.json, creating it, projekty/, zadania/ and urlopy/ when missing. */
+/** Reads kalka.json, creating it, projekty/, zadania/, urlopy/ and spotkania/ when missing. */
 export async function openFolder(dir: FileSystemDirectoryHandle): Promise<Settings> {
-  await dir.getDirectoryHandle(PROJECTS, { create: true })
-  await dir.getDirectoryHandle(TASKS, { create: true })
-  await dir.getDirectoryHandle(LEAVES, { create: true })
+  for (const name of [PROJECTS, TASKS, LEAVES, MEETINGS]) await dir.getDirectoryHandle(name, { create: true })
   let text: string
   try {
     text = await (await (await dir.getFileHandle(SETTINGS)).getFile()).text()
@@ -98,11 +106,22 @@ export async function readProjects(dir: FileSystemDirectoryHandle): Promise<Read
   })
   const { tasks, broken } = await readTasks(dir)
   const leaves = await readLeaves(dir)
+  const meetings = await readMeetings(dir)
   return {
     projects: read.items.map(({ value, ...l }) => ({ project: value, ...l })),
     tasks,
     leaves: leaves.leaves,
-    broken: [...read.broken, ...broken, ...leaves.broken],
+    meetings: meetings.meetings,
+    broken: [...read.broken, ...broken, ...leaves.broken, ...meetings.broken],
+  }
+}
+
+/** Reads spotkania/ alone, to refresh the meetings after a meeting change. */
+export async function readMeetings(dir: FileSystemDirectoryHandle): Promise<Pick<ReadResult, 'meetings' | 'broken'>> {
+  const read = await readFolder(dir, MEETINGS, parseMeeting)
+  return {
+    meetings: read.items.map(({ value, ...l }) => ({ meeting: value, ...l })),
+    broken: read.broken.map((b) => ({ ...b, file: `${MEETINGS}/${b.file}` })),
   }
 }
 
@@ -161,6 +180,13 @@ export const saveTask = (dir: FileSystemDirectoryHandle, task: Task, file: strin
 /** Same check as `saveProject`, for `urlopy/<file>`. */
 export const saveLeave = (dir: FileSystemDirectoryHandle, leave: Leave, file: string, loadedAt: string) =>
   checkedWrite(dir, LEAVES, leave, file, loadedAt)
+
+/** Same check as `saveProject`, for `spotkania/<file>`. */
+export const saveMeeting = (dir: FileSystemDirectoryHandle, meeting: Meeting, file: string, loadedAt: string) =>
+  checkedWrite(dir, MEETINGS, meeting, file, loadedAt)
+
+/** Removes `spotkania/<file>`, with the same check as `deleteTask`. */
+export const deleteMeeting = (dir: FileSystemDirectoryHandle, file: string, loadedAt: string) => checkedDelete(dir, MEETINGS, file, loadedAt)
 
 /** Removes `zadania/<file>` unless it changed since it was loaded or is already gone. */
 export const deleteTask = (dir: FileSystemDirectoryHandle, file: string, loadedAt: string) => checkedDelete(dir, TASKS, file, loadedAt)

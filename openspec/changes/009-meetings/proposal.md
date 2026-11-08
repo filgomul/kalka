@@ -26,10 +26,11 @@ milestones and leaves.
   project) second after the date. It adds meetings (project empty by default), opens them
   for editing and deleting, and filters by architect and by "z projektem" / "bez
   projektu".
-- Calendar "Miesiąc": each meeting is a chip on its day, before the milestone chips, with
-  the architect's initials in a circle, the times and the title, tinted and fully
-  outlined in the architect's colour. Meetings before today are dimmed like a planned
-  milestone. Clicking one opens the meeting dialog in place.
+- Calendar "Miesiąc": each meeting is a raised chip on its day, before the milestone
+  chips, filled with the architect's colour, with the initials in a circle, the times and
+  the title in bold. A day with meetings shows a dark pill with their count ("2
+  spotkania") next to its number, so busy days stand out at a glance. Meetings before
+  today are faded. Clicking one opens the meeting dialog in place.
 - Calendar "Przegląd": meetings are listed among the milestones by date, as their own
   meeting entries, and count towards the eight entries a block shows.
 - The calendar's architect filter also narrows meetings (by the meeting's architect) and
@@ -119,6 +120,13 @@ Settled with the engineer on 2026-11-08, or proposed here for review:
     other tabs keep their order after it.
 13. **Broken-files notice on every tab** (proposed): it used to show only on the project
     list, which is no longer the start view, so a broken file would go unnoticed.
-14. **Out of scope**: meetings in the "Terminy" deadlines list, several architects or
+14. **Meetings stand out** (engineer, after review on mockups, 2026-11-08): the
+    outlined chip got lost among milestones; the chip is now filled in the architect's
+    colour, raised and bold, and the day number gets a count pill (variant "E" without
+    the side bar). The overview shows the full times, as the month grid does.
+15. **Times from a list** (engineer, after review on prototypes, 2026-11-08): the
+    browser's time fields were hard to use; "od" and "do" become text fields with a list
+    of quarter hours, "do" showing the length and following "od" (variant "A").
+16. **Out of scope**: meetings in the "Terminy" deadlines list, several architects or
     guests per meeting, meetings over several days, recurring meetings, reminders,
     adding a meeting by clicking a calendar day.
