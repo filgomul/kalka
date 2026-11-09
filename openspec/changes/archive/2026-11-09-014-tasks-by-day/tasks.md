@@ -17,4 +17,4 @@
 
 - [x] 4.1 `pnpm test` and `pnpm build` are green; `openspec validate --all --strict` passes
 - [x] 4.2 Verify in the running dev environment (`pnpm dev`, Chrome or Edge, a scratch data folder outside the repo, made-up data only): open "Zadania" with no stored choice ("Pilne" pressed, order as before); add tasks due today, in two days, overdue, a month date and none, one urgent; click "Dni" (groups, counts, "dziś", bands, urgent first in its day, "W trakcie" unchanged); reload and reopen the tab ("Dni" kept, address unchanged); drag a card from a group to "W trakcie" (count drops, empty group gone); open in an InPrivate / Incognito window ("Pilne")
-- [ ] 4.3 Before the archive commit: rebase on `main` and check "Order in the tasks tab" in `openspec/specs/tasks/spec.md` still matches the MODIFIED copy apart from the intended edits
+- [x] 4.3 Before the archive commit: rebase on `main` and check "Order in the tasks tab" in `openspec/specs/tasks/spec.md` still matches the MODIFIED copy apart from the intended edits
