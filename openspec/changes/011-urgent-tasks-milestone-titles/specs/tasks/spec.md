@@ -2,34 +2,39 @@
 
 ### Requirement: Urgent task
 
-The system SHALL let the user mark a task urgent with a checkbox "pilne" in the task dialog, on the project page and in the "Zadania" tab, saved with the dialog's "Zapisz". A task that is urgent and not done shows a red "!" before its title, labelled "pilne", on the project board and in the "Zadania" tab. A done task keeps its mark but shows no "!" until it leaves "Wykonane".
+The system SHALL let the user mark a task urgent with a "pilne" toggle in the top-right corner of the task dialog, on the project page and in the "Zadania" tab, saved with "Zapisz"; while it is on, the dialog's top edge is red. A task that is urgent and not done shows on the project board and in the tab as a card with a red folded top-right corner holding "!", labelled "pilne", a red border and a light red background. A done urgent task shows only the red corner, without the border and background, until it leaves "Wykonane".
 
 #### Scenario: Mark urgent
 
-- **WHEN** the user opens "Rysunki elewacji" on "Dom Lipowa", ticks "pilne" and clicks "Zapisz"
+- **WHEN** the user opens "Rysunki elewacji" on "Dom Lipowa", turns "pilne" on and clicks "Zapisz"
 - **THEN** the task file holds `"urgent": true`
-- **AND** its card shows "!" before "Rysunki elewacji" on the project board and in "Zadania"
+- **AND** its card is marked urgent on the project board and in "Zadania"
 
 #### Scenario: Unmark
 
-- **WHEN** the user unticks "pilne" on an urgent task and clicks "Zapisz"
-- **THEN** the task file no longer holds `urgent` and the card shows no "!"
+- **WHEN** the user turns "pilne" off on an urgent task and clicks "Zapisz"
+- **THEN** the task file no longer holds `urgent` and the card is not marked
 
 #### Scenario: Board order kept
 
 - **WHEN** "Do zrobienia" on "Dom Lipowa" shows "A", "B", "C" and the user marks "C" urgent
-- **THEN** the column still shows "A", "B", "C", with "!" on "C"
+- **THEN** the column still shows "A", "B", "C", with "C" marked urgent
 
 #### Scenario: Done urgent task
 
 - **WHEN** an urgent task is moved to "Wykonane"
-- **THEN** its card shows no "!" and its file still holds `"urgent": true`
-- **AND** when it is moved back to "Do zrobienia", its card shows "!" again
+- **THEN** its card shows the red corner with "!" but no red border or background, and its file still holds `"urgent": true`
+- **AND** when it is moved back to "Do zrobienia", its card has the red border and background again
 
 #### Scenario: Cancel
 
-- **WHEN** the user ticks "pilne" and clicks "Anuluj" in the dialog
-- **THEN** nothing is written and the card shows no "!"
+- **WHEN** the user turns "pilne" on and clicks "Anuluj" in the dialog
+- **THEN** nothing is written and the card is not marked
+
+#### Scenario: Dialog shows the mark
+
+- **WHEN** the user opens an urgent task
+- **THEN** the "pilne" toggle is on and the dialog's top edge is red
 
 ## MODIFIED Requirements
 

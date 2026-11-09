@@ -21,6 +21,9 @@
   --lane-doing-tint: #f8f0dc;
   --lane-done: var(--sage);
   --lane-done-tint: var(--sage-tint);
+  /* urgent tasks: brighter than the burgundy lane and the overdue red */
+  --urgent: #d0442c;
+  --urgent-tint: #fff0ea;
   --radius: 6px;
   --font: Bahnschrift, 'DIN Next', 'Segoe UI', system-ui, sans-serif;
   --font-head: 'Bahnschrift SemiCondensed', Bahnschrift, Oswald, 'Arial Narrow', sans-serif;
@@ -847,6 +850,45 @@ button.task:hover {
   color: var(--error);
 }
 
+/* an urgent task: a folded red corner with "!"; while it is not done also tinted with a red edge */
+.task.urgent,
+button.task.urgent:hover,
+.tasks-tab .task.urgent,
+.tasks-tab .task.urgent:hover {
+  border-color: var(--urgent);
+  background: var(--urgent-tint);
+}
+
+.urgent-corner ~ .task-title,
+.urgent-corner ~ .task-head {
+  padding-right: 22px;
+}
+
+.urgent-corner {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 36px;
+  height: 36px;
+  border-top-right-radius: var(--radius);
+  background: linear-gradient(225deg, var(--urgent) 50%, transparent 50%);
+  pointer-events: none;
+}
+
+/* centred on the triangle's centre, 12px from the top and the right; 1px lower makes up for the font's descent */
+.urgent-corner::after {
+  content: '!';
+  position: absolute;
+  top: 1px;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: #fff;
+  font: 700 0.9rem/1 var(--font);
+}
+
 .avatar {
   display: inline-grid;
   place-items: center;
@@ -1257,6 +1299,55 @@ button.task,
 
 .task-dialog h2 {
   margin: 0;
+}
+
+.task-dialog.flagged {
+  border-top: 4px solid var(--urgent);
+}
+
+.dialog-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* "pilne" toggle: the flag fills in when on */
+.flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.flag svg {
+  width: 16px;
+  height: 16px;
+}
+
+.flag path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+.flag:hover {
+  border-color: var(--urgent);
+  color: var(--urgent);
+}
+
+.flag[aria-pressed='true'] {
+  border-color: var(--urgent);
+  background: var(--urgent-tint);
+  color: var(--urgent);
+}
+
+.flag[aria-pressed='true'] .cloth {
+  fill: var(--urgent);
 }
 
 .dialog-row {

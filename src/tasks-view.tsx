@@ -200,10 +200,11 @@ type CardProps = {
 function Card({ loaded: { task, file, duplicate }, data, project, today, dragged, landing, onOpen, onDone, onDragStart, onDragEnd }: CardProps) {
   const done = task.status === 'done'
   const late = taskState(task, today) === 'overdue'
+  const urgent = !!task.urgent && !done
   const badge = task.assignee ? badgeFor(data.settings.badges, task.assignee) : null
   return (
     <div
-      class={'task' + (done ? ' done' : '') + (dragged ? ' dragging' : '')}
+      class={'task' + (done ? ' done' : '') + (urgent ? ' urgent' : '') + (dragged ? ' dragging' : '')}
       draggable
       onClick={onOpen}
       onDragStart={(e) => {
@@ -214,6 +215,7 @@ function Card({ loaded: { task, file, duplicate }, data, project, today, dragged
       onDragEnd={onDragEnd}
     >
       <span class="grip" aria-hidden="true" />
+      {task.urgent && <span class="urgent-corner" role="img" aria-label={t.urgent} title={t.urgent} />}
       <span class="task-head">
         <span class="sketch-check">
           <input

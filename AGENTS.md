@@ -79,7 +79,7 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 | status | `aktywny` / `wstrzymany` / `zakończony` | Active, on hold, finished |
 | planowane / potwierdzone | `confirmed` | Milestone date is a guess until marked confirmed |
 | zrealizowane | `done` | Milestone reached |
-| zadanie | task | A job inside a project, file `zadania/<id>.json` with `projectId` (empty without a project); `doneAt` is when it last became done |
+| zadanie | task | A job inside a project, file `zadania/<id>.json` with `projectId` (empty without a project); `doneAt` is when it last became done; `urgent: true` marks it "pilne" |
 | osoba | `assignee` | Architect doing a task; any architect, not only the lead one |
 | do zrobienia / w trakcie / wykonane | `todo` / `doing` / `done` | Task state, one board column each |
 | urlop | leave | An architect's absence, file `urlopy/<id>.json` with `{ id, architect, from, to }` (whole days, both included) |

@@ -127,6 +127,7 @@ export const t = {
   taskConflict: 'Ktoś inny zmienił to zadanie w międzyczasie. Zadania są odświeżone, wprowadź zmianę ponownie.',
   unassigned: 'nieprzypisane',
   taskDone: 'wykonane',
+  urgent: 'pilne',
   showOlder: (n: number) => `pokaż starsze (${n})`,
   allTasks: 'wszystkie zadania',
   /** "1 piętro", "2 piętra", "5 pięter", "22 piętra" */

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
-import { BRANCHES, emptyProject, fromTemplate, moveMilestone, newId, nextLp, parseDate, prepareForSave, STATUSES, STYLES, styleOf, titleOf, withTimeline, type Milestone, type Project } from './model.ts'
+import { BRANCHES, emptyProject, fromTemplate, moveMilestone, newId, nextLp, parseDate, prepareForSave, STATUSES, STYLES, styleOf, titleForStyle, titleOf, withTimeline, type Milestone, type Project } from './model.ts'
 import { templateOf, TEMPLATES } from './model.ts'
 import { branchLabels, statusLabels, t } from './pl.ts'
 import { ConflictError, readProjects, saveProject, type Loaded } from './storage.ts'
@@ -422,16 +422,23 @@ function MilestoneDialog({ milestone, onApply, onClose }: DialogProps) {
       <form onSubmit={submit}>
         <h2>{milestone ? t.milestone : t.newMilestone}</h2>
         <label>
-          {t.milestoneTitle} *
-          <input aria-required="true" value={title} onInput={(e) => setTitle(e.currentTarget.value)} />
-        </label>
-        <label>
           {t.milestoneStyle}
-          <select value={style} onChange={(e) => setStyle(e.currentTarget.value)}>
+          <select
+            value={style}
+            onChange={(e) => {
+              const to = e.currentTarget.value
+              setTitle(titleForStyle(title, style, to))
+              setStyle(to)
+            }}
+          >
             {STYLES.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             {/* a style from a hand-edited file stays selectable instead of silently changing */}
             {!STYLES.some((s) => s.id === style) && <option value={style}>{style}</option>}
           </select>
+        </label>
+        <label>
+          {t.milestoneTitle} *
+          <input aria-required="true" value={title} onInput={(e) => setTitle(e.currentTarget.value)} />
         </label>
         <div class="dialog-actions">
           {error && <p class="error" role="alert">{error}</p>}

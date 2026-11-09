@@ -66,6 +66,12 @@ export const titleOf = (m: Milestone): string => m.title || styleOf(m.style).nam
 /** An unknown or missing template id gives the building one. */
 export const templateOf = (id: string | null | undefined): Template => TEMPLATES.find((t) => t.id === id) ?? TEMPLATES[0]
 
+/** A milestone's title after its style changes: an empty title or the old style's name follows the new style ("inny" empties it); a typed title stays. */
+export function titleForStyle(title: string, from: string, to: string): string {
+  if (title.trim() && title.trim() !== styleOf(from).name) return title
+  return to === 'inny' ? '' : styleOf(to).name
+}
+
 /** A new project's milestones; an unknown or missing template gives the building one. */
 export function fromTemplate(id: string | null | undefined): Milestone[] {
   return templateOf(id).styles.map((style) => ({ id: style, style }))
