@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { architectOptions, formatDate, STATUSES, todayIso } from './model.ts'
-import { badgeFor, byDue, CHEER_EVERY, emptyTask, CHEER_MS, doneThisWeek, filterTaskRows, splitDone, TASK_STATUSES, taskState, textOn, type TaskStatus } from './tasks.ts'
+import { badgeFor, byDay, byDue, CHEER_EVERY, dayLabel, emptyTask, CHEER_MS, doneThisWeek, filterTaskRows, loadTodoView, saveTodoView, splitDone, TASK_STATUSES, taskState, textOn, type TaskStatus, type TodoView } from './tasks.ts'
 import { cheers, statusLabels, t, taskStatusLabels } from './pl.ts'
 import { projectHref, withParam, type ViewProps } from './calendar-view.tsx'
 import { useTaskEdit } from './board.tsx'
@@ -9,6 +9,15 @@ import type { Data } from './main.tsx'
 
 /** The architect choice for tasks without an assignee; stored as `n=1`, not in `a`, so it stays on this tab. */
 const UNASSIGNED = '#nieprzypisane'
+
+/** This browser's storage; undefined when the browser blocks it (reading `localStorage` can throw). */
+function browserStore(): Storage | undefined {
+  try {
+    return localStorage
+  } catch {
+    return undefined
+  }
+}
 
 /** The "Zadania" tab: tasks of all projects by state, ordered by due date. */
 export function TasksView({ data, params, onParams, reloadTasks }: ViewProps & { reloadTasks: () => Promise<void> }) {
@@ -31,6 +40,11 @@ export function TasksView({ data, params, onParams, reloadTasks }: ViewProps & {
   const [dragging, setDragging] = useState<LoadedTask | null>(null)
   const [over, setOver] = useState<TaskStatus | null>(null)
   const [showOlder, setShowOlder] = useState(false)
+  const [todoView, setTodoView] = useState<TodoView>(() => loadTodoView(browserStore()))
+  function pickView(view: TodoView) {
+    setTodoView(view)
+    saveTodoView(browserStore(), view)
+  }
   // the task just marked done gets its stamp landing; every third one marked done since the tab opened, a cheer
   const [landed, setLanded] = useState('')
   const [cheer, setCheer] = useState<[string, string] | null>(null)
@@ -151,7 +165,17 @@ export function TasksView({ data, params, onParams, reloadTasks }: ViewProps & {
                 }}
                 onDrop={(e) => onDrop(e, s)}
               >
-                <h3>{taskStatusLabels[s]} <span class="count">{cards.length}</span></h3>
+                {s === 'todo' ? (
+                  <div class="col-head">
+                    <h3>{taskStatusLabels[s]} <span class="count">{cards.length}</span></h3>
+                    <div class="seg" role="group">
+                      <button type="button" aria-pressed={todoView === 'urgent'} title={t.viewUrgentHint} onClick={() => pickView('urgent')}>{t.viewUrgent}</button>
+                      <button type="button" aria-pressed={todoView === 'days'} title={t.viewDaysHint} onClick={() => pickView('days')}>{t.viewDays}</button>
+                    </div>
+                  </div>
+                ) : (
+                  <h3>{taskStatusLabels[s]} <span class="count">{cards.length}</span></h3>
+                )}
                 {s === 'done' && cheer && (
                   <p class="cheer" role="status">
                     <small>{cheer[0]}</small>
@@ -166,6 +190,17 @@ export function TasksView({ data, params, onParams, reloadTasks }: ViewProps & {
                       <button type="button" class="older" onClick={() => setShowOlder(true)}>{t.showOlder(done.older.length)}</button>
                     )}
                   </>
+                ) : s === 'todo' && todoView === 'days' ? (
+                  byDay(cards, today).map((g, i) => (
+                    <section key={g.key} class="day-group" data-alt={i % 2 === 1 || undefined} data-today={g.key === today || undefined}>
+                      <h4>
+                        {dayLabel(g.key)}
+                        {g.key === today && <span class="today-mark">{t.today}</span>}
+                        <span class="count">{g.rows.length}</span>
+                      </h4>
+                      {g.rows.map(card)}
+                    </section>
+                  ))
                 ) : (
                   byDue(cards).map(card)
                 )}

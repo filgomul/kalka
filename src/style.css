@@ -958,6 +958,68 @@ button.task,
   opacity: 0.55;
 }
 
+/* "Do zrobienia" header with the "Pilne" / "Dni" switch */
+.col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.col-head .seg button {
+  padding: 2px 8px;
+  font-size: 0.75rem;
+}
+
+/* "Dni": one band per day, full column width, touching the next one */
+.day-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 -10px;
+  padding: 6px 10px 10px;
+  border-top: 1px solid color-mix(in srgb, var(--lane) 30%, transparent);
+}
+
+.day-group + .day-group {
+  margin-top: -8px;
+}
+
+.day-group[data-alt] {
+  background: color-mix(in srgb, var(--lane) 8%, transparent);
+}
+
+.day-group h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font: 600 0.8rem var(--font);
+  color: var(--lane);
+}
+
+.day-group h4 .count {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--lane) 16%, transparent);
+  text-align: center;
+}
+
+.day-group[data-today] {
+  border-top: 2px solid var(--lane);
+}
+
+.today-mark {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--lane);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
 .task-head {
   display: flex;
   align-items: flex-start;

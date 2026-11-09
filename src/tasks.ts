@@ -1,8 +1,9 @@
 // Tasks of a project and the pure logic around them. No DOM here, so node --test can run it.
 // One file per task in zadania/, pointing at its project by projectId.
 
-import { filterProjects, newId, parseDate, todayIso, type Project } from './model.ts'
+import { filterProjects, formatDate, newId, parseDate, todayIso, type Project } from './model.ts'
 import { monday } from './calendar.ts'
+import { t, weekdays } from './pl.ts'
 
 export const TASK_STATUSES = ['todo', 'doing', 'done'] as const
 export type TaskStatus = (typeof TASK_STATUSES)[number]
@@ -147,6 +148,51 @@ export function splitDone<T extends Row>(rows: T[], n = DONE_SHOWN): { recent: T
   const when = (t: Task) => t.doneAt ?? t.updatedAt
   const sorted = [...rows].sort((a, b) => when(b.task).localeCompare(when(a.task)) || a.task.title.localeCompare(b.task.title, 'pl'))
   return { recent: sorted.slice(0, n), older: sorted.slice(n) }
+}
+
+/**
+ * "Do zrobienia" by day. Keys: `'overdue'` for every task due before `today`, then each due day
+ * (`YYYY-MM-DD`) or month (`YYYY-MM`, after the days of that month), `''` for undated last; each group by `byDue`.
+ */
+export function byDay<T extends Row>(rows: T[], today: string): { key: string; rows: T[] }[] {
+  const groups = new Map<string, { key: string; at: string; rows: T[] }>()
+  for (const r of rows) {
+    const d = parseDate(r.task.due)
+    const [key, at] = !d ? ['', '9999'] : d.due < today ? ['overdue', '0'] : [r.task.due!, d.precision === 'month' ? d.due + 'm' : d.due]
+    const g = groups.get(key) ?? { key, at, rows: [] }
+    groups.set(key, g)
+    g.rows.push(r)
+  }
+  return [...groups.values()].sort((a, b) => a.at.localeCompare(b.at)).map((g) => ({ key: g.key, rows: byDue(g.rows) }))
+}
+
+/** A `byDay` key as its header: "po terminie", "wt 10.11.2026", "11.2026" or "bez terminu". */
+export function dayLabel(key: string): string {
+  if (key === 'overdue') return t.overdue
+  if (!key) return t.noDue
+  if (key.length === 7) return formatDate(key)
+  return `${weekdays[(new Date(key + 'T00:00:00Z').getUTCDay() + 6) % 7]} ${formatDate(key)}`
+}
+
+export type TodoView = 'urgent' | 'days'
+const VIEW_KEY = 'kalka.zadania.widok'
+type Store = Pick<Storage, 'getItem' | 'setItem'>
+
+/** The view of the tab's "Do zrobienia" this browser last chose; "Pilne" when none or the store fails. */
+export function loadTodoView(store: Store | undefined): TodoView {
+  try {
+    return store?.getItem(VIEW_KEY) === 'dni' ? 'days' : 'urgent'
+  } catch {
+    return 'urgent'
+  }
+}
+
+export function saveTodoView(store: Store | undefined, view: TodoView): void {
+  try {
+    store?.setItem(VIEW_KEY, view === 'days' ? 'dni' : 'pilne')
+  } catch {
+    // storage blocked: the choice lasts while the tab is open
+  }
 }
 
 /** Done tasks whose `doneAt` falls (local time) in the Monday-Sunday week of `today`; files without `doneAt` don't count. */

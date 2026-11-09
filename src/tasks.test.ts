@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { t } from './pl.ts'
 import { emptyProject, formatDate, type Project } from './model.ts'
-import { byDue, doneThisWeek, filterTaskRows, splitDone, badgeFor, emptyTask, GREY, normalizeTask, placeAt, prepareTaskForSave, sortTasks, stampDone, taskState, textOn, type Task } from './tasks.ts'
+import { byDay, byDue, dayLabel, loadTodoView, saveTodoView, doneThisWeek, filterTaskRows, splitDone, badgeFor, emptyTask, GREY, normalizeTask, placeAt, prepareTaskForSave, sortTasks, stampDone, taskState, textOn, type Task } from './tasks.ts'
 
 const task = (title: string, extra: Partial<Task> = {}): Task => ({ ...emptyTask('p1'), id: title, title, ...extra })
 const row = (title: string, extra: Partial<Task> = {}) => ({ task: task(title, extra), file: `${title}.json` })
@@ -275,4 +275,75 @@ test('tasks: New week', () => {
 
 test('tasks: Floor count', () => {
   assert.deepEqual([0, 1, 2, 5, 12, 22, 24, 25].map(t.floorCount), ['0 pięter', '1 piętro', '2 piętra', '5 pięter', '12 pięter', '22 piętra', '24 piętra', '25 pięter'])
+})
+
+const DAY_TODAY = '2026-11-10'
+const groups = (rows: { task: Task }[]) => byDay(rows, DAY_TODAY).map((g) => [dayLabel(g.key), g.key === DAY_TODAY, titles(g.rows)])
+
+test('tasks: Groups and counts', () => {
+  const rows = [row('D', { due: '2026-11-14' }), row('B', { due: '2026-11-10' }), row('C', { due: '2026-11-12' }), row('A', { due: '2026-11-10' })]
+  assert.deepEqual(groups(rows), [
+    ['wt 10.11.2026', true, ['A', 'B']],
+    ['czw 12.11.2026', false, ['C']],
+    ['sob 14.11.2026', false, ['D']],
+  ])
+})
+
+test('tasks: Overdue together', () => {
+  const rows = [row('later', { due: '2026-11-12' }), row('six', { due: '2026-11-06' }), row('three', { due: '2026-11-03' })]
+  assert.deepEqual(groups(rows)[0], ['po terminie', false, ['three', 'six']])
+})
+
+test('tasks: Urgent inside a day', () => {
+  assert.deepEqual(groups([row('A', { due: '2026-11-12' }), row('B', { due: '2026-11-12', urgent: true })]), [['czw 12.11.2026', false, ['B', 'A']]])
+})
+
+test('tasks: Urgent keeps its day', () => {
+  const rows = [row('B', { due: '2026-11-14', urgent: true }), row('A', { due: '2026-11-12' })]
+  assert.deepEqual(groups(rows), [
+    ['czw 12.11.2026', false, ['A']],
+    ['sob 14.11.2026', false, ['B']],
+  ])
+})
+
+test('tasks: Month date', () => {
+  const rows = [row('dec', { due: '2026-12-01' }), row('month', { due: '2026-11' }), row('last', { due: '2026-11-30' })]
+  assert.deepEqual(groups(rows).map((g) => g[0]), ['pon 30.11.2026', '11.2026', 'wt 01.12.2026'])
+})
+
+test('tasks: Past month', () => {
+  assert.deepEqual(groups([row('oct', { due: '2026-10' })]), [['po terminie', false, ['oct']]])
+})
+
+test('tasks: Without a date', () => {
+  const rows = [row('none'), row('day', { due: '2026-11-12' })]
+  assert.deepEqual(groups(rows).at(-1), ['bez terminu', false, ['none']])
+})
+
+test('tasks: Empty column', () => {
+  assert.deepEqual(byDay([], DAY_TODAY), [])
+})
+
+const memory = () => {
+  const m = new Map<string, string>()
+  return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) }
+}
+
+test('tasks: First visit', () => {
+  assert.equal(loadTodoView(memory()), 'urgent')
+  assert.equal(loadTodoView(undefined), 'urgent')
+})
+
+test('tasks: Remembered', () => {
+  const store = memory()
+  saveTodoView(store, 'days')
+  assert.equal(loadTodoView(store), 'days')
+  saveTodoView(store, 'urgent')
+  assert.equal(loadTodoView(store), 'urgent')
+})
+
+test('tasks: Storage blocked', () => {
+  const blocked = { getItem: () => { throw new Error('SecurityError') }, setItem: () => { throw new Error('QuotaExceededError') } }
+  assert.equal(loadTodoView(blocked), 'urgent')
+  assert.doesNotThrow(() => saveTodoView(blocked, 'days'))
 })

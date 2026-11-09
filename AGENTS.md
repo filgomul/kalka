@@ -22,7 +22,8 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
   "Wykonane"), cards dragged between and within columns. Each task change is written at
   once to its own file, apart from the project form's "Zapisz" / "Anuluj". The "Zadania"
   tab shows all tasks in the same columns, filtered by assignee (or "nieprzypisane"),
-  project status and having a project, ordered by due date, with a "wykonane" checkbox,
+  project status and having a project, ordered by due date ("Do zrobienia" switches to
+  groups by day, the choice remembered per browser), with a "wykonane" checkbox,
   the five most recently done tasks and the week's tenement on the right. It also adds
   tasks; a task may have no project (then it shows only in that tab).
 - **calendar**: month grid of milestones across all projects with the same filters, plus
