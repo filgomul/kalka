@@ -23,4 +23,4 @@
 
 - [x] 5.1 `pnpm test` and `pnpm build` are green; `openspec validate --all --strict` passes
 - [x] 5.2 Verify in the running dev environment (`pnpm dev`, Chrome or Edge, a scratch data folder outside the repo): one project file without `type`, one with `"type": "biuro"`, and a new project from each template. Check the "typ" column and filter, sort each column both ways (empty city, missing l.p., all statuses shown), refresh, open a project and go back. Change a type, then "Anuluj" and "Zapisz". Tick a milestone on the file without `type` and check the file now holds `"type": "inny"`
-- [ ] 5.3 Before the archive commit: rebase on `main` (after 011 merged) and check that the MODIFIED requirement texts in `specs/projects/spec.md` still match `openspec/specs/projects/spec.md` apart from this change's edits
+- [x] 5.3 Before the archive commit: rebase on `main` (after 011 merged) and check that the MODIFIED requirement texts in `specs/projects/spec.md` still match `openspec/specs/projects/spec.md` apart from this change's edits
