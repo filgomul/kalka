@@ -17,6 +17,7 @@ import {
   STYLES,
   styleOf,
   templateOf,
+  titleForStyle,
   titleOf,
   withTimeline,
   type Milestone,
@@ -450,4 +451,26 @@ test('projects: New project gets the next number', () => {
 test('projects: Value not on the list', () => {
   const ps = [project({ leadArchitect: 'Piotr Zieliński' }), project({ leadArchitect: 'Anna Nowak' }), project({})]
   assert.deepEqual(architectOptions(['Anna Nowak', 'Jan Kowalski'], ps.map((p) => p.leadArchitect)), ['Anna Nowak', 'Jan Kowalski', 'Piotr Zieliński'])
+})
+
+// Milestone dialog: the title follows the style
+
+test('projects: Name from the style', () => {
+  assert.equal(titleForStyle('', 'inny', 'akceptacja'), 'akceptacja koncepcji')
+})
+
+test('projects: Style picked again', () => {
+  assert.equal(titleForStyle('akceptacja koncepcji', 'akceptacja', 'koncepcja'), 'wydanie koncepcji')
+})
+
+test('projects: Typed title kept', () => {
+  assert.equal(titleForStyle('akceptacja koncepcji - wariant B', 'akceptacja', 'koncepcja'), 'akceptacja koncepcji - wariant B')
+})
+
+test('projects: Back to inny', () => {
+  assert.equal(titleForStyle('akceptacja koncepcji', 'akceptacja', 'inny'), '')
+})
+
+test('projects: Change style of a filled-in name', () => {
+  assert.equal(titleForStyle('akceptacja koncepcji', 'akceptacja', 'akceptacjaUkladow'), 'akceptacja układów')
 })

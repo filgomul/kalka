@@ -204,11 +204,12 @@ type CardProps = {
 
 function Card({ loaded: { task, file, duplicate }, data, today, drop, dragged, onOpen, onDragStart, onDragEnd }: CardProps) {
   const late = taskState(task, today) === 'overdue'
+  const urgent = !!task.urgent && task.status !== 'done'
   const badge = task.assignee ? badgeFor(data.settings.badges, task.assignee) : null
   return (
     <button
       type="button"
-      class={dragged ? 'task dragging' : 'task'}
+      class={'task' + (urgent ? ' urgent' : '') + (dragged ? ' dragging' : '')}
       draggable
       data-drop={drop}
       onClick={onOpen}
@@ -220,6 +221,7 @@ function Card({ loaded: { task, file, duplicate }, data, today, drop, dragged, o
       onDragEnd={onDragEnd}
     >
       <span class="grip" aria-hidden="true" />
+      {task.urgent && <span class="urgent-corner" role="img" aria-label={t.urgent} title={t.urgent} />}
       <span class="task-title">{task.title}</span>
       {duplicate && <span class="badge">{t.syncConflict}: {file}</span>}
       {(task.due || badge) && (
@@ -293,9 +295,15 @@ function TaskDialog({ loaded, architects, link, projects, onSave, onRemove, onCl
   }
 
   return (
-    <dialog ref={ref} class="task-dialog" onClose={onClose}>
+    <dialog ref={ref} class={draft.urgent ? 'task-dialog flagged' : 'task-dialog'} onClose={onClose}>
       <form onSubmit={save}>
-        <h2>{isNew ? t.newTask : t.task}</h2>
+        <div class="dialog-top">
+          <h2>{isNew ? t.newTask : t.task}</h2>
+          <button type="button" class="flag" aria-pressed={!!draft.urgent} onClick={() => set({ urgent: draft.urgent ? undefined : true })}>
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 15V2" /><path class="cloth" d="M3 2.5h9l-2 3 2 3H3" /></svg>
+            {t.urgent}
+          </button>
+        </div>
         {link && <p class="dialog-link">{t.project}: <a href={link.href}>{link.label}</a></p>}
         {projects && (
           <label>

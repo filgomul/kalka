@@ -31,6 +31,12 @@ test('tasks: Hand-edited file', () => {
   assert.equal(t.assignee, '')
   assert.equal(t.order, undefined)
   assert.equal('due' in t, false)
+  assert.equal('urgent' in t, false)
+})
+
+test('tasks: Hand-edited urgent mark', () => {
+  assert.equal('urgent' in normalizeTask({ id: 'a', projectId: 'p1', urgent: 'tak' as unknown as true }), false)
+  assert.equal(normalizeTask({ id: 'a', projectId: 'p1', urgent: true }).urgent, true)
 })
 
 test('tasks: Overdue', () => {
@@ -206,6 +212,11 @@ test('tasks: By due date', () => {
   assert.deepEqual(titles(byDue(rows)), ['B', 'A', 'D', 'C'])
 })
 
+test('tasks: Urgent first', () => {
+  const rows = [row('A', { due: '2026-11-14' }), row('B', { urgent: true, due: '2026-11-30' }), row('C', { urgent: true })]
+  assert.deepEqual(titles(byDue(rows)), ['B', 'C', 'A'])
+})
+
 test('tasks: Project order ignored', () => {
   const rows = [row('A', { order: 1, due: '2026-12-01' }), row('B', { order: 2, due: '2026-11-01' })]
   assert.deepEqual(titles(byDue(rows)), ['B', 'A'])
@@ -232,6 +243,10 @@ test('tasks: Undo keeps it visible', () => {
 test('tasks: Older file', () => {
   const old = row('Stare', { status: 'done', updatedAt: '2026-11-02T09:00:00.000Z' })
   assert.deepEqual(titles(splitDone([old, done('Nowsze', 5)]).recent), ['Nowsze', 'Stare'])
+})
+
+test('tasks: Done ignores urgency', () => {
+  assert.deepEqual(titles(splitDone([row('Pilne', { status: 'done', urgent: true, doneAt: '2026-11-05T10:00:00.000Z' }), done('Inne', 6)]).recent), ['Inne', 'Pilne'])
 })
 
 // Building of the week (local noon, so no time zone moves the day)

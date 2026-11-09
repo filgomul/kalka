@@ -19,6 +19,8 @@ export type Task = {
   status: TaskStatus
   /** place in its column, smaller first; absent until someone places the task */
   order?: number
+  /** marked "pilne"; absent when not */
+  urgent?: true
   /** ISO time the task last became done; absent unless done */
   doneAt?: string
   updatedAt: string
@@ -48,6 +50,7 @@ export function normalizeTask(raw: Partial<Task> & { id: string }): Task {
   if (typeof task.due !== 'string') delete task.due
   if (!Number.isFinite(task.order)) delete task.order
   if (typeof task.doneAt !== 'string') delete task.doneAt
+  if (task.urgent !== true) delete task.urgent
   return task
 }
 
@@ -130,9 +133,11 @@ export function filterTaskRows<T extends Row>(rows: T[], projects: { project: Pr
   })
 }
 
-/** By due date (a month as its last day), undated last, then title. */
+/** Urgent first, then by due date (a month as its last day), undated last, then title. */
 export function byDue<T extends Row>(rows: T[]): T[] {
-  return [...rows].sort((a, b) => dueKey(a.task).localeCompare(dueKey(b.task)) || a.task.title.localeCompare(b.task.title, 'pl'))
+  return [...rows].sort(
+    (a, b) => Number(!!b.task.urgent) - Number(!!a.task.urgent) || dueKey(a.task).localeCompare(dueKey(b.task)) || a.task.title.localeCompare(b.task.title, 'pl'),
+  )
 }
 
 export const DONE_SHOWN = 5
