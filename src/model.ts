@@ -98,6 +98,12 @@ export type Project = {
   /** empty string means "brak" */
   branches: Record<BranchKey, string>
   notes: string
+  /** project data: plain text, no format check */
+  investor: string
+  investorPhone: string
+  investorEmail: string
+  plot: string
+  officeContact: string
   updatedAt: string
 }
 
@@ -166,6 +172,11 @@ export function emptyProject(): Project {
     timeline: [],
     branches: Object.fromEntries(BRANCHES.map((b) => [b, ''])) as Record<BranchKey, string>,
     notes: '',
+    investor: '',
+    investorPhone: '',
+    investorEmail: '',
+    plot: '',
+    officeContact: '',
     updatedAt: '',
   }
 }

@@ -191,6 +191,38 @@ export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadP
           </div>
         </section>
 
+        {/* folded each time the form opens: no `open`, so the browser keeps the state */}
+        <details class="card">
+          <summary>
+            <h2>
+              {t.projectData}
+              {draft.investor.trim() && <span class="investor"> - {draft.investor.trim()}</span>}
+            </h2>
+          </summary>
+          <div class="fields">
+            <label class="wide">
+              {t.investor}
+              <input value={draft.investor} onInput={(e) => set({ investor: e.currentTarget.value })} />
+            </label>
+            <label>
+              {t.investorPhone}
+              <input value={draft.investorPhone} onInput={(e) => set({ investorPhone: e.currentTarget.value })} />
+            </label>
+            <label>
+              {t.investorEmail}
+              <input value={draft.investorEmail} onInput={(e) => set({ investorEmail: e.currentTarget.value })} />
+            </label>
+            <label class="wide">
+              {t.plot}
+              <input value={draft.plot} onInput={(e) => set({ plot: e.currentTarget.value })} />
+            </label>
+            <label class="full">
+              {t.officeContact}
+              <textarea rows={4} value={draft.officeContact} onInput={(e) => set({ officeContact: e.currentTarget.value })} />
+            </label>
+          </div>
+        </details>
+
         <Timeline
           list={draft.timeline}
           precision={precision}
