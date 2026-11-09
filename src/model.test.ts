@@ -76,7 +76,10 @@ test('projects: Link without a template', () => {
 
 test('projects: No template in the file', () => {
   const saved = prepareForSave(project({ title: 'Mieszkanie Klonowa', type: templateOf('wnetrza').id, timeline: fromTemplate('wnetrza') }))
-  assert.deepEqual(Object.keys(saved).sort(), ['branches', 'id', 'leadArchitect', 'location', 'notes', 'status', 'timeline', 'title', 'type', 'updatedAt'])
+  assert.deepEqual(Object.keys(saved).sort(), [
+    'branches', 'id', 'investor', 'investorEmail', 'investorPhone', 'leadArchitect', 'location', 'notes',
+    'officeContact', 'plot', 'status', 'timeline', 'title', 'type', 'updatedAt',
+  ])
   assert.equal(saved.type, 'wnetrza')
   assert.equal(saved.timeline.length, 7)
 })
@@ -473,4 +476,36 @@ test('projects: Back to inny', () => {
 
 test('projects: Change style of a filled-in name', () => {
   assert.equal(titleForStyle('akceptacja koncepcji', 'akceptacja', 'akceptacjaUkladow'), 'akceptacja układów')
+})
+
+// Project data
+
+const DATA_KEYS = ['investor', 'investorPhone', 'investorEmail', 'plot', 'officeContact'] as const
+
+test('projects: File without project data', () => {
+  const p = project({ title: 'Dom Lipowa' })
+  assert.deepEqual(DATA_KEYS.map((k) => p[k]), ['', '', '', '', ''])
+})
+
+test('projects: Fill and save', () => {
+  const filled = {
+    investor: 'Jan Nowak',
+    investorPhone: '600 100 200',
+    investorEmail: 'jan.nowak@example.com',
+    plot: '123/4',
+    officeContact: 'Starostwo, wydział architektury: p. Ewa Kowalska, pokój 12',
+  }
+  const saved = prepareForSave(project({ title: 'Dom Lipowa', ...filled }))
+  const reopened = normalize(JSON.parse(JSON.stringify(saved)))
+  assert.deepEqual(Object.fromEntries(DATA_KEYS.map((k) => [k, reopened[k]])), filled)
+})
+
+test('projects: Any text accepted', () => {
+  const saved = prepareForSave(project({ title: 'Dom Lipowa', investorPhone: '600 100 200, 601 200 300', investorEmail: 'biuro@', plot: '123/4, 123/5' }))
+  assert.deepEqual([saved.investorPhone, saved.investorEmail, saved.plot], ['600 100 200, 601 200 300', 'biuro@', '123/4, 123/5'])
+})
+
+test('projects: Not searched', () => {
+  const p = project({ title: 'Dom Lipowa', location: { city: 'Gdańsk', address: 'ul. Lipowa 1' }, investor: 'Jan Nowak' })
+  assert.deepEqual(filterProjects(rows(p), { architect: '', status: '', q: 'Nowak' }), [])
 })

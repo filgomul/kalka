@@ -89,6 +89,14 @@ export const t = {
   month: 'miesiąc',
   branches: 'Zakres branż',
   notes: 'uwagi',
+
+  projectData: 'Dane projektu',
+  investor: 'inwestor',
+  investorPhone: 'telefon',
+  investorEmail: 'e-mail',
+  plot: 'identyfikator działki',
+  officeContact: 'kontakt do urzędu',
+
   save: 'Zapisz',
   saving: 'Zapisywanie…',
   cancel: 'Anuluj',

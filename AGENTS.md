@@ -15,7 +15,9 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
   `{ "name", "initials", "color" }` (hex); initials and colour fill the task card and
   meeting circles; the colour also marks the architect's leaves and meetings.
 - **projects**: list (on `#/projekty`), filter (lead architect, status, type), search,
-  sort by any column, create/edit form. The calendar is the start view and the first tab.
+  sort by any column, create/edit form. The form has a folded "Dane projektu" section
+  (investor, contact, plot, office contacts) that holds real people's data, so it lives
+  only in the project files. The calendar is the start view and the first tab.
 - **tasks**: a board on a saved project's page ("Do zrobienia", "W trakcie",
   "Wykonane"), cards dragged between and within columns. Each task change is written at
   once to its own file, apart from the project form's "Zapisz" / "Anuluj". The "Zadania"
@@ -76,6 +78,9 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 | terminy | `timeline` | A project's milestones in order, each `{ id, style, title?, date?, done?, confirmed? }` |
 | branża konstrukcyjna / sanitarna / elektryczna / drogowa | `konstrukcja` / `sanitarna` / `elektryczna` / `drogowa` | Scope text for that engineering branch; empty means "brak" (none) |
 | rzeczoznawca ppoż. / BHP i Sanepid | `ppoz` / `bhpSanepid` | Fire-protection and OHS/sanitary expert involvement |
+| inwestor / telefon / e-mail | `investor` / `investorPhone` / `investorEmail` | Client and their contact, free text |
+| identyfikator działki | `plot` | Land-registry plot id(s), free text |
+| kontakt do urzędu | `officeContact` | Free-text notes on people at the office (permit officer, conservator) |
 | status | `aktywny` / `wstrzymany` / `zakończony` | Active, on hold, finished |
 | planowane / potwierdzone | `confirmed` | Milestone date is a guess until marked confirmed |
 | zrealizowane | `done` | Milestone reached |
