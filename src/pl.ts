@@ -137,6 +137,11 @@ export const t = {
   taskDone: 'wykonane',
   urgent: 'pilne',
   showOlder: (n: number) => `pokaż starsze (${n})`,
+  viewUrgent: 'Pilne',
+  viewDays: 'Dni',
+  viewUrgentHint: 'pilne najpierw, potem po terminie',
+  viewDaysHint: 'pogrupowane po dniach',
+  noDue: 'bez terminu',
   allTasks: 'wszystkie zadania',
   /** "1 piętro", "2 piętra", "5 pięter", "22 piętra" */
   floorCount: (n: number) => {
