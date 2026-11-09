@@ -13,4 +13,4 @@
 
 - [x] 3.1 `pnpm test` and `pnpm build` are green; `openspec validate --all --strict` passes
 - [x] 3.2 Verify in the running dev environment (`pnpm dev`, Chrome or Edge, a scratch data folder outside the repo, made-up data only): open an older project file without the keys (fields empty, file unchanged until a write), fill all five fields and "Zapisz", reopen (folded, heading "Dane projektu - Jan Nowak", values kept), change the investor then "Anuluj" (file keeps the old one), search "Nowak" in the list (not found), open "Nowy projekt" (section folded between "Projekt" and "Terminy")
-- [ ] 3.3 Before the archive commit: rebase on `main` and check the ADDED requirements still fit `openspec/specs/projects/spec.md` (no requirement of the same name, "Edit project" untouched)
+- [x] 3.3 Before the archive commit: rebase on `main` and check the ADDED requirements still fit `openspec/specs/projects/spec.md` (no requirement of the same name, "Edit project" untouched)
