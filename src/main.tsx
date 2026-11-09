@@ -1,7 +1,7 @@
 import { render, type ComponentChildren } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { t } from './pl.ts'
-import type { Filter } from './model.ts'
+import { parseSort, sortParam, type Filter, type Sort } from './model.ts'
 import {
   hasAccess,
   isSupported,
@@ -27,7 +27,7 @@ import './style.css'
 
 export type Data = { dir: FileSystemDirectoryHandle; settings: Settings } & ReadResult
 
-// Routes live in the hash: #/kalendarz?a=&s=&p=&k=&m= (the start view), #/projekty?a=&s=&q=, #/terminy?a=&s=&p=,
+// Routes live in the hash: #/kalendarz?a=&s=&p=&k=&m= (the start view), #/projekty?a=&s=&q=&y=&o=, #/terminy?a=&s=&p=,
 // #/zadania?a=&s=&n=, #/spotkania?a=&j=, #/urlopy?a=, #/nowy and #/projekt/<file>. The query holds the filters; z= on a form link
 // names the view to go back to.
 
@@ -54,7 +54,7 @@ function useRoute() {
   }, [])
   const [path, query = ''] = hash.split('?')
   const params = new URLSearchParams(query)
-  const filter: Filter = { architect: params.get('a') ?? '', status: params.get('s') ?? '', q: params.get('q') ?? '' }
+  const filter: Filter = { architect: params.get('a') ?? '', status: params.get('s') ?? '', q: params.get('q') ?? '', type: params.get('y') ?? '' }
   const go = (to: string, replace = false) => {
     to = startView(to)
     if (replace) history.replaceState(null, '', '#' + to)
@@ -186,18 +186,24 @@ function App() {
       : route.path === '/urlopy' ? <LeavesView {...props} reloadLeaves={reloadLeaves} />
       : <Deadlines {...props} />
   } else if (route.path === '/projekty') {
+    const sort = parseSort(route.params.get('o'))
+    const show = (f: Filter, s: Sort) => {
+      const p = new URLSearchParams()
+      if (f.architect) p.set('a', f.architect)
+      if (f.status) p.set('s', f.status)
+      if (f.q) p.set('q', f.q)
+      if (f.type) p.set('y', f.type)
+      if (sortParam(s)) p.set('o', sortParam(s))
+      route.go('/projekty' + qs(p), true)
+    }
     content = (
       <ProjectList
         data={data}
         filter={route.filter}
+        sort={sort}
         query={route.query}
-        onFilter={(f) => {
-          const p = new URLSearchParams()
-          if (f.architect) p.set('a', f.architect)
-          if (f.status) p.set('s', f.status)
-          if (f.q) p.set('q', f.q)
-          route.go('/projekty' + qs(p), true)
-        }}
+        onFilter={(f) => show(f, sort)}
+        onSort={(s) => show(route.filter, s)}
         onRefresh={() =>
           load(data.dir).catch((e) => {
             setData(null)

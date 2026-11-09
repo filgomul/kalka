@@ -68,6 +68,10 @@ export const t = {
   colNext: 'najbliższy termin',
   colStatus: 'status',
 
+  typeFilter: 'Typ projektu',
+  typeAll: 'wszystkie typy',
+  projectType: 'typ projektu',
+
   project: 'Projekt',
   lp: 'l.p.',
   title: 'tytuł',

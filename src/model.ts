@@ -8,8 +8,10 @@ export type Status = (typeof STATUSES)[number]
 
 /** How a milestone looks in the calendar: name, short label and colour. */
 export type MilestoneStyle = { id: string; name: string; short: string; color: string }
+/** A project's type is the id of the template it started from, or one picked later. */
+export type TypeId = 'budowlany' | 'wnetrza' | 'inny'
 /** The styles a new project starts with, in order. */
-export type Template = { id: string; name: string; styles: string[] }
+export type Template = { id: TypeId; name: string; styles: string[] }
 /** One milestone of a project; `title` only on milestones the user added, flags only when true. */
 export type Milestone = {
   id: string
@@ -61,10 +63,12 @@ const OTHER = STYLES.at(-1)!
 export const styleOf = (id: string): MilestoneStyle => STYLES.find((s) => s.id === id) ?? OTHER
 export const titleOf = (m: Milestone): string => m.title || styleOf(m.style).name
 
+/** An unknown or missing template id gives the building one. */
+export const templateOf = (id: string | null | undefined): Template => TEMPLATES.find((t) => t.id === id) ?? TEMPLATES[0]
+
 /** A new project's milestones; an unknown or missing template gives the building one. */
 export function fromTemplate(id: string | null | undefined): Milestone[] {
-  const template = TEMPLATES.find((t) => t.id === id) ?? TEMPLATES[0]
-  return template.styles.map((style) => ({ id: style, style }))
+  return templateOf(id).styles.map((style) => ({ id: style, style }))
 }
 
 /** `list` with the item at `from` moved to index `to` of the result. */
@@ -79,6 +83,7 @@ export type Project = {
   id: string
   lp?: number
   title: string
+  type: TypeId
   location: { city: string; address: string }
   leadArchitect: string
   status: Status
@@ -148,6 +153,7 @@ export function emptyProject(): Project {
   return {
     id: newId(),
     title: '',
+    type: 'inny',
     location: { city: '', address: '' },
     leadArchitect: '',
     status: 'aktywny',
@@ -205,6 +211,7 @@ export function normalize(raw: RawProject): Project {
     timeline: list.map((m) => cleanMilestone(m, () => true)),
     branches: { ...base.branches, ...raw.branches },
     status: STATUSES.includes(raw.status as Status) ? raw.status! : 'aktywny',
+    type: TEMPLATES.some((t) => t.id === raw.type) ? raw.type! : 'inny',
   }
 }
 
@@ -223,13 +230,14 @@ export function prepareForSave(p: Project): Project {
 /** What a milestone change writes: the project as last written with only its milestones replaced, so unsaved fields stay out. */
 export const withTimeline = (base: Project, timeline: Milestone[]): Project => prepareForSave({ ...base, timeline })
 
-/** `status` is a Status, 'wszystkie', or empty for the default (everything but zakończony). */
-export type Filter = { architect: string; status: string; q: string }
+/** `status` is a Status, 'wszystkie', or empty for the default (everything but zakończony); `type` empty or absent for every type. */
+export type Filter = { architect: string; status: string; q: string; type?: string }
 
 export function filterProjects<T extends { project: Project }>(rows: T[], f: Filter): T[] {
   const q = f.q.trim().toLocaleLowerCase('pl')
   return rows.filter(({ project: p }) => {
     if (f.architect && p.leadArchitect !== f.architect) return false
+    if (f.type && p.type !== f.type) return false
     if (!f.status && p.status === 'zakończony') return false
     if (f.status && f.status !== 'wszystkie' && p.status !== f.status) return false
     if (!q) return true
@@ -237,13 +245,49 @@ export function filterProjects<T extends { project: Project }>(rows: T[], f: Fil
   })
 }
 
-/** By next milestone (overdue first), projects without one last; then by l.p. and title. */
-export function sortProjects<T extends { project: Project }>(rows: T[]): T[] {
-  const key = (p: Project) => nextMilestone(p)?.due ?? '9999'
+/** List columns the user can sort by; in the URL as `o=<key>`, `o=-<key>` for descending. */
+export const SORT_KEYS = ['lp', 'tytul', 'typ', 'miejscowosc', 'architekt', 'termin', 'status'] as const
+export type SortKey = (typeof SORT_KEYS)[number]
+export type Sort = { key: SortKey; desc: boolean }
+export const DEFAULT_SORT: Sort = { key: 'termin', desc: false }
+
+/** A missing or unknown value gives the default sort. */
+export function parseSort(value: string | null): Sort {
+  const desc = !!value?.startsWith('-')
+  const key = (desc ? value!.slice(1) : value) as SortKey
+  return SORT_KEYS.includes(key) ? { key, desc } : DEFAULT_SORT
+}
+
+/** The `o` value; empty for the default sort. */
+export const sortParam = (s: Sort): string => (s.key === DEFAULT_SORT.key && s.desc === DEFAULT_SORT.desc ? '' : (s.desc ? '-' : '') + s.key)
+
+/** What a column sorts on; undefined is empty. Status and type go by their list order. */
+const SORT_VALUE: Record<SortKey, (p: Project) => string | number | undefined> = {
+  lp: (p) => p.lp,
+  tytul: (p) => p.title || undefined,
+  typ: (p) => TEMPLATES.findIndex((t) => t.id === p.type),
+  miejscowosc: (p) => p.location.city || undefined,
+  architekt: (p) => p.leadArchitect || undefined,
+  termin: (p) => nextMilestone(p)?.due,
+  status: (p) => STATUSES.indexOf(p.status),
+}
+
+/** Empty values last whatever the direction. */
+function byColumn(a: Project, b: Project, key: SortKey, desc: boolean): number {
+  const x = SORT_VALUE[key](a)
+  const y = SORT_VALUE[key](b)
+  if (x === undefined || y === undefined) return x === y ? 0 : x === undefined ? 1 : -1
+  const c = typeof x === 'number' ? x - (y as number) : x.localeCompare(y as string, 'pl')
+  return desc ? -c : c
+}
+
+/** By the chosen column; ties (and the default) by next milestone (overdue first, none last), then l.p. and title. */
+export function sortProjects<T extends { project: Project }>(rows: T[], sort: Sort = DEFAULT_SORT): T[] {
   return [...rows].sort(
     (a, b) =>
-      key(a.project).localeCompare(key(b.project)) ||
-      (a.project.lp ?? Infinity) - (b.project.lp ?? Infinity) ||
+      byColumn(a.project, b.project, sort.key, sort.desc) ||
+      byColumn(a.project, b.project, 'termin', false) ||
+      byColumn(a.project, b.project, 'lp', false) ||
       a.project.title.localeCompare(b.project.title, 'pl'),
   )
 }

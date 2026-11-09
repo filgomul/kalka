@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { BRANCHES, emptyProject, fromTemplate, moveMilestone, newId, nextLp, parseDate, prepareForSave, STATUSES, STYLES, styleOf, titleOf, withTimeline, type Milestone, type Project } from './model.ts'
+import { templateOf, TEMPLATES } from './model.ts'
 import { branchLabels, statusLabels, t } from './pl.ts'
 import { ConflictError, readProjects, saveProject, type Loaded } from './storage.ts'
 import type { Data } from './main.tsx'
@@ -30,7 +31,7 @@ const DATE_DELAY = 500
 
 export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadProjects, reloadTasks, reloadMeetings }: Props) {
   const [draft, setDraft] = useState<Project>(
-    () => loaded?.project ?? { ...emptyProject(), lp: nextLp(data.projects.map((l) => l.project)), timeline: fromTemplate(template) },
+    () => loaded?.project ?? { ...emptyProject(), lp: nextLp(data.projects.map((l) => l.project)), type: templateOf(template).id, timeline: fromTemplate(template) },
   )
   /** day or month per milestone id; a milestone without an entry is a day */
   const [precision, setPrecision] = useState<Record<string, Precision>>(
@@ -158,6 +159,12 @@ export function ProjectForm({ data, loaded, template, onSaved, onCancel, reloadP
             <label class="wide">
               {t.title} *
               <input required value={draft.title} onInput={(e) => set({ title: e.currentTarget.value })} />
+            </label>
+            <label>
+              {t.projectType}
+              <select value={draft.type} onChange={(e) => set({ type: e.currentTarget.value as Project['type'] })}>
+                {TEMPLATES.map((tpl) => <option key={tpl.id} value={tpl.id}>{tpl.name}</option>)}
+              </select>
             </label>
             <label>
               {t.city}

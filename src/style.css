@@ -313,6 +313,21 @@ th {
   white-space: nowrap;
 }
 
+/* sortable list headers look like plain headers */
+th button.sort {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+th button.sort:hover {
+  background: none;
+  color: var(--ink);
+}
+
 .num {
   text-align: right;
   width: 3.5em;
