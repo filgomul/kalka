@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   architectOptions,
+  DEFAULT_SORT,
   filterProjects,
   formatDate,
   fromTemplate,
@@ -9,13 +10,17 @@ import {
   nextLp,
   nextMilestone,
   normalize,
+  parseSort,
   prepareForSave,
+  sortParam,
   sortProjects,
   STYLES,
   styleOf,
+  templateOf,
   titleOf,
   withTimeline,
   type Milestone,
+  type TypeId,
   type Project,
   type RawProject,
 } from './model.ts'
@@ -69,9 +74,34 @@ test('projects: Link without a template', () => {
 })
 
 test('projects: No template in the file', () => {
-  const saved = prepareForSave(project({ title: 'Mieszkanie Klonowa', timeline: fromTemplate('wnetrza') }))
-  assert.deepEqual(Object.keys(saved).sort(), ['branches', 'id', 'leadArchitect', 'location', 'notes', 'status', 'timeline', 'title', 'updatedAt'])
+  const saved = prepareForSave(project({ title: 'Mieszkanie Klonowa', type: templateOf('wnetrza').id, timeline: fromTemplate('wnetrza') }))
+  assert.deepEqual(Object.keys(saved).sort(), ['branches', 'id', 'leadArchitect', 'location', 'notes', 'status', 'timeline', 'title', 'type', 'updatedAt'])
+  assert.equal(saved.type, 'wnetrza')
   assert.equal(saved.timeline.length, 7)
+})
+
+// Project type
+
+test('projects: Link without a template (type)', () => {
+  assert.equal(templateOf(null).id, 'budowlany')
+  assert.equal(templateOf('nieznany').id, 'budowlany')
+  assert.equal(templateOf('wnetrza').name, 'projekt wnętrz')
+})
+
+test('projects: File without a type', () => {
+  assert.equal(project({ title: 'Dom Lipowa' }).type, 'inny')
+})
+
+test('projects: Unknown type', () => {
+  assert.equal(project({ type: 'biuro' as TypeId }).type, 'inny')
+  assert.equal(project({ type: 'budowlany' }).type, 'budowlany')
+})
+
+test('projects: Milestone change on a file without a type', () => {
+  const base = project({ title: 'Dom Lipowa', timeline: fromTemplate('budowlany') })
+  const written = withTimeline(base, base.timeline.map((m, i) => (i === 1 ? { ...m, done: true } : m)))
+  assert.equal(written.type, 'inny')
+  assert.equal(written.timeline[1].done, true)
 })
 
 test('projects: Short labels', () => {
@@ -341,6 +371,75 @@ test('projects: Search', () => {
     ['Hala'],
   )
   assert.equal(filterProjects(r, { architect: '', status: '', q: 'oliw' }).length, 3)
+})
+
+test('projects: Filter by type', () => {
+  const r = rows(project({ title: 'Dom', type: 'budowlany' }), project({ title: 'Mieszkanie', type: 'wnetrza' }), project({ title: 'Stary' }))
+  const titles = (type?: string) => filterProjects(r, { architect: '', status: '', q: '', type }).map((x) => x.project.title)
+  assert.deepEqual(titles('wnetrza'), ['Mieszkanie'])
+  assert.deepEqual(titles('inny'), ['Stary'])
+  assert.equal(titles('').length, 3)
+  assert.equal(titles(undefined).length, 3)
+})
+
+// Sort by column
+
+const sorted = (ps: Project[], o: string | null) => sortProjects(rows(...ps), parseSort(o)).map((r) => r.project.title)
+const abc = [project({ title: 'Willa Łąkowa' }), project({ title: 'Dom Lipowa' }), project({ title: 'Kamienica Oliwa' })]
+
+test('projects: Sort by title', () => {
+  assert.deepEqual(sorted(abc, 'tytul'), ['Dom Lipowa', 'Kamienica Oliwa', 'Willa Łąkowa'])
+  // Polish order: Ł after L
+  assert.deepEqual(sorted([project({ title: 'Łąka' }), project({ title: 'Lipa' }), project({ title: 'Mak' })], 'tytul'), ['Lipa', 'Łąka', 'Mak'])
+})
+
+test('projects: Reverse', () => {
+  assert.deepEqual(sorted(abc, '-tytul'), ['Willa Łąkowa', 'Kamienica Oliwa', 'Dom Lipowa'])
+})
+
+test('projects: Running number', () => {
+  assert.deepEqual(sorted([project({ title: 'A', lp: 10 }), project({ title: 'B', lp: 2 }), project({ title: 'C' })], 'lp'), ['B', 'A', 'C'])
+})
+
+test('projects: Empty values last', () => {
+  const ps = [project({ title: 'Bez', location: { city: '', address: '' } }), project({ title: 'G', location: { city: 'Gdańsk', address: '' } }), project({ title: 'S', location: { city: 'Sopot', address: '' } })]
+  assert.deepEqual(sorted(ps, 'miejscowosc'), ['G', 'S', 'Bez'])
+  assert.deepEqual(sorted(ps, '-miejscowosc'), ['S', 'G', 'Bez'])
+})
+
+test('projects: Status order', () => {
+  const ps = [project({ title: 'Z', status: 'zakończony' }), project({ title: 'A', status: 'aktywny' }), project({ title: 'W', status: 'wstrzymany' })]
+  assert.deepEqual(sorted(ps, 'status'), ['A', 'W', 'Z'])
+  assert.deepEqual(sorted(ps, '-status'), ['Z', 'W', 'A'])
+})
+
+test('projects: Type order', () => {
+  const ps = [project({ title: 'I' }), project({ title: 'W', type: 'wnetrza' }), project({ title: 'B', type: 'budowlany' })]
+  assert.deepEqual(sorted(ps, 'typ'), ['B', 'W', 'I'])
+})
+
+test('projects: Ties', () => {
+  const ps = [
+    project({ title: 'Później', leadArchitect: 'Anna Nowak', milestones: { pozwolenie: '2027-05-01' } }),
+    project({ title: 'Jan', leadArchitect: 'Jan Kowalski' }),
+    project({ title: 'Wcześniej', leadArchitect: 'Anna Nowak', milestones: { pozwolenie: '2027-01-01' } }),
+  ]
+  assert.deepEqual(sorted(ps, 'architekt'), ['Wcześniej', 'Później', 'Jan'])
+})
+
+test('projects: Next milestone reversed', () => {
+  const ps = [project({ title: 'Brak' }), project({ title: 'Wcześnie', milestones: { pozwolenie: '2027-01-01' } }), project({ title: 'Późno', milestones: { pozwolenie: '2027-05' } })]
+  assert.deepEqual(sorted(ps, null), ['Wcześnie', 'Późno', 'Brak'])
+  assert.deepEqual(sorted(ps, '-termin'), ['Późno', 'Wcześnie', 'Brak'])
+})
+
+test('projects: Unknown sort in the URL', () => {
+  assert.deepEqual(parseSort('x'), DEFAULT_SORT)
+  assert.deepEqual(parseSort('-'), DEFAULT_SORT)
+  assert.deepEqual(parseSort(null), DEFAULT_SORT)
+  assert.equal(sortParam(DEFAULT_SORT), '')
+  assert.equal(sortParam(parseSort('-miejscowosc')), '-miejscowosc')
+  assert.equal(sortParam({ key: 'termin', desc: true }), '-termin')
 })
 
 test('projects: New project gets the next number', () => {

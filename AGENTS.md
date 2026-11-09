@@ -14,8 +14,8 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
 - **settings**: `kalka.json` lists the architects, each a name or
   `{ "name", "initials", "color" }` (hex); initials and colour fill the task card and
   meeting circles; the colour also marks the architect's leaves and meetings.
-- **projects**: list (on `#/projekty`), filter (lead architect, status), search,
-  create/edit form. The calendar is the start view and the first tab.
+- **projects**: list (on `#/projekty`), filter (lead architect, status, type), search,
+  sort by any column, create/edit form. The calendar is the start view and the first tab.
 - **tasks**: a board on a saved project's page ("Do zrobienia", "W trakcie",
   "Wykonane"), cards dragged between and within columns. Each task change is written at
   once to its own file, apart from the project form's "Zapisz" / "Anuluj". The "Zadania"
@@ -39,7 +39,8 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
   dialog. Each leave change is written at once to its own file.
 - A project's milestones are an ordered list (`timeline`) seeded from a template
   ("projekt budowlany", "projekt wnętrz", "inny") when the project is created; the
-  project does not keep the template. Each milestone has a style (name, short label,
+  project keeps the template's id as its type, which can be changed later without
+  touching the milestones. Each milestone has a style (name, short label,
   colour) from the built-in list in `src/model.ts`, and can be added, edited (only
   added ones), deleted and reordered per project. Each has day (`YYYY-MM-DD`) or month
   (`YYYY-MM`) precision, is planned or confirmed, and separately done or not. The
@@ -70,6 +71,7 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 | nadzór autorski | `nadzor` | Author's supervision, a site visit |
 | inny | `inny` | Style for any other milestone (black) |
 | szablon | template | Ordered list of styles a new project starts with |
+| typ projektu | `type` | `budowlany` / `wnetrza` / `inny`, the template ids; a file without it reads as `inny` |
 | styl terminu | style | Name, short label and colour of a milestone; the keys above are style ids |
 | terminy | `timeline` | A project's milestones in order, each `{ id, style, title?, date?, done?, confirmed? }` |
 | branża konstrukcyjna / sanitarna / elektryczna / drogowa | `konstrukcja` / `sanitarna` / `elektryczna` / `drogowa` | Scope text for that engineering branch; empty means "brak" (none) |

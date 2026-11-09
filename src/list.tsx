@@ -1,4 +1,4 @@
-import { architectOptions, filterProjects, formatDate, nextMilestone, sortProjects, STATUSES, TEMPLATES, titleOf, todayIso, type Filter } from './model.ts'
+import { architectOptions, filterProjects, formatDate, nextMilestone, sortProjects, STATUSES, templateOf, TEMPLATES, titleOf, todayIso, type Filter, type Sort, type SortKey } from './model.ts'
 import { statusLabels, t } from './pl.ts'
 import { PlannedMark } from './calendar-view.tsx'
 import type { Data } from './main.tsx'
@@ -6,8 +6,10 @@ import type { Data } from './main.tsx'
 type Props = {
   data: Data
   filter: Filter
+  sort: Sort
   query: string
   onFilter: (f: Filter) => void
+  onSort: (s: Sort) => void
   onRefresh: () => void
 }
 
@@ -19,9 +21,20 @@ function formHref(path: string, query: string, template?: string): string {
   return `#/${path}?${p}`
 }
 
-export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props) {
+/** Header label, sort key and cell class of each column, in order. */
+const COLUMNS: [SortKey, string, string?][] = [
+  ['lp', t.colLp, 'num'],
+  ['tytul', t.colTitle],
+  ['typ', t.colType],
+  ['miejscowosc', t.colCity],
+  ['architekt', t.colArchitect],
+  ['termin', t.colNext],
+  ['status', t.colStatus],
+]
+
+export function ProjectList({ data, filter, sort, query, onFilter, onSort, onRefresh }: Props) {
   const today = todayIso()
-  const rows = sortProjects(filterProjects(data.projects, filter))
+  const rows = sortProjects(filterProjects(data.projects, filter), sort)
   const architects = architectOptions(data.settings.architects, data.projects.map((l) => l.project.leadArchitect))
   const set = (patch: Partial<Filter>) => onFilter({ ...filter, ...patch })
 
@@ -47,6 +60,10 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
           {STATUSES.map((s) => <option key={s} value={s}>{statusLabels[s]}</option>)}
           <option value="wszystkie">{t.statusAll}</option>
         </select>
+        <select aria-label={t.typeFilter} value={filter.type ?? ''} onChange={(e) => set({ type: e.currentTarget.value })}>
+          <option value="">{t.typeAll}</option>
+          {TEMPLATES.map((tpl) => <option key={tpl.id} value={tpl.id}>{tpl.name}</option>)}
+        </select>
       </div>
 
       {rows.length === 0 ? (
@@ -56,12 +73,17 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
           <table>
             <thead>
               <tr>
-                <th class="num">{t.colLp}</th>
-                <th>{t.colTitle}</th>
-                <th>{t.colCity}</th>
-                <th>{t.colArchitect}</th>
-                <th>{t.colNext}</th>
-                <th>{t.colStatus}</th>
+                {COLUMNS.map(([key, label, cls]) => {
+                  const on = sort.key === key
+                  return (
+                    <th key={key} class={cls} aria-sort={on ? (sort.desc ? 'descending' : 'ascending') : undefined}>
+                      <button type="button" class="sort" onClick={() => onSort({ key, desc: on && !sort.desc })}>
+                        {label}
+                        {on && <span aria-hidden="true">{sort.desc ? ' ▼' : ' ▲'}</span>}
+                      </button>
+                    </th>
+                  )
+                })}
               </tr>
             </thead>
             <tbody>
@@ -75,6 +97,7 @@ export function ProjectList({ data, filter, query, onFilter, onRefresh }: Props)
                       <a href={formHref(`projekt/${encodeURIComponent(file)}`, query)}>{p.title || file}</a>
                       {duplicate && <span class="badge">{t.syncConflict}: {file}</span>}
                     </td>
+                    <td>{templateOf(p.type).name}</td>
                     <td>{p.location.city}</td>
                     <td>{p.leadArchitect}</td>
                     <td>
