@@ -21,4 +21,4 @@
 
 - [x] 4.1 `pnpm test` and `pnpm build` are green; `openspec validate --all --strict` passes
 - [x] 4.2 Verify in the running dev environment (`pnpm dev`, Chrome or Edge, a scratch data folder outside the repo, made-up data only): in "Miesiąc" untick and tick projects, change the architect (all ticked again), check meetings and leaves; in "Terminy" the same filter; in "Harmonogram" check order, bars, diamonds, month bands, a stack with its hover list, overdue, done and planned marks, the today line, clipped bars with arrows, 3/6/12/24 and stepping, a narrow window, and opening a project and coming back
-- [ ] 4.3 Before the archive commit: rebase on `main` and check the MODIFIED requirements still match `openspec/specs/calendar/spec.md` (no other change touched Overview, Overview range, Filters, Show filter or Open project from calendar)
+- [x] 4.3 Before the archive commit: rebase on `main` and check the MODIFIED requirements still match `openspec/specs/calendar/spec.md` (no other change touched Overview, Overview range, Filters, Show filter or Open project from calendar)
