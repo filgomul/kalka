@@ -1,7 +1,9 @@
 import { useRef } from 'preact/hooks'
-import { architectOptions, STATUSES, styleOf, titleOf, todayIso } from './model.ts'
+import { architectOptions, formatDate, STATUSES, styleOf, titleOf, todayIso } from './model.ts'
 import {
   addMonths,
+  dayCenter,
+  ganttRows,
   isMeetingItem,
   KINDS,
   legendStyles,
@@ -12,17 +14,26 @@ import {
   overviewMonths,
   overviewRange,
   projectChoices,
+  projectsLabel,
+  projectsOf,
   rangeLength,
+  rangeMonths,
+  selectable,
   showOf,
   showParam,
   shownOnCalendar,
+  spanOf,
   stepRange,
+  toggleProject,
   withFrom,
   withLength,
   withMeetings,
+  withNarrowing,
+  withProjects,
   withTo,
   type CalendarFilter,
   type Entry,
+  type GanttMark,
   type Range,
 } from './calendar.ts'
 import { kindLabels, meetingTypeLabels, months, monthsShort, statusLabels, t, weekdays } from './pl.ts'
@@ -43,7 +54,7 @@ export type ViewProps = {
 export const calendarFilter = (params: URLSearchParams): CalendarFilter => ({
   architect: params.get('a') ?? '',
   status: params.get('s') ?? '',
-  project: params.get('p') ?? '',
+  projects: projectsOf(params),
 })
 
 /** Form link that comes back to `view` with the same query. */
@@ -66,7 +77,9 @@ export function CalendarFilters({ data, params, onParams, kind }: ViewProps & { 
   const f = calendarFilter(params)
   const show = showOf(kind ? params.get('k') : null)
   const architects = architectOptions(data.settings.architects, data.projects.map((l) => l.project.leadArchitect))
-  const set = (key: string) => (e: { currentTarget: HTMLSelectElement }) => onParams(withParam(params, key, e.currentTarget.value))
+  const set = (key: 'a' | 's') => (e: { currentTarget: HTMLSelectElement }) => onParams(withNarrowing(params, key, e.currentTarget.value))
+  const choices = projectChoices(selectable(data.projects, f))
+  const pick = (projects: string[] | null) => onParams(withProjects(params, projects))
   // architect and project narrow milestones and meetings, status milestones only; never leaves
   const narrowsNothing = !show.has('terminy') && !show.has('spotkania')
   const toggle = (k: (typeof KINDS)[number]) => {
@@ -79,26 +92,35 @@ export function CalendarFilters({ data, params, onParams, kind }: ViewProps & { 
     <div class="toolbar">
       <label>
         {t.filterArchitect}
-        <select value={f.architect} onChange={set('a')} disabled={!!f.project || narrowsNothing}>
+        <select value={f.architect} onChange={set('a')} disabled={narrowsNothing}>
           <option value="">{t.allArchitects}</option>
           {architects.map((a) => <option key={a} value={a}>{a}</option>)}
         </select>
       </label>
       <label>
         {t.filterStatus}
-        <select value={f.status} onChange={set('s')} disabled={!!f.project || !show.has('terminy')}>
+        <select value={f.status} onChange={set('s')} disabled={!show.has('terminy')}>
           <option value="">{t.statusDefault}</option>
           {STATUSES.map((s) => <option key={s} value={s}>{statusLabels[s]}</option>)}
           <option value="wszystkie">{t.statusAll}</option>
         </select>
       </label>
       <label>
-        {t.filterProject}
-        <select value={f.project} onChange={set('p')} disabled={narrowsNothing}>
-          <option value="">{t.allProjects}</option>
-          {projectChoices(data.projects).map((c) => <option key={c.file} value={c.file}>{c.label}</option>)}
-        </select>
+        {t.filterProjects}
+        <button type="button" class="show-kinds projects" popovertarget="pick-projects" disabled={narrowsNothing}>{projectsLabel(choices, f.projects)}</button>
       </label>
+      <div id="pick-projects" popover="auto" class="menu kinds projects">
+        <div class="pick-all">
+          <button type="button" class="link" onClick={() => pick(null)}>{t.selectAll}</button>
+          <button type="button" class="link" onClick={() => pick([])}>{t.selectNone}</button>
+        </div>
+        {choices.map((c) => (
+          <label key={c.file} class="check">
+            <input type="checkbox" checked={!f.projects || f.projects.includes(c.file)} onChange={() => pick(toggleProject(choices, f.projects, c.file))} />
+            {c.label}
+          </label>
+        ))}
+      </div>
       {kind && (
         <>
           <label>
@@ -127,10 +149,14 @@ export function PlannedMark({ style }: { style?: string }) {
   return <abbr class="q" style={style ? colorOf(style) : undefined} title={t.unconfirmed}>?</abbr>
 }
 
+const isPlanned = (e: Entry) => !e.confirmed && e.state !== 'done'
+/** ", niepotwierdzone, po terminie" and the like, for hover titles. */
+const stateWords = (e: Entry) => [isPlanned(e) && t.unconfirmed, e.state === 'overdue' && t.overdue, e.state === 'done' && t.done].filter(Boolean).map((s) => `, ${s}`).join('')
+
 /** `day` puts the day of the month (or "mies.") in front, for the overview's lists. */
 export function Chip({ e, href, day }: { e: Entry; href: string; day?: boolean }) {
-  const planned = !e.confirmed && e.state !== 'done'
-  const state = [planned && t.unconfirmed, e.state === 'overdue' && t.overdue, e.state === 'done' && t.done].filter(Boolean).map((s) => `, ${s}`).join('')
+  const planned = isPlanned(e)
+  const state = stateWords(e)
   return (
     <a class="chip" style={colorOf(e.milestone.style)} data-state={e.state} data-planned={planned || undefined} href={href} title={`${e.project.title || e.file} - ${titleOf(e.milestone)}${state}`}>
       {day && <i class="d">{e.precision === 'day' ? e.value.slice(8) : t.wholeMonth}</i>}
@@ -151,7 +177,7 @@ function MonthPick({ value, label, class: cls, onPick }: { value: string; label:
   )
 }
 
-const SHORTCUTS = [3, 6, 12]
+const SHORTCUTS = [3, 6, 12, 24]
 
 /** A meeting in the month grid, or in the overview (`day`: with the day of the month in front). */
 function MeetingChip({ l, data, today, day, onOpen }: { l: LoadedMeeting; data: Data; today: string; day?: boolean; onOpen: (l: LoadedMeeting) => void }) {
@@ -176,8 +202,10 @@ export function CalendarView(props: ViewProps & { reloadLeaves: () => Promise<vo
   const current = today.slice(0, 7)
   const month = isMonth(params.get('m')) ? params.get('m')! : current
   const isOverview = params.get('w') === 'przeglad'
+  const isGantt = params.get('w') === 'harmonogram'
   const range = overviewRange(params.get('od'), params.get('do'), current)
-  const show = showOf(params.get('k'))
+  // Harmonogram draws milestones only, whatever "Pokaż" holds
+  const show = isGantt ? showOf('terminy') : showOf(params.get('k'))
   const { all, leaves, meetings } = shownOnCalendar(data.projects, data.leaves, data.meetings, calendarFilter(params), show, today)
   const edit = useLeaveEdit(data, reloadLeaves, true)
   const meetingEdit = useMeetingEdit(data, reloadMeetings)
@@ -191,10 +219,11 @@ export function CalendarView(props: ViewProps & { reloadLeaves: () => Promise<vo
       <div class="heading">
         <h1>{t.calendar}</h1>
         <div class="seg" role="group">
-          <button type="button" aria-pressed={!isOverview} onClick={() => onParams(withParam(params, 'w', ''))}>{t.viewMonth}</button>
+          <button type="button" aria-pressed={!isOverview && !isGantt} onClick={() => onParams(withParam(params, 'w', ''))}>{t.viewMonth}</button>
           <button type="button" aria-pressed={isOverview} onClick={() => onParams(withParam(params, 'w', 'przeglad'))}>{t.viewOverview}</button>
+          <button type="button" aria-pressed={isGantt} onClick={() => onParams(withParam(params, 'w', 'harmonogram'))}>{t.viewGantt}</button>
         </div>
-        {isOverview ? (
+        {isOverview || isGantt ? (
           <>
             <div class="month-nav">
               <button type="button" aria-label={t.prevRange} onClick={() => setRange(stepRange(range, -1))}>‹</button>
@@ -223,7 +252,7 @@ export function CalendarView(props: ViewProps & { reloadLeaves: () => Promise<vo
         )}
       </div>
 
-      <CalendarFilters {...props} kind />
+      <CalendarFilters {...props} kind={!isGantt} />
 
       {show.has('terminy') && (
         <div class="legend" aria-label={t.legend}>
@@ -237,7 +266,7 @@ export function CalendarView(props: ViewProps & { reloadLeaves: () => Promise<vo
       {edit.error && <p class="error" role="alert">{edit.error}</p>}
       {meetingEdit.error && <p class="error" role="alert">{meetingEdit.error}</p>}
 
-      {isOverview ? <Overview {...parts} range={range} /> : <MonthView {...parts} month={month} />}
+      {isGantt ? <Gantt all={all} params={params} today={today} range={range} label={short} /> : isOverview ? <Overview {...parts} range={range} /> : <MonthView {...parts} month={month} />}
       {edit.dialog}
       {meetingEdit.dialog}
     </main>
@@ -376,5 +405,70 @@ function OverviewLeaves({ rows, data, onLeave }: { rows: LoadedLeave[]; data: Da
         </li>
       ))}
     </ul>
+  )
+}
+
+const pct = (x: number) => `${(x * 100).toFixed(3)}%`
+
+/** Harmonogram: one row per project, a bar from its first to its last date, a diamond per day and a band per month. */
+function Gantt({ all, params, today, range, label }: { all: Entry[]; params: URLSearchParams; today: string; range: Range; label: (m: string) => string }) {
+  const rows = ganttRows(all, range)
+  const months = rangeMonths(range)
+  const now = dayCenter(today, range)
+  if (!rows.length) return <p class="muted">{t.noEntries}</p>
+  const todayLine = now !== null && <i class="gantt-today" style={`left: ${pct(now)}`} />
+  return (
+    <div class="gantt-scroll card">
+      <div class="gantt" style={`--months: ${months.length}`}>
+        <div class="gantt-row gantt-head">
+          <span class="gantt-label" />
+          <div class="gantt-track">
+            {months.map((m) => <span key={m} class={m === today.slice(0, 7) ? 'now' : undefined}>{label(m)}</span>)}
+            {todayLine}
+          </div>
+        </div>
+        {rows.map((r) => {
+          const href = projectHref(r.file, params, 'kalendarz')
+          const [left, right] = spanOf(r.start, r.end, range)
+          return (
+            <div key={r.file} class="gantt-row">
+              <a class="gantt-label" href={href} title={r.project.title || r.file}>{r.label}</a>
+              <div class="gantt-track">
+                {todayLine}
+                {r.bar && <i class="gantt-bar" data-before={r.before || undefined} data-after={r.after || undefined} style={`left: ${pct(left)}; width: ${pct(right - left)}`} />}
+                {/* bands first, so a diamond inside a band is drawn over it */}
+                {[...r.marks].sort((a, b) => (a.precision === b.precision ? 0 : a.precision === 'month' ? -1 : 1)).map((m) => (
+                  <GanttMarkLink key={m.value} m={m} href={href} range={range} title={r.project.title || r.file} />
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/** A diamond (day) or band (month); several milestones in one become a neutral mark with their number. */
+function GanttMarkLink({ m, href, range, title }: { m: GanttMark; href: string; range: Range; title: string }) {
+  const [e] = m.entries
+  const stack = m.entries.length > 1
+  const line = (x: Entry) => `${titleOf(x.milestone)}, ${formatDate(x.value)}${stateWords(x)}`
+  const hover = stack ? [title, ...m.entries.map(line)].join('\n') : `${title} - ${line(e)}`
+  const [l, r] = m.precision === 'day' ? [dayCenter(m.value, range)!, 0] : spanOf(m.value + '-01', e.due, range)
+  const place = m.precision === 'day' ? `left: ${pct(l)}` : `left: ${pct(l)}; width: ${pct(r - l)}`
+  return (
+    <a
+      class={m.precision === 'day' ? 'gantt-diamond' : 'gantt-band'}
+      href={href}
+      title={hover}
+      aria-label={hover}
+      data-stack={stack || undefined}
+      data-state={stack ? undefined : e.state}
+      data-planned={(!stack && isPlanned(e)) || undefined}
+      style={`${stack ? '' : colorOf(e.milestone.style) + '; '}${place}`}
+    >
+      {stack && <span>{m.entries.length}</span>}
+    </a>
   )
 }

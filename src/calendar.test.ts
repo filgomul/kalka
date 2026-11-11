@@ -11,6 +11,12 @@ import {
   overviewRange,
   projectChoices,
   projectIdChoices,
+  projectsLabel,
+  projectsOf,
+  selectable,
+  toggleProject,
+  withNarrowing,
+  withProjects,
   rangeLength,
   stepRange,
   visibleRows,
@@ -22,6 +28,11 @@ import {
   shownOnCalendar,
   isMeetingItem,
   withMeetings,
+  ganttRows,
+  placeOf,
+  dayCenter,
+  spanOf,
+  rangeMonths,
 } from './calendar.ts'
 import { leavesInMonth } from './leaves.ts'
 
@@ -32,7 +43,7 @@ function row(fields: Partial<RawProject>, file = (fields.title ?? 'p') + '.json'
   return { project: normalize({ id: 'p', ...fields }), file }
 }
 const titles = (rs: { project: Project }[]) => rs.map((r) => r.project.title)
-const noFilter = { architect: '', status: '', project: '' }
+const noFilter = { architect: '', status: '', projects: null }
 
 test('calendar: October 2026', () => {
   const weeks = monthGrid('2026-10')
@@ -90,18 +101,75 @@ test('calendar: Default status', () => {
 })
 
 test('calendar: One project', () => {
-  const rs = [row({ title: 'A', leadArchitect: 'Anna Nowak' }), row({ title: 'Z', leadArchitect: 'Jan Kowalski', status: 'zakończony' })]
-  assert.deepEqual(titles(visibleRows(rs, { architect: 'Anna Nowak', status: '', project: 'Z.json' })), ['Z'])
+  // architect and status still apply next to the selection
+  const rs = [row({ title: 'A', leadArchitect: 'Anna Nowak' }), row({ title: 'B', leadArchitect: 'Anna Nowak' }), row({ title: 'Z', leadArchitect: 'Anna Nowak', status: 'zakończony' }), row({ title: 'J', leadArchitect: 'Jan Kowalski' })]
+  assert.deepEqual(titles(visibleRows(rs, { architect: 'Anna Nowak', status: '', projects: ['A.json'] })), ['A'])
+  assert.deepEqual(titles(visibleRows(rs, { architect: 'Anna Nowak', status: '', projects: ['Z.json', 'J.json'] })), [])
 })
 
 test('calendar: Sync conflict copy', () => {
   const rs = [row({ id: 'x', title: 'Dom' }, 'x.json'), row({ id: 'x', title: 'Dom (kopia)' }, 'x-PC.json')]
-  assert.deepEqual(titles(visibleRows(rs, { ...noFilter, project: 'x-PC.json' })), ['Dom (kopia)'])
+  assert.deepEqual(titles(visibleRows(rs, { ...noFilter, projects: ['x-PC.json'] })), ['Dom (kopia)'])
 })
 
+const threeProjects = () => [
+  row({ title: 'Dom Lipowa', lp: 12, leadArchitect: 'Anna Nowak' }),
+  row({ title: 'Willa Sosnowa', lp: 3, leadArchitect: 'Anna Nowak' }),
+  row({ title: 'Hala Brzozowa', leadArchitect: 'Jan Kowalski' }),
+]
+
 test('calendar: Project choices', () => {
-  const rs = [row({ title: 'Dom Lipowa', lp: 12 }), row({ title: 'Willa Sosnowa', lp: 3 }), row({ title: 'Hala Brzozowa' })]
-  assert.deepEqual(projectChoices(rs).map((c) => c.label), ['3 Willa Sosnowa', '12 Dom Lipowa', 'Hala Brzozowa'])
+  const choices = projectChoices(selectable(threeProjects(), noFilter))
+  assert.deepEqual(choices.map((c) => c.label), ['3 Willa Sosnowa', '12 Dom Lipowa', 'Hala Brzozowa'])
+  assert.equal(projectsLabel(choices, null), 'wszystkie projekty')
+})
+
+test('calendar: Options follow the architect', () => {
+  const choices = projectChoices(selectable(threeProjects(), { ...noFilter, architect: 'Anna Nowak' }))
+  assert.deepEqual(choices.map((c) => c.label), ['3 Willa Sosnowa', '12 Dom Lipowa'])
+})
+
+test('calendar: Untick one', () => {
+  const rs = threeProjects()
+  const choices = projectChoices(rs)
+  const projects = toggleProject(choices, null, 'Hala Brzozowa.json')
+  assert.deepEqual(projects, ['Willa Sosnowa.json', 'Dom Lipowa.json'])
+  assert.equal(projectsLabel(choices, projects), '2 z 3')
+  assert.deepEqual(titles(visibleRows(rs, { ...noFilter, projects })), ['Dom Lipowa', 'Willa Sosnowa'])
+  // ticking it again means all
+  assert.equal(toggleProject(choices, projects, 'Hala Brzozowa.json'), null)
+})
+
+test('calendar: One ticked', () => {
+  assert.equal(projectsLabel(projectChoices(threeProjects()), ['Dom Lipowa.json']), '12 Dom Lipowa')
+})
+
+test('calendar: Select none and all', () => {
+  const rs = threeProjects()
+  const none = projectsOf(withProjects(new URLSearchParams(), []))
+  assert.deepEqual(none, [])
+  assert.equal(projectsLabel(projectChoices(rs), none), 'żaden')
+  assert.deepEqual(visibleRows(rs, { ...noFilter, projects: none }), [])
+  assert.equal(projectsOf(withProjects(new URLSearchParams('p=nic'), null)), null)
+})
+
+test('calendar: Architect change ticks all', () => {
+  const p = withNarrowing(new URLSearchParams('p=Dom+Lipowa.json&m=2026-11'), 'a', 'Jan Kowalski')
+  assert.equal(projectsOf(p), null)
+  assert.equal(p.get('a'), 'Jan Kowalski')
+  assert.equal(p.get('m'), '2026-11')
+  assert.equal(withNarrowing(p, 'a', '').has('a'), false)
+})
+
+test('calendar: Refresh (Projekty)', () => {
+  const p = withProjects(new URLSearchParams('a=Anna+Nowak'), ['Dom Lipowa.json', 'Willa, Sosnowa.json'])
+  assert.deepEqual(projectsOf(new URLSearchParams(p.toString())), ['Dom Lipowa.json', 'Willa, Sosnowa.json'])
+  assert.equal(p.get('a'), 'Anna Nowak')
+})
+
+test('calendar: Link with one project', () => {
+  const rs = threeProjects()
+  assert.deepEqual(titles(visibleRows(rs, { ...noFilter, projects: projectsOf(new URLSearchParams('p=Dom+Lipowa.json')) })), ['Dom Lipowa'])
 })
 
 test('calendar: Project choices by id', () => {
@@ -212,6 +280,12 @@ test('calendar: Whole year', () => {
   assert.deepEqual(withLength(withFrom(OCT_MAR, '2026-01'), 12), { from: '2026-01', to: '2026-12' })
 })
 
+test('calendar: Two years', () => {
+  const r = withLength({ from: '2026-01', to: '2026-06' }, 24)
+  assert.deepEqual(r, { from: '2026-01', to: '2027-12' })
+  assert.equal(rangeLength(r), 24)
+})
+
 test('calendar: Concept acceptance chip', () => {
   const all = entries([row({ title: 'Dom Lipowa', milestones: { akceptacja: '2026-11-14' } })], TODAY)
   const day = monthEntries(all, '2026-11').byDay.get('2026-11-14')!
@@ -298,7 +372,7 @@ test('calendar: Leaves ignore the filters', () => {
   const byAnna = shownOnCalendar(rows, leaves, [], { ...noFilter, architect: 'Anna Nowak' }, showOf(null), TODAY)
   assert.deepEqual(byAnna.all.map((e) => e.project.title), ['Dom Lipowa'])
   assert.deepEqual(byAnna.leaves, leaves)
-  assert.deepEqual(shownOnCalendar(rows, leaves, [], { ...noFilter, project: 'Hala.json', status: 'zakończony' }, showOf(null), TODAY).leaves, leaves)
+  assert.deepEqual(shownOnCalendar(rows, leaves, [], { ...noFilter, projects: ['Hala.json'], status: 'zakończony' }, showOf(null), TODAY).leaves, leaves)
 })
 
 // one milestone, one meeting and one leave, to see which kinds "Pokaż" lets through
@@ -377,4 +451,107 @@ test('calendar: Busy month with a leave', () => {
   assert.deepEqual([march.shown.length, march.more], [8, 3])
   const leaves = [{ leave: { id: 'l', architect: 'Anna Nowak', from: '2027-03-02', to: '2027-03-04', updatedAt: '' } }]
   assert.equal(leavesInMonth(leaves, '2027-03').length, 1)
+})
+
+// Harmonogram
+
+const NOV_APR = { from: '2026-11', to: '2027-04' }
+/** A project with a timeline of [style, date] pairs, in that order. */
+const tl = (title: string, dates: [string, string][], fields: Partial<RawProject> = {}) =>
+  row({ title, timeline: dates.map(([style, date], i) => ({ id: style + i, style, date })), ...fields })
+const gantt = (rs: ReturnType<typeof row>[], r = NOV_APR, today = '2026-11-11') => ganttRows(entries(rs, today), r)
+
+test('calendar: Order by first date', () => {
+  const rows = gantt([
+    tl('Willa Sosnowa', [['koncepcja', '2027-01-15']], { lp: 3 }),
+    tl('Dom Lipowa', [['branzysci', '2026-11'], ['pbDoUrzedu', '2026-11-20']], { lp: 12 }),
+    tl('Hala Brzozowa', [['koncepcja', '2026-11-02']]),
+  ])
+  assert.deepEqual(rows.map((r) => r.label), ['12 Dom Lipowa', 'Hala Brzozowa', '3 Willa Sosnowa'])
+})
+
+test('calendar: Same first date', () => {
+  const rows = gantt([tl('Dom Lipowa', [['koncepcja', '2026-12-01']], { lp: 12 }), tl('Willa Sosnowa', [['koncepcja', '2026-12-01']], { lp: 3 })])
+  assert.deepEqual(rows.map((r) => r.label), ['3 Willa Sosnowa', '12 Dom Lipowa'])
+})
+
+test('calendar: No dates', () => {
+  const r = row({ title: 'Bez dat', timeline: [{ id: 'k', style: 'koncepcja', done: true }] })
+  assert.deepEqual(gantt([r]), [])
+})
+
+test('calendar: All dates outside the range', () => {
+  assert.deepEqual(gantt([tl('Stary', [['koncepcja', '2025-03-01'], ['pbDoUrzedu', '2025-09']])]), [])
+  assert.deepEqual(gantt([tl('Późny', [['koncepcja', '2027-05-01']])]), [])
+})
+
+test('calendar: Span across the range', () => {
+  const [r] = gantt([tl('Dom', [['koncepcja', '2026-08-10'], ['branzysci', '2027-08']])])
+  assert.deepEqual([r.start, r.end, r.before, r.after, r.marks.length], ['2026-08-10', '2027-08-31', true, true, 0])
+  assert.deepEqual(spanOf(r.start, r.end, NOV_APR), [0, 1])
+})
+
+test('calendar: Nothing to show', () => {
+  assert.deepEqual(gantt([]), [])
+})
+
+test('calendar: Day and month milestones', () => {
+  const [r] = gantt([tl('Dom Lipowa', [['koncepcja', '2026-11-05'], ['pbDoUrzedu', '2027-01-20'], ['branzysci', '2027-03']])])
+  assert.deepEqual([r.start, r.end, r.bar, r.before, r.after], ['2026-11-05', '2027-03-31', true, false, false])
+  assert.deepEqual(r.marks.map((m) => [m.value, m.precision, m.entries.map((e) => e.milestone.style)]), [
+    ['2026-11-05', 'day', ['koncepcja']],
+    ['2027-01-20', 'day', ['pbDoUrzedu']],
+    ['2027-03', 'month', ['branzysci']],
+  ])
+  // the band covers the whole of March: the fifth column of six
+  assert.deepEqual(spanOf('2027-03-01', '2027-03-31', NOV_APR), [4 / 6, 5 / 6])
+})
+
+test('calendar: Month at the start', () => {
+  const [r] = gantt([tl('Dom', [['rozpoczecie', '2026-12'], ['koncepcja', '2027-02-14']])])
+  assert.deepEqual([r.start, r.end], ['2026-12-01', '2027-02-14'])
+})
+
+test('calendar: Past the edge', () => {
+  const [r] = gantt([tl('Dom', [['rozpoczecie', '2026-09-01'], ['koncepcja', '2027-02-10']])])
+  assert.deepEqual([r.before, r.after], [true, false])
+  assert.deepEqual(r.marks.map((m) => m.value), ['2027-02-10'])
+  assert.equal(spanOf(r.start, r.end, NOV_APR)[0], 0)
+})
+
+test('calendar: One date', () => {
+  const [r] = gantt([tl('Dom', [['koncepcja', '2026-12-03']])])
+  assert.equal(r.bar, false)
+  assert.equal(r.marks.length, 1)
+})
+
+test('calendar: Two on one day', () => {
+  const r = row({ title: 'Dom Lipowa', timeline: [{ id: 'a', style: 'koncepcja', date: '2026-12-10', done: true }, { id: 'b', style: 'akceptacja', date: '2026-12-10' }] })
+  const [g] = gantt([r])
+  assert.equal(g.marks.length, 1)
+  assert.equal(g.bar, false)
+  assert.deepEqual(g.marks[0].entries.map((e) => [e.milestone.style, e.state]), [['koncepcja', 'done'], ['akceptacja', 'open']])
+})
+
+test('calendar: Two in one month', () => {
+  const [g] = gantt([tl('Dom Lipowa', [['branzysci', '2027-04'], ['wydanieProjektu', '2027-04']])])
+  assert.deepEqual(g.marks.map((m) => [m.value, m.entries.length]), [['2027-04', 2]])
+})
+
+test('calendar: Different projects', () => {
+  const rows = gantt([tl('Dom Lipowa', [['koncepcja', '2026-12-10']]), tl('Willa Sosnowa', [['pbDoUrzedu', '2026-12-10']])])
+  assert.deepEqual(rows.map((r) => r.marks.map((m) => m.entries.length)), [[1], [1]])
+})
+
+test('calendar: Columns', () => {
+  assert.deepEqual(rangeMonths(NOV_APR), ['2026-11', '2026-12', '2027-01', '2027-02', '2027-03', '2027-04'])
+  // every month is one equal column, whatever its number of days
+  assert.equal(placeOf('2027-02-01', NOV_APR), 3 / 6)
+  assert.equal(placeOf('2027-03-01', NOV_APR), 4 / 6)
+})
+
+test('calendar: Today line', () => {
+  assert.ok(Math.abs(dayCenter('2026-11-11', NOV_APR)! - 10.5 / 30 / 6) < 1e-12)
+  assert.equal(dayCenter('2026-10-31', NOV_APR), null)
+  assert.equal(dayCenter('2027-05-01', NOV_APR), null)
 })

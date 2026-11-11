@@ -19,7 +19,7 @@ what comes next in each.
 - Marks show the calendar's states: done, overdue and planned ("?").
 - Clicking a row's label or a mark opens the project form, which comes back to
   Harmonogram with the same range and filters.
-- Harmonogram uses the overview's month range ("od", "do", 3/6/12, previous, next,
+- Harmonogram uses the overview's month range ("od", "do", 3/6/12/24, previous, next,
   "Dziś"; 6 months by default), shared with "Przegląd". A today line marks the
   current day. Rows reaching past the range continue to its edge.
 - The project filter becomes a multi-select ("Projekty") in every calendar mode and in
@@ -28,6 +28,8 @@ what comes next in each.
   filters; changing either of those ticks all projects again.
 - **BREAKING (behaviour)**: choosing projects no longer turns the architect and status
   filters off. Old links with one `p=` still open with that one project ticked.
+- The range gets a fourth shortcut, "24" (the longest range allowed), in both
+  "Przegląd" and "Harmonogram".
 - "Pokaż" is hidden in Harmonogram: it shows milestones only, never meetings or
   leaves.
 
@@ -41,7 +43,7 @@ None.
 
 - `calendar`: the Harmonogram mode (ADDED: Harmonogram rows, Harmonogram bars and
   marks, Stacked marks); the third mode and the shared range (MODIFIED: Overview,
-  Overview range); the multi-select project filter (MODIFIED: Filters); "Pokaż" not in
+  Overview range, with a "24" shortcut); the multi-select project filter (MODIFIED: Filters); "Pokaż" not in
   Harmonogram (MODIFIED: Show filter); opening a project from Harmonogram (MODIFIED:
   Open project from calendar)
 
@@ -70,7 +72,8 @@ Settled with the engineer on 2026-11-11:
    among them, all by default, with select-all and select-none.
 3. **The multi-select project filter is used everywhere** the project filter is
    (Miesiąc, Przegląd, Harmonogram, Terminy).
-4. **Range like "Przegląd"**: 6 months by default, 3 or 12 by shortcut.
+4. **Range like "Przegląd"**: 6 months by default, 3, 12 or 24 by shortcut; "24" is
+   added to "Przegląd" as well.
 5. **No dates, no row**; one date gives one diamond with no bar; same-day or
    same-month milestones of a project stack into one numbered mark with a hover list.
 6. **States shown** as in the calendar.

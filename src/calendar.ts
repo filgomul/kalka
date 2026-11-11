@@ -3,11 +3,12 @@
 
 import { filterProjects, parseDate, STYLES, styleOf, type Milestone, type MilestoneStyle, type Project } from './model.ts'
 import { byTime, meetingsForCalendar, type Meeting } from './meetings.ts'
+import { t } from './pl.ts'
 
 type Row = { project: Project; file: string }
 
-/** `project` is a file name; when set, architect and status are ignored. */
-export type CalendarFilter = { architect: string; status: string; project: string }
+/** `projects` lists the ticked project files among those passing architect and status; null when all are ticked. */
+export type CalendarFilter = { architect: string; status: string; projects: string[] | null }
 
 export type Entry = {
   project: Project
@@ -57,9 +58,48 @@ export function monthGrid(month: string): string[][] {
   return weeks
 }
 
+/** The rows passing the architect and status filters: the project selection's options. */
+export const selectable = <T extends Row>(rows: T[], f: CalendarFilter): T[] => filterProjects(rows, { architect: f.architect, status: f.status, q: '' })
+
 export function visibleRows<T extends Row>(rows: T[], f: CalendarFilter): T[] {
-  if (f.project) return rows.filter((r) => r.file === f.project)
-  return filterProjects(rows, { architect: f.architect, status: f.status, q: '' })
+  const { projects } = f
+  return selectable(rows, f).filter((r) => !projects || projects.includes(r.file))
+}
+
+/** `p` in the URL: absent for all, `nic` for none, otherwise once per ticked file. */
+export function projectsOf(params: URLSearchParams): string[] | null {
+  const p = params.getAll('p')
+  return !p.length ? null : p[0] === 'nic' ? [] : p
+}
+
+export function withProjects(params: URLSearchParams, projects: string[] | null): URLSearchParams {
+  const out = new URLSearchParams(params)
+  out.delete('p')
+  if (projects) for (const f of projects.length ? projects : ['nic']) out.append('p', f)
+  return out
+}
+
+/** Ticks or unticks `file`; ticking every choice gives null (all). */
+export function toggleProject(choices: { file: string }[], projects: string[] | null, file: string): string[] | null {
+  const ticked = choices.map((c) => c.file).filter((f) => (projects ?? [f]).includes(f))
+  const next = ticked.includes(file) ? ticked.filter((f) => f !== file) : [...ticked, file]
+  return next.length === choices.length ? null : next
+}
+
+/** The closed project selection: all, the one ticked label, "N z M" or none. */
+export function projectsLabel(choices: { file: string; label: string }[], projects: string[] | null): string {
+  const ticked = choices.filter((c) => !projects || projects.includes(c.file))
+  if (ticked.length === choices.length) return t.allProjects
+  if (!ticked.length) return t.noProjects
+  return ticked.length === 1 ? ticked[0].label : t.projectsOf(ticked.length, choices.length)
+}
+
+/** A new architect or status ticks every project again. */
+export function withNarrowing(params: URLSearchParams, key: 'a' | 's', value: string): URLSearchParams {
+  const out = withProjects(params, null)
+  if (value) out.set(key, value)
+  else out.delete(key)
+  return out
 }
 
 /** Every dated milestone of the rows, by due date, then place in its project, then title. */
@@ -133,7 +173,7 @@ export function shownOnCalendar<T extends Row, L, M extends { meeting: Meeting }
 ): { all: Entry[]; leaves: L[]; meetings: M[] } {
   return {
     all: show.has('terminy') ? entries(visibleRows(rows, f), today) : [],
-    meetings: show.has('spotkania') ? meetingsForCalendar(meetings, f, rows).sort((a, b) => byTime(a.meeting, b.meeting)) : [],
+    meetings: show.has('spotkania') ? meetingsForCalendar(meetings, { architect: f.architect, projects: f.projects && visibleRows(rows, f).map((r) => r.file) }, rows).sort((a, b) => byTime(a.meeting, b.meeting)) : [],
     leaves: show.has('urlopy') ? leaves : [],
   }
 }
@@ -175,15 +215,14 @@ export function deadlines(all: Entry[], today: string): { overdue: Entry[]; week
   return { overdue: open.filter((e) => e.due < today), weeks }
 }
 
+/** "l.p. title", or the title alone without l.p. */
+const labelOf = ({ project: p, file }: Row) => [p.lp, p.title || file].filter((x) => x !== undefined).join(' ')
+/** l.p. order, projects without l.p. last by title. */
+const byLp = (a: Row, b: Row) => (a.project.lp ?? Infinity) - (b.project.lp ?? Infinity) || a.project.title.localeCompare(b.project.title, 'pl')
+
 /** Project filter choices: "l.p. title" in l.p. order, projects without l.p. last by title. */
 export function projectChoices(rows: Row[]): { file: string; label: string }[] {
-  return [...rows]
-    .sort(
-      (a, b) =>
-        (a.project.lp ?? Infinity) - (b.project.lp ?? Infinity) ||
-        a.project.title.localeCompare(b.project.title, 'pl'),
-    )
-    .map(({ project: p, file }) => ({ file, label: [p.lp, p.title || file].filter((x) => x !== undefined).join(' ') }))
+  return [...rows].sort(byLp).map((r) => ({ file: r.file, label: labelOf(r) }))
 }
 
 /** `projectChoices` keyed by project id, once per id (sync conflict copies share one), for dialogs that store the id. */
@@ -235,11 +274,80 @@ export function stepRange(r: Range, dir: 1 | -1): Range {
   return { from: addMonths(r.from, n), to: addMonths(r.to, n) }
 }
 
+/** The months of the range, in order. */
+export const rangeMonths = (r: Range): string[] => Array.from({ length: rangeLength(r) }, (_, i) => addMonths(r.from, i))
+
 /** Each month of the range with its first eight items (entries, meetings) in date order and how many more there are. */
 export function overviewMonths<I extends { value: string }>(all: I[], r: Range): { month: string; shown: I[]; more: number }[] {
-  return Array.from({ length: rangeLength(r) }, (_, i) => {
-    const month = addMonths(r.from, i)
+  return rangeMonths(r).map((month) => {
     const list = all.filter((e) => e.value.startsWith(month))
     return { month, shown: list.slice(0, BLOCK_CAP), more: Math.max(0, list.length - BLOCK_CAP) }
   })
+}
+
+// Harmonogram: one row per project over the overview's range, every month equally wide
+
+/** Milestones of one project on one day, or month milestones of one project in one month; more than one is a stack. */
+export type GanttMark = { value: string; precision: 'day' | 'month'; entries: Entry[] }
+export type GanttRow = {
+  file: string
+  project: Project
+  label: string
+  /** first and last day the bar covers, a month date widened to its first or last day */
+  start: string
+  end: string
+  /** more than one date, so a bar is drawn */
+  bar: boolean
+  /** the bar runs on before or after the range */
+  before: boolean
+  after: boolean
+  /** marks inside the range, by date */
+  marks: GanttMark[]
+}
+
+const firstDay = (r: Range) => r.from + '-01'
+const lastDay = (r: Range) => addDays(addMonths(r.to, 1) + '-01', -1)
+
+/** Rows of the projects whose span overlaps the range, by first date, then l.p., then title. `all` comes from `entries`. */
+export function ganttRows(all: Entry[], r: Range): GanttRow[] {
+  const from = firstDay(r)
+  const to = lastDay(r)
+  const byFile = new Map<string, Entry[]>()
+  for (const e of all) byFile.set(e.file, [...(byFile.get(e.file) ?? []), e])
+  const rows: GanttRow[] = []
+  for (const [file, list] of byFile) {
+    const start = list.map((e) => (e.precision === 'month' ? e.value + '-01' : e.value)).sort()[0]
+    const end = list.map((e) => e.due).sort().at(-1)!
+    if (start > to || end < from) continue
+    const marks = new Map<string, GanttMark>()
+    for (const e of list) {
+      const inside = e.precision === 'month' ? e.value >= r.from && e.value <= r.to : e.value >= from && e.value <= to
+      if (!inside) continue
+      const mark = marks.get(e.value)
+      if (mark) mark.entries.push(e)
+      else marks.set(e.value, { value: e.value, precision: e.precision, entries: [e] })
+    }
+    const bar = new Set(list.map((e) => e.value)).size > 1
+    rows.push({ file, project: list[0].project, label: labelOf(list[0]), start, end, bar, before: start < from, after: end > to, marks: [...marks.values()] })
+  }
+  return rows.sort((a, b) => a.start.localeCompare(b.start) || byLp(a, b))
+}
+
+/** Where the day `iso` begins across the range, 0 to 1: its month's column plus its place in that month. */
+export function placeOf(iso: string, r: Range): number {
+  const month = iso.slice(0, 7)
+  const days = +addDays(addMonths(month, 1) + '-01', -1).slice(8)
+  const index = rangeLength({ from: r.from, to: month }) - 1
+  return Math.min(1, Math.max(0, (index + (+iso.slice(8) - 1) / days) / rangeLength(r)))
+}
+
+/** The middle of the day `iso` across the range, or null outside it (the today line, a diamond). */
+export function dayCenter(iso: string, r: Range): number | null {
+  if (iso < firstDay(r) || iso > lastDay(r)) return null
+  return (placeOf(iso, r) + placeOf(addDays(iso, 1), r)) / 2
+}
+
+/** Left and right edge of the bar, or of a month band, across the range. */
+export function spanOf(start: string, end: string, r: Range): [number, number] {
+  return [placeOf(start < firstDay(r) ? firstDay(r) : start, r), placeOf(addDays(end > lastDay(r) ? lastDay(r) : end, 1), r)]
 }

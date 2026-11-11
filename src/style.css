@@ -2332,6 +2332,27 @@ button.show-kinds::after {
   background: var(--bg);
 }
 
+/* "Projekty": the same kind of button, with a checkbox per project */
+
+button.show-kinds.projects {
+  anchor-name: --pick-projects;
+}
+
+.menu.kinds.projects[popover] {
+  position-anchor: --pick-projects;
+  max-width: min(420px, 90vw);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.menu.kinds .pick-all {
+  display: flex;
+  gap: 12px;
+  padding: 4px 14px 6px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 4px;
+}
+
 /* Meeting times: a text field with a list of quarter hours, drawn above the dialog */
 
 input.time-input {
@@ -2372,4 +2393,198 @@ input.time-input {
 
 .time-list li small {
   color: var(--muted);
+}
+
+/* Harmonogram: a label column and a track per row; every month of the range is one equal column.
+   Marks and bars sit on the track by left/width percentages. */
+
+.gantt-scroll {
+  overflow-x: auto;
+  padding: 0;
+}
+
+.gantt {
+  --label-w: 220px;
+  --row-h: 30px;
+  min-width: calc(var(--label-w) + var(--months) * 72px);
+}
+
+.gantt-row {
+  display: grid;
+  grid-template-columns: var(--label-w) 1fr;
+  height: var(--row-h);
+  border-bottom: 1px solid var(--line);
+}
+
+.gantt-row:last-child {
+  border-bottom: 0;
+}
+
+/* the labels stay in view while the months scroll sideways */
+.gantt-label {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 0.9rem;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+a.gantt-label:hover {
+  text-decoration: underline;
+}
+
+/* the margin keeps a mark on the range's first or last day clear of the label column */
+.gantt-track {
+  position: relative;
+  margin: 0 10px;
+  background: repeating-linear-gradient(to right, transparent 0 calc(100% / var(--months) - 1px), var(--line) 0 calc(100% / var(--months)));
+}
+
+.gantt-head .gantt-track {
+  display: grid;
+  grid-template-columns: repeat(var(--months), 1fr);
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.gantt-head .now {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.gantt-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px solid var(--sand);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.gantt-bar {
+  position: absolute;
+  top: calc(50% - 3px);
+  height: 6px;
+  border-radius: 3px;
+  background: #cfcac2;
+}
+
+/* a bar running on past the range ends at its edge with an arrow */
+.gantt-bar[data-before] {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.gantt-bar[data-after] {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.gantt-bar[data-before]::before,
+.gantt-bar[data-after]::after {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  border: 6px solid transparent;
+  content: '';
+}
+
+.gantt-bar[data-before]::before {
+  left: 2px;
+  border-right-color: var(--muted);
+  border-left-width: 0;
+}
+
+.gantt-bar[data-after]::after {
+  right: 2px;
+  border-left-color: var(--muted);
+  border-right-width: 0;
+}
+
+.gantt-diamond,
+.gantt-band {
+  --t: color-mix(in oklab, var(--c) 30%, white);
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.gantt-diamond {
+  top: calc(50% - 7px);
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  rotate: 45deg;
+  background: var(--c);
+}
+
+.gantt-diamond span {
+  rotate: -45deg;
+}
+
+.gantt-band {
+  top: calc(50% - 8px);
+  height: 16px;
+  background: var(--t);
+  border-left: 3px solid var(--c);
+  color: var(--ink);
+}
+
+.gantt-diamond:hover,
+.gantt-band:hover {
+  filter: brightness(0.9);
+}
+
+/* several milestones in one mark: neutral, with their number */
+.gantt-diamond[data-stack] {
+  --c: var(--ink);
+  width: 16px;
+  height: 16px;
+  top: calc(50% - 8px);
+  margin-left: -8px;
+}
+
+.gantt-band[data-stack] {
+  --c: var(--ink);
+  --t: #dedad3;
+}
+
+.gantt-diamond[data-state='done'],
+.gantt-band[data-state='done'] {
+  opacity: 0.35;
+}
+
+.gantt-diamond[data-planned],
+.gantt-band[data-planned] {
+  opacity: 0.55;
+}
+
+.gantt-diamond[data-state='overdue'],
+.gantt-band[data-state='overdue'] {
+  outline: 2px solid var(--error);
+  outline-offset: 1px;
+}
+
+@media (max-width: 600px) {
+  .gantt {
+    --label-w: 130px;
+  }
 }

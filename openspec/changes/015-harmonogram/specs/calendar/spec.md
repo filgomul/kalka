@@ -119,7 +119,7 @@ The system SHALL draw two or more milestones of one project on the same day as o
 
 - **WHEN** "Dom Lipowa" has "wydanie koncepcji" and "akceptacja koncepcji" both on 2026-12-10, the first done
 - **THEN** its row shows one neutral diamond on 10 December 2026 with "2"
-- **AND** hovering it lists "wydanie koncepcji, 10.12.2026, wykonane" and "akceptacja koncepcji, 10.12.2026"
+- **AND** hovering it lists "wydanie koncepcji, 10.12.2026, zrealizowane" and "akceptacja koncepcji, 10.12.2026"
 
 #### Scenario: Two in one month
 
@@ -218,7 +218,7 @@ The system SHALL let the user switch the calendar between "Miesiąc", "Przegląd
 
 ### Requirement: Overview range
 
-The system SHALL let the user change the range of "Przegląd" and "Harmonogram", which share it: "od" and "do" each open the browser's month picker; the shortcuts "3", "6" and "12" set "do" so the range has that many months from "od"; previous and next move the whole range by its length; "Dziś" moves "od" to the current month keeping the length. Changing "od" keeps the length. A range has one to 24 months.
+The system SHALL let the user change the range of "Przegląd" and "Harmonogram", which share it: "od" and "do" each open the browser's month picker; the shortcuts "3", "6", "12" and "24" set "do" so the range has that many months from "od"; previous and next move the whole range by its length; "Dziś" moves "od" to the current month keeping the length. Changing "od" keeps the length. A range has one to 24 months.
 
 #### Scenario: Shortcut
 
@@ -260,6 +260,11 @@ The system SHALL let the user change the range of "Przegląd" and "Harmonogram",
 
 - **WHEN** the user picks styczeń 2026 as "od" and clicks "12"
 - **THEN** it shows styczeń to grudzień 2026
+
+#### Scenario: Two years
+
+- **WHEN** the user picks styczeń 2026 as "od" and clicks "24"
+- **THEN** it shows styczeń 2026 to grudzień 2027 and "24" is highlighted
 
 #### Scenario: Shared with Harmonogram
 

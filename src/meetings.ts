@@ -156,14 +156,15 @@ export function filterMeetings<T extends Row>(rows: T[], f: { architect: string;
 }
 
 /**
- * Calendar filters for meetings: a chosen project (a file name) keeps only its meetings;
- * otherwise the architect filter keeps that architect's meetings. Status never applies.
+ * Calendar filters for meetings: ticked projects (file names; null when all are ticked) keep only
+ * their meetings; otherwise the architect filter keeps that architect's meetings. Status never applies.
  */
-export function meetingsForCalendar<T extends Row>(rows: T[], f: { architect: string; project: string }, projects: { project: { id: string }; file: string }[]): T[] {
-  if (f.project) {
-    const id = projects.find((p) => p.file === f.project)?.project.id
+export function meetingsForCalendar<T extends Row>(rows: T[], f: { architect: string; projects: string[] | null }, projects: { project: { id: string }; file: string }[]): T[] {
+  const { projects: ticked } = f
+  if (ticked) {
+    const chosen = new Set(projects.filter((p) => ticked.includes(p.file)).map((p) => p.project.id))
     const ids = new Set(projects.map((p) => p.project.id))
-    return rows.filter((r) => !!id && projectIdOf(r.meeting, ids) === id)
+    return rows.filter((r) => chosen.has(projectIdOf(r.meeting, ids)))
   }
   return rows.filter((r) => !f.architect || r.meeting.architect === f.architect)
 }

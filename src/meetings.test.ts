@@ -134,7 +134,7 @@ test('calendar: Meetings by their architect', () => {
     row({ title: 'luźne Anny', architect: 'Anna Nowak' }),
     row({ title: 'luźne Jana', architect: 'Jan Kowalski' }),
   ]
-  assert.deepEqual(titles(meetingsForCalendar(rows, { architect: 'Anna Nowak', project: '' }, projects)), ['lipowa z Anną', 'luźne Anny'])
+  assert.deepEqual(titles(meetingsForCalendar(rows, { architect: 'Anna Nowak', projects: null }, projects)), ['lipowa z Anną', 'luźne Anny'])
 })
 
 test('calendar: Meetings of one project', () => {
@@ -143,12 +143,18 @@ test('calendar: Meetings of one project', () => {
     row({ title: 'sosnowa', projectId: 'p-sosnowa' }),
     row({ title: 'luźne' }),
   ]
-  assert.deepEqual(titles(meetingsForCalendar(rows, { architect: 'Anna Nowak', project: 'lipowa.json' }, projects)), ['lipowa Jana'])
+  assert.deepEqual(titles(meetingsForCalendar(rows, { architect: 'Anna Nowak', projects: ['lipowa.json'] }, projects)), ['lipowa Jana'])
+  assert.deepEqual(titles(meetingsForCalendar(rows, { architect: '', projects: ['lipowa.json', 'sosnowa.json'] }, projects)), ['lipowa Jana', 'sosnowa'])
+})
+
+test('calendar: No project ticked', () => {
+  const rows = [row({ title: 'lipowa', projectId: 'p-lipowa' }), row({ title: 'luźne' })]
+  assert.deepEqual(meetingsForCalendar(rows, { architect: '', projects: [] }, projects), [])
 })
 
 test('calendar: Status leaves meetings alone', () => {
   const rows = [row({ title: 'aktywny', projectId: 'p-lipowa' })]
-  assert.deepEqual(titles(meetingsForCalendar(rows, { architect: '', project: '', status: 'zakończony' } as any, projects)), ['aktywny'])
+  assert.deepEqual(titles(meetingsForCalendar(rows, { architect: '', projects: null, status: 'zakończony' } as any, projects)), ['aktywny'])
 })
 
 test('calendar: Counts', () => {
