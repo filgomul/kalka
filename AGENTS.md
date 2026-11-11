@@ -26,12 +26,16 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
   groups by day, the choice remembered per browser), with a "wykonane" checkbox,
   the five most recently done tasks and the week's tenement on the right. It also adds
   tasks; a task may have no project (then it shows only in that tab).
-- **calendar**: month grid of milestones across all projects with the same filters, plus
-  the "Terminy" list of upcoming and recently passed milestones. Meetings show as chips
-  before the milestones of their day and among them in the overview, narrowed by the
-  architect and project filters. Leaves show as bars in the month grid and at the top of
-  overview blocks, for every architect whatever the filters; "Pokaż" is a multi-select of
-  milestones, meetings and leaves.
+- **calendar**: three modes, "Miesiąc" (month grid), "Przegląd" (blocks of a month range)
+  and "Harmonogram" (one row per project over the same range: a bar from its first to
+  its last date, diamonds for days, bands for months), plus the "Terminy" list of
+  upcoming and recently passed milestones. Filters: lead architect, status, and
+  "Projekty", a multi-select among the projects passing those two (all by default).
+  Meetings show as chips before the milestones of their day and among them in the
+  overview, narrowed by the architect and project filters. Leaves show as bars in the
+  month grid and at the top of overview blocks, for every architect whatever the
+  filters; "Pokaż" is a multi-select of milestones, meetings and leaves (not in
+  Harmonogram, which shows milestones only).
 - **meetings**: a meeting belongs to a project or to none. A saved project's page has a
   "Spotkania" section (cards or list) after "Zadania"; the "Spotkania" tab lists every
   meeting, filtered by architect and by having a project. Clicking a meeting anywhere,
@@ -91,7 +95,8 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 | urlop | leave | An architect's absence, file `urlopy/<id>.json` with `{ id, architect, from, to }` (whole days, both included) |
 | spotkanie | meeting | File `spotkania/<id>.json` with `{ id, title, date, start?, end?, architect, projectId?, type, note }`; times `HH:MM` |
 | stacjonarne / online | `type` | Meeting in person ("@" mark for online, building icon for stacjonarne) |
-| pokaż | `k` | Calendar multi-select of "Terminy", "Spotkania", "Urlopy", all by default; `k` lists the chosen ones, `nic` none |
+| pokaż | `k` | Calendar multi-select of "Terminy", "Spotkania", "Urlopy", all by default; `k` lists the chosen ones, `nic` none; not in Harmonogram |
+| projekty | `p` | Calendar and "Terminy" multi-select of projects; absent for all, once per ticked file, `nic` none |
 
 ## Stack and limits
 
