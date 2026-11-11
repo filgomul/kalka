@@ -44,6 +44,10 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
 - **leaves**: the "Urlopy" tab lists architects' leaves (current and upcoming, then past)
   and adds, edits and deletes them; clicking a leave in the calendar opens the same
   dialog. Each leave change is written at once to its own file.
+- **demo**: `?demo` before the hash (or the "Wersja demo" link on the start screen)
+  opens made-up data in an in-memory folder instead of the real one, which is never
+  touched; changes live until reload. The data is built in `src/demo.ts` from today's
+  date; a new feature worth showing adds its data there.
 - A project's milestones are an ordered list (`timeline`) seeded from a template
   ("projekt budowlany", "projekt wnętrz", "inny") when the project is created; the
   project keeps the template's id as its type, which can be changed later without
@@ -106,7 +110,8 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
   erasable syntax, no enums). Pure logic lives in plain modules so it is testable
   without a browser.
 - Runs only in Chrome and Edge (File System Access API) and only when served over
-  HTTPS or localhost; browsers reject the API on `file://` pages.
+  HTTPS or localhost; browsers reject the API on `file://` pages. Only the demo
+  (`?demo`) opens in other browsers.
 - Hosted on GitHub Pages from a public repo, so the repo must never contain project
   data (addresses, client or contractor names). `*.csv` and `*.xlsx` are gitignored.
 - Small production tool, built lean. Out of scope for now: auth, backend, analytics,
@@ -128,7 +133,8 @@ The OpenSpec CLI and its `/opsx:*` commands are optional; setup is in `CLAUDE.md
    engineer can review it.
 3. Once the engineer approves, work through `tasks.md` in order and tick each
    task off. Spec, code and tests change together, in one branch and one PR.
-4. Run the tests, then report what changed and how to verify it.
+4. Run the tests, then report what changed and how to verify it. For a quick look
+   in the dev server, `http://localhost:5173/kalka/?demo` needs no data folder.
 5. Archive as the last commit of the change's PR (`docs: archive <change-id>`),
    once the engineer has confirmed the behaviour in the running app: fold the
    deltas into `openspec/specs/` and move the folder to

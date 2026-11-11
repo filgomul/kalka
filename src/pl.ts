@@ -48,6 +48,12 @@ export const t = {
   pickHint: 'Wskaż folder Kalka na wspólnym OneDrive. Przeglądarka zapamięta wybór na tym komputerze.',
   folderUnavailable: 'Nie udało się otworzyć zapamiętanego folderu (przeniesiony, usunięty albo brak zgody). Wybierz go ponownie.',
   loading: 'Wczytywanie…',
+  demoName: 'Wersja demo',
+  demoLink: 'Wersja demo',
+  demoBanner: 'Wersja demo - zmyślone dane, zmiany nie są zapisywane i znikną po odświeżeniu strony.',
+  demoBrowser: 'Pełna wersja działa w Google Chrome i Microsoft Edge, bo zapisuje dane w folderze na dysku.',
+  demoExit: 'Wyjdź z wersji demo',
+  loadFailed: 'Nie udało się wczytać wersji demo',
   brokenFiles: 'Nie udało się odczytać plików:',
   syncConflict: 'konflikt synchronizacji',
 

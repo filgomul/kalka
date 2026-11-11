@@ -5,52 +5,7 @@ import { emptyTask } from './tasks.ts'
 import { emptyLeave } from './leaves.ts'
 import { emptyMeeting } from './meetings.ts'
 import { ConflictError, deleteLeave, deleteMeeting, deleteTask, openFolder, readLeaves, readMeetings, readProjects, readTasks, saveLeave, saveMeeting, saveProject, saveTask } from './storage.ts'
-
-// In-memory stand-in for FileSystemDirectoryHandle: nested Maps, files as strings.
-type Tree = Map<string, string | Tree>
-
-function notFound() {
-  return Object.assign(new Error('not found'), { name: 'NotFoundError' })
-}
-
-function fileHandle(tree: Tree, name: string) {
-  return {
-    kind: 'file' as const,
-    getFile: async () => new File([tree.get(name) as string], name),
-    createWritable: async () => {
-      let text = ''
-      return { write: async (s: string) => void (text += s), close: async () => void tree.set(name, text) }
-    },
-  }
-}
-
-function dirHandle(tree: Tree): FileSystemDirectoryHandle {
-  const dir = {
-    kind: 'directory' as const,
-    async getDirectoryHandle(name: string, opts?: { create?: boolean }) {
-      if (!tree.has(name)) {
-        if (!opts?.create) throw notFound()
-        tree.set(name, new Map())
-      }
-      return dirHandle(tree.get(name) as Tree)
-    },
-    async getFileHandle(name: string, opts?: { create?: boolean }) {
-      if (!tree.has(name)) {
-        if (!opts?.create) throw notFound()
-        tree.set(name, '')
-      }
-      return fileHandle(tree, name)
-    },
-    async removeEntry(name: string) {
-      if (!tree.has(name)) throw notFound()
-      tree.delete(name)
-    },
-    async *entries() {
-      for (const [name, v] of tree) yield [name, typeof v === 'string' ? fileHandle(tree, name) : dirHandle(v)]
-    },
-  }
-  return dir as unknown as FileSystemDirectoryHandle
-}
+import { memoryFolder as dirHandle, type Tree } from './demo.ts'
 
 const json = (v: unknown) => JSON.stringify(v)
 const projectsOf = (root: Tree) => root.get('projekty') as Tree
