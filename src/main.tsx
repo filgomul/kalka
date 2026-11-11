@@ -1,7 +1,7 @@
 import { render, type ComponentChildren } from 'preact'
 import { useEffect, useState } from 'preact/hooks'
 import { t } from './pl.ts'
-import { parseSort, sortParam, type Filter, type Sort } from './model.ts'
+import { parseSort, sortParam, todayIso, type Filter, type Sort } from './model.ts'
 import {
   hasAccess,
   isSupported,
@@ -67,16 +67,28 @@ function useRoute() {
 const qs = (p: URLSearchParams) => (p.size ? '?' + p : '')
 const VIEWS = ['kalendarz', 'projekty', 'terminy', 'zadania', 'spotkania', 'urlopy']
 
+// ?demo (before the hash, so routes keep it) opens made-up data in memory instead of the folder
+const demo = new URLSearchParams(location.search).has('demo')
+const demoLink = <a class="demo-link" href="?demo">{t.demoLink}</a>
+
 function App() {
   const route = useRoute()
   const [remembered, setRemembered] = useState<FileSystemDirectoryHandle | null>(null)
   const [data, setData] = useState<Data | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  // true until we know whether the remembered folder opens without a click
-  const [checking, setChecking] = useState(isSupported)
+  // true until we know whether the remembered folder opens without a click, or the demo is loaded
+  const [checking, setChecking] = useState(() => demo || isSupported())
 
   useEffect(() => {
+    if (demo) {
+      // a separate chunk, never fetched outside the demo
+      import('./demo.ts')
+        .then((m) => load(m.demoFolder(todayIso())))
+        .catch((e) => setError(`${t.loadFailed} (${(e as Error).message})`))
+        .finally(() => setChecking(false))
+      return
+    }
     if (!isSupported()) return
     ;(async () => {
       const dir = await rememberedFolder()
@@ -87,7 +99,7 @@ function App() {
       .finally(() => setChecking(false))
   }, [])
 
-  if (!isSupported()) return <Screen><p>{t.unsupported}</p></Screen>
+  if (!isSupported() && !demo) return <Screen><p>{t.unsupported}</p>{demoLink}</Screen>
 
   async function load(dir: FileSystemDirectoryHandle) {
     const settings = await openFolder(dir)
@@ -121,12 +133,13 @@ function App() {
         {error && <p class="error">{error}</p>}
         {checking ? (
           <p class="muted">{t.loading}</p>
-        ) : remembered ? (
+        ) : demo ? null : remembered ? (
           <button class="primary" disabled={busy} onClick={() => open('reopen')}>{t.openFolder}</button>
         ) : (
           <>
             <p>{t.pickHint}</p>
             <button class="primary" disabled={busy} onClick={() => open('pick')}>{t.pickFolder}</button>
+            {demoLink}
           </>
         )}
       </Screen>
@@ -230,6 +243,13 @@ function App() {
         </nav>
         <span class="folder" title={t.folder}>{data.dir.name}</span>
       </header>
+      {demo && (
+        <div class="notice">
+          <p class="demo">
+            {t.demoBanner} {!isSupported() && t.demoBrowser} <a href={location.pathname}>{t.demoExit}</a>
+          </p>
+        </div>
+      )}
       {data.broken.length > 0 && (
         <div class="notice">
           <div class="error">

@@ -426,6 +426,25 @@ td.title a:hover {
   margin: 0;
 }
 
+/* the demo banner (?demo), in the same place, sand instead of the error red */
+.notice .demo {
+  margin: 0;
+  background: var(--sand-tint);
+  color: var(--sand);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+}
+
+.notice .demo a {
+  color: inherit;
+  font-weight: 600;
+}
+
+.screen .demo-link {
+  display: inline-block;
+  margin-top: 16px;
+}
+
 /* Form */
 
 .card {
