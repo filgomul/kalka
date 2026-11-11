@@ -19,4 +19,4 @@
 
 - [x] 4.1 `pnpm test` and `pnpm build` are green; `openspec validate --all --strict` passes
 - [x] 4.2 Verify in the running dev environment (`pnpm dev`, Chrome or Edge). Real folder: a scratch data folder outside the repo, made-up data only, picked before and opened again after the demo with none of the demo's projects. In `?demo` and `?demo#/zadania?a=...`: every tab, Harmonogram, Terminy past and upcoming; add, edit, delete, drag a task, change a meeting and a leave; reload brings the data back; the exit link; the start-screen link. In Firefox (or another browser without the folder API): `?demo` opens with the Chrome and Edge line, and the plain address shows the unsupported message with the demo link
-- [ ] 4.3 Before the archive commit: rebase on `main` and check the MODIFIED requirements still match `openspec/specs/storage/spec.md` (no other change touched "Choose data folder" or "Unsupported browser")
+- [x] 4.3 Before the archive commit: rebase on `main` and check the MODIFIED requirements still match `openspec/specs/storage/spec.md` (no other change touched "Choose data folder" or "Unsupported browser")
