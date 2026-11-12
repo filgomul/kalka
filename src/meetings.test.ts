@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { byTime, durationLabel, emptyMeeting, endChoices, parseTime, startChoices, withStart, filterMeetings, formatWhen, initialView, meetingError, meetingsForCalendar, parseMeeting, prepareMeetingForSave, splitMeetings, type Meeting } from './meetings.ts'
-import { t } from './pl.ts'
+import { byTime, MEETING_TYPES, durationLabel, emptyMeeting, endChoices, parseTime, startChoices, withStart, filterMeetings, formatWhen, initialView, meetingError, meetingsForCalendar, parseMeeting, prepareMeetingForSave, splitMeetings, type Meeting } from './meetings.ts'
+import { meetingTypeLabels, t } from './pl.ts'
 
 const TODAY = '2026-11-10'
 
@@ -71,6 +71,19 @@ test('meetings: No upcoming meetings', () => {
   const { current, past } = splitMeetings([row({ date: '2026-11-01' })], TODAY)
   assert.equal(current.length, 0)
   assert.equal(past.length, 1)
+})
+
+test('meetings: On site', () => {
+  assert.deepEqual([...MEETING_TYPES], ['stacjonarne', 'online', 'budowa'])
+  assert.equal(emptyMeeting().type, 'stacjonarne')
+  const saved = prepareMeetingForSave({ ...emptyMeeting(), title: 'Odbiór stropu', date: '2026-11-20', type: 'budowa' })
+  assert.equal(JSON.parse(JSON.stringify(saved)).type, 'budowa')
+})
+
+test('meetings: On site file', () => {
+  const m = parseMeeting({ id: 'x', title: 'Odbiór stropu', date: '2026-11-20', type: 'budowa' })
+  assert.equal(m.type, 'budowa')
+  assert.equal(meetingTypeLabels[m.type], 'na budowie')
 })
 
 test('meetings: Hand-edited file', () => {

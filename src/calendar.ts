@@ -341,7 +341,7 @@ export function placeOf(iso: string, r: Range): number {
   return Math.min(1, Math.max(0, (index + (+iso.slice(8) - 1) / days) / rangeLength(r)))
 }
 
-/** The middle of the day `iso` across the range, or null outside it (the today line, a diamond). */
+/** The middle of the day `iso` across the range, or null outside it (the today line, a circle). */
 export function dayCenter(iso: string, r: Range): number | null {
   if (iso < firstDay(r) || iso > lastDay(r)) return null
   return (placeOf(iso, r) + placeOf(addDays(iso, 1), r)) / 2

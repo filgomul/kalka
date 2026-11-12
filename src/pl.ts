@@ -23,12 +23,14 @@ export const branchLabels: Record<BranchKey, string> = {
 export const taskStatusLabels: Record<TaskStatus, string> = {
   todo: 'Do zrobienia',
   doing: 'W trakcie',
+  review: 'Do weryfikacji',
   done: 'Wykonane',
 }
 
 export const meetingTypeLabels: Record<MeetingType, string> = {
   stacjonarne: 'stacjonarne',
   online: 'online',
+  budowa: 'na budowie',
 }
 
 export const statusLabels: Record<Status, string> = {

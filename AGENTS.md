@@ -19,7 +19,7 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
   (investor, contact, plot, office contacts) that holds real people's data, so it lives
   only in the project files. The calendar is the start view and the first tab.
 - **tasks**: a board on a saved project's page ("Do zrobienia", "W trakcie",
-  "Wykonane"), cards dragged between and within columns. Each task change is written at
+  "Do weryfikacji", "Wykonane"), cards dragged between and within columns. Each task change is written at
   once to its own file, apart from the project form's "Zapisz" / "Anuluj". The "Zadania"
   tab shows all tasks in the same columns, filtered by assignee (or "nieprzypisane"),
   project status and having a project, ordered by due date ("Do zrobienia" switches to
@@ -28,7 +28,7 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
   tasks; a task may have no project (then it shows only in that tab).
 - **calendar**: three modes, "Miesiąc" (month grid), "Przegląd" (blocks of a month range)
   and "Harmonogram" (one row per project over the same range: a bar from its first to
-  its last date, diamonds for days, bands for months), plus the "Terminy" list of
+  its last date, circles for days, rounded bands for months), plus the "Terminy" list of
   upcoming and recently passed milestones. Filters: lead architect, status, and
   "Projekty", a multi-select among the projects passing those two (all by default).
   Meetings show as chips before the milestones of their day and among them in the
@@ -95,10 +95,10 @@ Each area has a living spec in `openspec/specs/<area>/spec.md` once a change has
 | zrealizowane | `done` | Milestone reached |
 | zadanie | task | A job inside a project, file `zadania/<id>.json` with `projectId` (empty without a project); `doneAt` is when it last became done; `urgent: true` marks it "pilne" |
 | osoba | `assignee` | Architect doing a task; any architect, not only the lead one |
-| do zrobienia / w trakcie / wykonane | `todo` / `doing` / `done` | Task state, one board column each |
+| do zrobienia / w trakcie / do weryfikacji / wykonane | `todo` / `doing` / `review` / `done` | Task state, one board column each; "do weryfikacji" waits for a check and is not done yet |
 | urlop | leave | An architect's absence, file `urlopy/<id>.json` with `{ id, architect, from, to }` (whole days, both included) |
 | spotkanie | meeting | File `spotkania/<id>.json` with `{ id, title, date, start?, end?, architect, projectId?, type, note }`; times `HH:MM` |
-| stacjonarne / online | `type` | Meeting in person ("@" mark for online, building icon for stacjonarne) |
+| stacjonarne / online / na budowie | `type` | Meeting in person, online or on site (`stacjonarne` / `online` / `budowa`; building icon, "@" mark, hard hat) |
 | pokaż | `k` | Calendar multi-select of "Terminy", "Spotkania", "Urlopy", all by default; `k` lists the chosen ones, `nic` none; not in Harmonogram |
 | projekty | `p` | Calendar and "Terminy" multi-select of projects; absent for all, once per ticked file, `nic` none |
 

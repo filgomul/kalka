@@ -36,15 +36,25 @@ export function projectTitleOf(data: Data, m: Meeting): string {
   return l ? l.project.title || l.file : ''
 }
 
-/** "@" for online, a small building for stacjonarne, each in its own colour. */
+/** "@" for online, a small building for stacjonarne, a hard hat for na budowie, each in its own colour. */
 export function TypeMark({ type }: { type: MeetingType }) {
   const label = meetingTypeLabels[type]
   return (
     <span class="type-mark" data-type={type} role="img" aria-label={label} title={label}>
       {type === 'online' ? '@' : (
         <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
-          <rect x="3" y="1.5" width="10" height="13" rx="1" />
-          <path d="M6 4.5h1M9 4.5h1M6 7.5h1M9 7.5h1M6 10.5h1M9 10.5h1M7 14.5v-2h2v2" />
+          {type === 'budowa' ? (
+            <g fill="currentColor" stroke-linejoin="round">
+              <path d="M2.6 9.4a5.4 5.4 0 0 1 10.8 0z" />
+              <rect x="1" y="9.4" width="14" height="2.2" rx="1.1" />
+              <path d="M8 4.4v3.2" stroke="#fff" stroke-width="1.6" stroke-linecap="round" />
+            </g>
+          ) : (
+            <>
+              <rect x="3" y="1.5" width="10" height="13" rx="1" />
+              <path d="M6 4.5h1M9 4.5h1M6 7.5h1M9 7.5h1M6 10.5h1M9 10.5h1M7 14.5v-2h2v2" />
+            </>
+          )}
         </svg>
       )}
     </span>

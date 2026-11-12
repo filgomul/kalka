@@ -3,7 +3,8 @@ import assert from 'node:assert/strict'
 import { demoFolder } from './demo.ts'
 import { openFolder, readProjects, saveProject } from './storage.ts'
 import { addDays, addMonths } from './calendar.ts'
-import { DONE_SHOWN } from './tasks.ts'
+import { DONE_SHOWN, TASK_STATUSES } from './tasks.ts'
+import { MEETING_TYPES } from './meetings.ts'
 
 const TODAY = '2026-11-11'
 
@@ -54,7 +55,7 @@ test('demo: Projects', async () => {
 test('demo: Tasks', async () => {
   const tasks = (await open()).tasks.map((t) => t.task)
   const thisWeek = addDays(TODAY, 6)
-  assert.deepEqual(new Set(tasks.map((t) => t.status)), new Set(['todo', 'doing', 'done']))
+  assert.deepEqual(new Set(tasks.map((t) => t.status)), new Set(TASK_STATUSES))
   assert.ok(tasks.some((t) => t.urgent), 'urgent')
   assert.ok(tasks.some((t) => t.status !== 'done' && t.due && t.due < TODAY), 'overdue')
   assert.ok(tasks.some((t) => t.due === TODAY), 'today')
@@ -73,7 +74,8 @@ test('demo: Leaves and meetings', async () => {
   assert.ok(ls.some((l) => l.from > TODAY), 'upcoming')
   assert.ok(ls.some((a, i) => ls.some((b, j) => i !== j && a.from <= b.to && b.from <= a.to)), 'two overlapping')
   const ms = meetings.map((m) => m.meeting)
-  assert.deepEqual(new Set(ms.map((m) => m.type)), new Set(['online', 'stacjonarne']))
+  assert.deepEqual(new Set(ms.map((m) => m.type)), new Set(MEETING_TYPES))
+  assert.ok(ms.some((m) => m.type === 'budowa' && m.date.startsWith(TODAY.slice(0, 7))), 'on site in the current month')
   assert.ok(ms.some((m) => m.projectId) && ms.some((m) => !m.projectId), 'with and without a project')
   assert.ok(ms.some((m) => m.start) && ms.some((m) => !m.start), 'with and without times')
   assert.ok(ms.some((m) => m.date.startsWith(TODAY.slice(0, 7))), 'in the current month')

@@ -410,7 +410,7 @@ function OverviewLeaves({ rows, data, onLeave }: { rows: LoadedLeave[]; data: Da
 
 const pct = (x: number) => `${(x * 100).toFixed(3)}%`
 
-/** Harmonogram: one row per project, a bar from its first to its last date, a diamond per day and a band per month. */
+/** Harmonogram: one row per project, a bar from its first to its last date, a circle per day and a band per month. */
 function Gantt({ all, params, today, range, label }: { all: Entry[]; params: URLSearchParams; today: string; range: Range; label: (m: string) => string }) {
   const rows = ganttRows(all, range)
   const months = rangeMonths(range)
@@ -436,7 +436,7 @@ function Gantt({ all, params, today, range, label }: { all: Entry[]; params: URL
               <div class="gantt-track">
                 {todayLine}
                 {r.bar && <i class="gantt-bar" data-before={r.before || undefined} data-after={r.after || undefined} style={`left: ${pct(left)}; width: ${pct(right - left)}`} />}
-                {/* bands first, so a diamond inside a band is drawn over it */}
+                {/* bands first, so a circle inside a band is drawn over it */}
                 {[...r.marks].sort((a, b) => (a.precision === b.precision ? 0 : a.precision === 'month' ? -1 : 1)).map((m) => (
                   <GanttMarkLink key={m.value} m={m} href={href} range={range} title={r.project.title || r.file} />
                 ))}
@@ -449,7 +449,7 @@ function Gantt({ all, params, today, range, label }: { all: Entry[]; params: URL
   )
 }
 
-/** A diamond (day) or band (month); several milestones in one become a neutral mark with their number. */
+/** A circle (day) or band (month); several milestones in one become a neutral mark with their number. */
 function GanttMarkLink({ m, href, range, title }: { m: GanttMark; href: string; range: Range; title: string }) {
   const [e] = m.entries
   const stack = m.entries.length > 1
@@ -459,7 +459,7 @@ function GanttMarkLink({ m, href, range, title }: { m: GanttMark; href: string; 
   const place = m.precision === 'day' ? `left: ${pct(l)}` : `left: ${pct(l)}; width: ${pct(r - l)}`
   return (
     <a
-      class={m.precision === 'day' ? 'gantt-diamond' : 'gantt-band'}
+      class={m.precision === 'day' ? 'gantt-dot' : 'gantt-band'}
       href={href}
       title={hover}
       aria-label={hover}
