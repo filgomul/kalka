@@ -102,14 +102,14 @@ The system SHALL fill the demo with made-up data that shows every feature. It ho
 #### Scenario: Tasks
 
 - **WHEN** the demo opens "Zadania"
-- **THEN** every column has tasks, among them urgent ones, overdue ones, ones due today and this week, ones without a due date, ones without an assignee and ones without a project
+- **THEN** every column has tasks, "Do weryfikacji" included, among them urgent ones, overdue ones, ones due today and this week, ones without a due date, ones without an assignee and ones without a project
 - **AND** "Wykonane" has more than five done tasks, so older ones are folded
 
 #### Scenario: Leaves and meetings
 
 - **WHEN** the demo opens "Urlopy" and "Spotkania"
 - **THEN** there are past, current and upcoming leaves, two of them overlapping
-- **AND** online and in-person meetings, with and without a project, with and without times, some in the current month
+- **AND** meetings of all three types, "stacjonarne", "online" and "na budowie", with and without a project, with and without times, some in the current month
 
 ### Requirement: Demo dates follow today
 
