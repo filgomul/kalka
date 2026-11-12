@@ -19,6 +19,8 @@
   --lane-todo-tint: #f6ecec;
   --lane-doing: #a67c22;
   --lane-doing-tint: #f8f0dc;
+  --lane-review: #4a86b8;
+  --lane-review-tint: #e8f1f8;
   --lane-done: var(--sage);
   --lane-done-tint: var(--sage-tint);
   /* urgent tasks: brighter than the burgundy lane and the overdue red */
@@ -741,7 +743,7 @@ button.link:hover {
 
 .board {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -764,6 +766,11 @@ button.link:hover {
 .col[data-status='doing'] {
   --lane: var(--lane-doing);
   --lane-tint: var(--lane-doing-tint);
+}
+
+.col[data-status='review'] {
+  --lane: var(--lane-review);
+  --lane-tint: var(--lane-review-tint);
 }
 
 .col[data-status='done'] {
@@ -1481,6 +1488,13 @@ button.task,
   color: var(--error);
 }
 
+/* four columns get cramped below this, so two by two */
+@media (max-width: 1000px) {
+  .board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 700px) {
   .board {
     grid-template-columns: 1fr;
@@ -2122,6 +2136,7 @@ fieldset.range legend {
 :root {
   --online: #3a6fa0;
   --office: #9a6a2e;
+  --site: #c25a1c;
 }
 
 .type-mark {
@@ -2144,6 +2159,11 @@ fieldset.range legend {
 .type-mark[data-type='stacjonarne'] {
   color: var(--office);
   background: color-mix(in oklab, var(--office) 14%, white);
+}
+
+.type-mark[data-type='budowa'] {
+  color: var(--site);
+  background: color-mix(in oklab, var(--site) 14%, white);
 }
 
 .meetings .section-head .seg {
@@ -2533,7 +2553,7 @@ a.gantt-label:hover {
   border-right-width: 0;
 }
 
-.gantt-diamond,
+.gantt-dot,
 .gantt-band {
   --t: color-mix(in oklab, var(--c) 30%, white);
   position: absolute;
@@ -2546,39 +2566,36 @@ a.gantt-label:hover {
   text-decoration: none;
 }
 
-.gantt-diamond {
+.gantt-dot {
   top: calc(50% - 7px);
   width: 14px;
   height: 14px;
   margin-left: -7px;
-  rotate: 45deg;
+  border-radius: 50%;
   background: var(--c);
-}
-
-.gantt-diamond span {
-  rotate: -45deg;
 }
 
 .gantt-band {
   top: calc(50% - 8px);
   height: 16px;
+  border-radius: 8px;
   background: var(--t);
-  border-left: 3px solid var(--c);
+  box-shadow: inset 0 0 0 2px var(--c);
   color: var(--ink);
 }
 
-.gantt-diamond:hover,
+.gantt-dot:hover,
 .gantt-band:hover {
   filter: brightness(0.9);
 }
 
 /* several milestones in one mark: neutral, with their number */
-.gantt-diamond[data-stack] {
+.gantt-dot[data-stack] {
   --c: var(--ink);
-  width: 16px;
-  height: 16px;
-  top: calc(50% - 8px);
-  margin-left: -8px;
+  width: 18px;
+  height: 18px;
+  top: calc(50% - 9px);
+  margin-left: -9px;
 }
 
 .gantt-band[data-stack] {
@@ -2586,17 +2603,17 @@ a.gantt-label:hover {
   --t: #dedad3;
 }
 
-.gantt-diamond[data-state='done'],
+.gantt-dot[data-state='done'],
 .gantt-band[data-state='done'] {
   opacity: 0.35;
 }
 
-.gantt-diamond[data-planned],
+.gantt-dot[data-planned],
 .gantt-band[data-planned] {
   opacity: 0.55;
 }
 
-.gantt-diamond[data-state='overdue'],
+.gantt-dot[data-state='overdue'],
 .gantt-band[data-state='overdue'] {
   outline: 2px solid var(--error);
   outline-offset: 1px;

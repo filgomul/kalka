@@ -5,7 +5,7 @@ import { filterProjects, formatDate, newId, parseDate, todayIso, type Project } 
 import { monday } from './calendar.ts'
 import { t, weekdays } from './pl.ts'
 
-export const TASK_STATUSES = ['todo', 'doing', 'done'] as const
+export const TASK_STATUSES = ['todo', 'doing', 'review', 'done'] as const
 export type TaskStatus = (typeof TASK_STATUSES)[number]
 
 export type Task = {

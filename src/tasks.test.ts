@@ -34,6 +34,12 @@ test('tasks: Hand-edited file', () => {
   assert.equal('urgent' in t, false)
 })
 
+test('tasks: Waiting for a check', () => {
+  const t = normalizeTask({ id: 'a', projectId: 'p1', title: 'Rzut dachu', status: 'review' })
+  assert.equal(t.status, 'review')
+  assert.equal('doneAt' in t, false)
+})
+
 test('tasks: Hand-edited urgent mark', () => {
   assert.equal('urgent' in normalizeTask({ id: 'a', projectId: 'p1', urgent: 'tak' as unknown as true }), false)
   assert.equal(normalizeTask({ id: 'a', projectId: 'p1', urgent: true }).urgent, true)
@@ -42,6 +48,7 @@ test('tasks: Hand-edited urgent mark', () => {
 test('tasks: Overdue', () => {
   assert.equal(taskState(task('A', { due: '2026-11-14' }), '2026-11-20'), 'overdue')
   assert.equal(taskState(task('A', { due: '2026-11-14', status: 'doing' }), '2026-11-20'), 'overdue')
+  assert.equal(taskState(task('A', { due: '2026-11-14', status: 'review' }), '2026-11-20'), 'overdue')
   assert.equal(taskState(task('A', { due: '2026-11' }), '2026-11-20'), 'open')
   assert.equal(taskState(task('A'), '2026-11-20'), 'open')
 })
@@ -129,6 +136,8 @@ const NOW = '2026-11-20T10:00:00.000Z'
 test('tasks: Done time set', () => {
   const before = task('R', { status: 'doing' })
   assert.equal(stampDone(before, { ...before, status: 'done' }, NOW).doneAt, NOW)
+  const checked = task('S', { status: 'review' })
+  assert.equal(stampDone(checked, { ...checked, status: 'done' }, NOW).doneAt, NOW)
   // a task saved as done straight away
   assert.equal(stampDone(undefined, task('N', { status: 'done' }), NOW).doneAt, NOW)
 })
@@ -141,6 +150,7 @@ test('tasks: Done time kept', () => {
 test('tasks: Done time removed', () => {
   const before = task('R', { status: 'done', doneAt: '2026-11-02T08:00:00.000Z' })
   assert.equal('doneAt' in stampDone(before, { ...before, status: 'todo' }, NOW), false)
+  assert.equal('doneAt' in stampDone(before, { ...before, status: 'review' }, NOW), false)
 })
 
 test('tasks: File without done time', () => {
@@ -214,6 +224,11 @@ test('tasks: By due date', () => {
 
 test('tasks: Urgent first', () => {
   const rows = [row('A', { due: '2026-11-14' }), row('B', { urgent: true, due: '2026-11-30' }), row('C', { urgent: true })]
+  assert.deepEqual(titles(byDue(rows)), ['B', 'C', 'A'])
+})
+
+test('tasks: Waiting for a check (order)', () => {
+  const rows = [row('A', { status: 'review', due: '2026-11-30' }), row('B', { status: 'review', urgent: true }), row('C', { status: 'review', due: '2026-11-14' })]
   assert.deepEqual(titles(byDue(rows)), ['B', 'C', 'A'])
 })
 

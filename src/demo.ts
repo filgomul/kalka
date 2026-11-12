@@ -262,6 +262,9 @@ export function demoFiles(today: string) {
     task('', 'Przegląd kopii zapasowych', '', 'todo', { due: d(20) }),
     task('demo-p3', 'Ustalić z inwestorem termin wznowienia', MARTA, 'todo'),
     task('', 'Szkolenie BHP', JAN, 'doing', { due: d(-1) }),
+    task('demo-p2', 'Rzut dachu - korekta po uwagach', MARTA, 'review', { due: d(-1) }),
+    task('demo-p4', 'Zestawienie powierzchni mieszkań', JAN, 'review', { due: d(2), urgent: true }),
+    task('', 'Nowy szablon opisu technicznego', PIOTR, 'review'),
     task('demo-p1', 'Złożyć PB w starostwie', EWA, 'done', { due: d(-30), doneAt: at(-30, '12:00') }),
     task('demo-p2', 'Inwentaryzacja budynku', JAN, 'done', { doneAt: at(-25, '10:00') }),
     task('demo-p5', 'Układy funkcjonalne - wersja 2', MARTA, 'done', { doneAt: at(-20, '16:30') }),
@@ -288,13 +291,14 @@ export function demoFiles(today: string) {
   })
   const meetings: Meeting[] = [
     meeting('Omówienie uzupełnień z inwestorem', 0, EWA, 'online', { projectId: 'demo-p1', start: '14:00', end: '15:00' }),
-    meeting('Oględziny stropów', 1, JAN, 'stacjonarne', { projectId: 'demo-p7', start: '08:30', end: '10:00' }),
+    meeting('Oględziny stropów', 1, JAN, 'budowa', { projectId: 'demo-p7', start: '08:30', end: '10:00' }),
     meeting('Spotkanie z konserwatorem', 2, JAN, 'stacjonarne', { projectId: 'demo-p2', start: '10:00', end: '11:30', note: 'Zabrać rysunki elewacji.' }),
     meeting('Zebranie pracowni', 7, '', 'stacjonarne', { start: '09:00' }),
+    meeting('Narada z wykonawcą na budowie', 5, JAN, 'budowa', { projectId: 'demo-p2', start: '09:00', end: '10:30' }),
     meeting('Prezentacja wizualizacji', 12, MARTA, 'online', { projectId: 'demo-p5' }),
-    meeting('Wizja lokalna na działce', 40, EWA, 'stacjonarne', { projectId: 'demo-p4' }),
+    meeting('Wizja lokalna na działce', 40, EWA, 'budowa', { projectId: 'demo-p4' }),
     meeting('Webinar o warunkach technicznych', -14, JAN, 'online', { start: '11:00', end: '12:00' }),
-    meeting('Odbiór końcowy kawiarni', -110, PIOTR, 'stacjonarne', { projectId: 'demo-p6', start: '12:00', end: '13:00' }),
+    meeting('Odbiór końcowy kawiarni', -110, PIOTR, 'budowa', { projectId: 'demo-p6', start: '12:00', end: '13:00' }),
   ]
 
   const settings = {

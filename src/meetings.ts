@@ -5,7 +5,7 @@ import { formatDate, newId } from './model.ts'
 import { isDay } from './leaves.ts'
 import { t } from './pl.ts'
 
-export const MEETING_TYPES = ['stacjonarne', 'online'] as const
+export const MEETING_TYPES = ['stacjonarne', 'online', 'budowa'] as const
 export type MeetingType = (typeof MEETING_TYPES)[number]
 
 export type Meeting = {
