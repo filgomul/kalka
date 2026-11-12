@@ -8,13 +8,18 @@ kept as a board on the project page so the studio sees who does what.
 
 ### Requirement: Task board on the project page
 
-The system SHALL show a section "Zadania" on the page of a saved project, between "Terminy" and "Spotkania", holding the project's tasks in three columns "Do zrobienia", "W trakcie" and "Wykonane". A project that has not been saved yet has no task section.
+The system SHALL show a section "Zadania" on the page of a saved project, between "Terminy" and "Spotkania", holding the project's tasks in four columns "Do zrobienia", "W trakcie", "Do weryfikacji" and "Wykonane", each in its own colour. A project that has not been saved yet has no task section.
 
 #### Scenario: Saved project
 
 - **WHEN** the user opens the existing project "Dom Lipowa"
 - **THEN** the page shows "Projekt", "Terminy", "Zadania", "Spotkania", "Zakres branż" and "uwagi", in that order
-- **AND** "Zadania" shows the columns "Do zrobienia", "W trakcie" and "Wykonane", empty when the project has no tasks
+- **AND** "Zadania" shows the columns "Do zrobienia", "W trakcie", "Do weryfikacji" and "Wykonane", empty when the project has no tasks
+
+#### Scenario: Waiting for a check
+
+- **WHEN** the user drags "Rysunki elewacji" from "W trakcie" onto "Do weryfikacji"
+- **THEN** the task file holds `"status": "review"` and the card shows in "Do weryfikacji", whose header is light blue
 
 #### Scenario: New project
 
@@ -151,7 +156,7 @@ The system SHALL show each task as a card with its title, its due date in the bo
 
 #### Scenario: Overdue
 
-- **WHEN** today is 2026-11-20 and a task in "Do zrobienia" or "W trakcie" is due 2026-11-14
+- **WHEN** today is 2026-11-20 and a task in "Do zrobienia", "W trakcie" or "Do weryfikacji" is due 2026-11-14
 - **THEN** its date is marked "po terminie"
 
 #### Scenario: Done is never overdue
@@ -214,13 +219,18 @@ The system SHALL refuse to write or delete a task whose file changed on disk sin
 
 ### Requirement: Task file
 
-The system SHALL keep each task as `zadania/<id>.json` holding `id`, `projectId` (empty for a task without a project), `title`, `description`, `due` (absent without a date), `assignee` (empty when none), `status` (`todo`, `doing` or `done`), `order` (a number for its place in its column), `urgent` (`true` for an urgent task, absent otherwise), `doneAt` (the time the task last became done, absent unless done) and `updatedAt`. A file with an unknown status counts as `todo`; missing text fields, `projectId` included, count as empty; a `projectId` that matches no project file counts as no project; without a numeric `order` the task has no place yet; any `urgent` other than `true` counts as not urgent. `doneAt` is set when a task's state becomes `done`, kept while it stays done, and removed when it leaves `done`.
+The system SHALL keep each task as `zadania/<id>.json` holding `id`, `projectId` (empty for a task without a project), `title`, `description`, `due` (absent without a date), `assignee` (empty when none), `status` (`todo`, `doing`, `review` or `done`), `order` (a number for its place in its column), `urgent` (`true` for an urgent task, absent otherwise), `doneAt` (the time the task last became done, absent unless done) and `updatedAt`. A file with an unknown status counts as `todo`; missing text fields, `projectId` included, count as empty; a `projectId` that matches no project file counts as no project; without a numeric `order` the task has no place yet; any `urgent` other than `true` counts as not urgent. `doneAt` is set when a task's state becomes `done`, kept while it stays done, and removed when it leaves `done`.
 
 #### Scenario: Written file
 
 - **WHEN** the user adds "Rysunki elewacji" due 2026-11-14 for Anna Nowak to "Dom Lipowa"
 - **THEN** the file holds `"projectId"` equal to the project's `id`, `"due": "2026-11-14"`, `"assignee": "Anna Nowak"` and `"status": "todo"`
 - **AND** it holds no `urgent`
+
+#### Scenario: Waiting for a check
+
+- **WHEN** a task file has `"status": "review"`
+- **THEN** the task shows in "Do weryfikacji" and its file holds no `doneAt`
 
 #### Scenario: Hand-edited file
 
@@ -239,7 +249,7 @@ The system SHALL keep each task as `zadania/<id>.json` holding `id`, `projectId`
 
 #### Scenario: Done time set
 
-- **WHEN** a task in "W trakcie" is moved to "Wykonane", on the project board or in the "Zadania" tab
+- **WHEN** a task in "W trakcie" or "Do weryfikacji" is moved to "Wykonane", on the project board or in the "Zadania" tab
 - **THEN** its file holds `doneAt` with the time of that change
 
 #### Scenario: Done time kept
@@ -249,7 +259,7 @@ The system SHALL keep each task as `zadania/<id>.json` holding `id`, `projectId`
 
 #### Scenario: Done time removed
 
-- **WHEN** a done task is moved back to "Do zrobienia"
+- **WHEN** a done task is moved back to "Do zrobienia" or "Do weryfikacji"
 - **THEN** its file no longer holds `doneAt`
 
 #### Scenario: File without done time
@@ -269,12 +279,12 @@ The system SHALL show every task file that shares an id with another task file a
 
 ### Requirement: Tasks tab
 
-The system SHALL show a header tab "Zadania" listing all tasks, of every project and without one, in three columns "Do zrobienia", "W trakcie" and "Wykonane", each headed by its number of tasks. A task whose project file is missing counts as a task without a project.
+The system SHALL show a header tab "Zadania" listing all tasks, of every project and without one, in four columns "Do zrobienia", "W trakcie", "Do weryfikacji" and "Wykonane", each headed by its number of tasks. A task whose project file is missing counts as a task without a project.
 
 #### Scenario: Tasks of several projects
 
-- **WHEN** "Dom Lipowa" has the task "Rysunki elewacji" in "Do zrobienia" and "Willa Sosnowa" has "Zestawienie okien" in "W trakcie"
-- **THEN** "Zadania" shows "Rysunki elewacji" under "Do zrobienia" and "Zestawienie okien" under "W trakcie"
+- **WHEN** "Dom Lipowa" has the task "Rysunki elewacji" in "Do zrobienia" and "Willa Sosnowa" has "Zestawienie okien" in "W trakcie" and "Rzut dachu" in "Do weryfikacji"
+- **THEN** "Zadania" shows "Rysunki elewacji" under "Do zrobienia", "Zestawienie okien" under "W trakcie" and "Rzut dachu" under "Do weryfikacji"
 
 #### Scenario: Project gone
 
@@ -338,7 +348,7 @@ The system SHALL filter the tab by "Architekt", "Status projektu" and "Projekt",
 
 ### Requirement: Order in the tasks tab
 
-The system SHALL order "W trakcie", and "Do zrobienia" while it shows "Pilne", in the tab with urgent tasks first, then the others, each group by due date, a month counting as its last day, so overdue tasks come first and tasks without a date last; equal dates go by title. The manual order from the project boards does not apply, and dropping a card within its own column changes nothing.
+The system SHALL order "W trakcie", "Do weryfikacji", and "Do zrobienia" while it shows "Pilne", in the tab with urgent tasks first, then the others, each group by due date, a month counting as its last day, so overdue tasks come first and tasks without a date last; equal dates go by title. The manual order from the project boards does not apply, and dropping a card within its own column changes nothing.
 
 #### Scenario: By due date
 
@@ -348,6 +358,11 @@ The system SHALL order "W trakcie", and "Do zrobienia" while it shows "Pilne", i
 #### Scenario: Urgent first
 
 - **WHEN** "Do zrobienia" holds "A" due 2026-11-14, urgent "B" due 2026-11-30 and urgent "C" without a date
+- **THEN** the column shows "B", "C", "A"
+
+#### Scenario: Waiting for a check
+
+- **WHEN** "Do weryfikacji" holds "A" due 2026-11-30, urgent "B" without a date and "C" due 2026-11-14
 - **THEN** the column shows "B", "C", "A"
 
 #### Scenario: Done ignores urgency
@@ -398,6 +413,11 @@ The system SHALL mark a task done when its "wykonane" checkbox is ticked and put
 - **WHEN** the user ticks "wykonane" on "Rysunki elewacji" in "W trakcie"
 - **THEN** the task file holds `"status": "done"` and the card shows in "Wykonane"
 - **AND** on "Dom Lipowa"'s board the task is at the bottom of "Wykonane"
+
+#### Scenario: Tick after the check
+
+- **WHEN** the user ticks "wykonane" on a card in "Do weryfikacji"
+- **THEN** the task file holds `"status": "done"` and the card shows in "Wykonane"
 
 #### Scenario: Untick
 
