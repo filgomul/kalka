@@ -4,7 +4,7 @@ import { formatDate, parseDate, todayIso } from './model.ts'
 import { projectIdChoices } from './calendar.ts'
 import { t, taskStatusLabels } from './pl.ts'
 import { ConflictError, deleteTask, saveTask, type LoadedTask } from './storage.ts'
-import { badgeFor, emptyTask, placeAt, prepareTaskForSave, sortTasks, stampDone, TASK_STATUSES, taskState, textOn, type Task, type TaskStatus } from './tasks.ts'
+import { badgeFor, dropNeedsReviewer, emptyTask, needsReviewer, placeAt, prepareTaskForSave, sortTasks, stampDone, TASK_STATUSES, taskState, textOn, type Badge, type Task, type TaskStatus } from './tasks.ts'
 import type { Data } from './main.tsx'
 
 type Props = {
@@ -25,7 +25,8 @@ export function useTaskEdit(
   reloadTasks: () => Promise<void>,
   { linkTo, pickProject = false }: { linkTo?: (l: LoadedTask) => { href: string; label: string } | null; pickProject?: boolean } = {},
 ) {
-  const [open, setOpen] = useState<LoadedTask | null>(null)
+  // `status` presets the dialog's state (a drop that needs a reviewer); `loaded` stays the task as read
+  const [open, setOpen] = useState<{ loaded: LoadedTask; status?: TaskStatus } | null>(null)
   const [error, setError] = useState('')
 
   /** One column of a project's board, in its order. */
@@ -79,17 +80,18 @@ export function useTaskEdit(
     persist,
     failed,
     moveTo,
-    edit: setOpen,
+    edit: (loaded: LoadedTask, status?: TaskStatus) => setOpen({ loaded, status }),
     dialog: open && (
       <Portal>
         <TaskDialog
-          key={open.file || open.task.id}
-          loaded={open}
+          key={open.loaded.file || open.loaded.task.id}
+          loaded={open.loaded}
+          status={open.status}
           architects={data.settings.architects}
-          link={linkTo?.(open) ?? null}
+          link={linkTo?.(open.loaded) ?? null}
           projects={pickProject ? projectIdChoices(data.projects) : null}
-          onSave={(task) => saveDialog(open, task)}
-          onRemove={() => run(() => deleteTask(data.dir, open.file, open.task.updatedAt))}
+          onSave={(task) => saveDialog(open.loaded, task)}
+          onRemove={() => run(() => deleteTask(data.dir, open.loaded.file, open.loaded.task.updatedAt))}
           // the close event comes a moment later; it must not close a dialog opened since
           onClose={() => setOpen((o) => (o === open ? null : o))}
         />
@@ -126,6 +128,7 @@ export function TaskBoard({ data, projectId, reloadTasks }: Props) {
     setDragging(null)
     setDropAt(null)
     if (!moved || !at || at.status !== status) return
+    if (dropNeedsReviewer(moved.task, status)) return edit.edit(moved, status)
     const list = placeAt(column(status), moved, at.index, status)
     if (list.length) edit.persist(list).catch(edit.failed)
   }
@@ -205,7 +208,6 @@ type CardProps = {
 function Card({ loaded: { task, file, duplicate }, data, today, drop, dragged, onOpen, onDragStart, onDragEnd }: CardProps) {
   const late = taskState(task, today) === 'overdue'
   const urgent = !!task.urgent && task.status !== 'done'
-  const badge = task.assignee ? badgeFor(data.settings.badges, task.assignee) : null
   return (
     <button
       type="button"
@@ -224,25 +226,48 @@ function Card({ loaded: { task, file, duplicate }, data, today, drop, dragged, o
       {task.urgent && <span class="urgent-corner" role="img" aria-label={t.urgent} title={t.urgent} />}
       <span class="task-title">{task.title}</span>
       {duplicate && <span class="badge">{t.syncConflict}: {file}</span>}
-      {(task.due || badge) && (
+      {(task.due || hasPeople(task)) && (
         <span class="task-foot">
           <span class={late ? 'date late' : 'date'}>
             {formatDate(task.due)}
             {late && <> · {t.overdue}</>}
           </span>
-          {badge && (
-            <span class="avatar" style={{ background: badge.color, color: textOn(badge.color) }} title={task.assignee}>
-              {badge.initials}
-            </span>
-          )}
+          <People task={task} badges={data.settings.badges} />
         </span>
       )}
     </button>
   )
 }
 
+/** The reviewer a card shows: only while the task waits for a check. */
+const shownReviewer = (task: Task) => (task.status === 'review' ? task.reviewer : '')
+
+export const hasPeople = (task: Task) => !!(task.assignee || shownReviewer(task))
+
+/** The assignee's circle and, in "Do weryfikacji", the reviewer's with a check mark; both hover as the pair. */
+export function People({ task, badges }: { task: Task; badges: Record<string, Badge> }) {
+  const reviewer = shownReviewer(task)
+  const title = reviewer ? t.people(task.assignee, reviewer) : task.assignee
+  const circle = (name: string, reviews: boolean) => {
+    const b = badgeFor(badges, name)
+    return (
+      <span class={reviews ? 'avatar reviewer' : 'avatar'} style={{ background: b.color, color: textOn(b.color) }} title={title}>
+        {b.initials}
+      </span>
+    )
+  }
+  return (
+    <>
+      {task.assignee && circle(task.assignee, false)}
+      {reviewer && circle(reviewer, true)}
+    </>
+  )
+}
+
 type DialogProps = {
   loaded: LoadedTask
+  /** the state the draft starts in, when not the task's own */
+  status?: TaskStatus
   architects: string[]
   link: { href: string; label: string } | null
   /** project choices ("bez projektu" comes first); null keeps the task's project */
@@ -254,18 +279,21 @@ type DialogProps = {
 
 type Precision = 'day' | 'month'
 
-function TaskDialog({ loaded, architects, link, projects, onSave, onRemove, onClose }: DialogProps) {
+function TaskDialog({ loaded, status, architects, link, projects, onSave, onRemove, onClose }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null)
   // with a project choice, a project that is gone shows (and is saved) as none
-  const [draft, setDraft] = useState<Task>(() =>
-    projects && !projects.some((p) => p.id === loaded.task.projectId) ? { ...loaded.task, projectId: '' } : loaded.task,
-  )
+  const [draft, setDraft] = useState<Task>(() => ({
+    ...loaded.task,
+    status: status ?? loaded.task.status,
+    ...(projects && !projects.some((p) => p.id === loaded.task.projectId) && { projectId: '' }),
+  }))
   const [precision, setPrecision] = useState<Precision>(parseDate(loaded.task.due)?.precision ?? 'day')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const isNew = !loaded.file
   const set = (patch: Partial<Task>) => setDraft((d) => ({ ...d, ...patch }))
-  const options = draft.assignee && !architects.includes(draft.assignee) ? [...architects, draft.assignee] : architects
+  // a person no longer in kalka.json stays selectable for the task that names them
+  const choices = (name: string) => (name && !architects.includes(name) ? [...architects, name] : architects)
 
   useEffect(() => ref.current?.showModal(), [])
 
@@ -286,6 +314,10 @@ function TaskDialog({ loaded, architects, link, projects, onSave, onRemove, onCl
     if (!draft.title.trim()) {
       e.preventDefault()
       return setError(t.taskTitleRequired)
+    }
+    if (needsReviewer(draft)) {
+      e.preventDefault()
+      return setError(t.reviewerRequired)
     }
     act(e, () => onSave(draft))
   }
@@ -322,6 +354,10 @@ function TaskDialog({ loaded, architects, link, projects, onSave, onRemove, onCl
           {t.description}
           <textarea rows={4} value={draft.description} onInput={(e) => set({ description: e.currentTarget.value })} />
         </label>
+        <label>
+          {t.reviewNote}
+          <textarea rows={2} value={draft.reviewNote} onInput={(e) => set({ reviewNote: e.currentTarget.value })} />
+        </label>
         <div class="dialog-row">
           <fieldset class="milestone">
             <legend>{t.due}</legend>
@@ -349,7 +385,14 @@ function TaskDialog({ loaded, architects, link, projects, onSave, onRemove, onCl
             {t.assignee}
             <select value={draft.assignee} onChange={(e) => set({ assignee: e.currentTarget.value })}>
               <option value=""></option>
-              {options.map((a) => <option key={a} value={a}>{a}</option>)}
+              {choices(draft.assignee).map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </label>
+          <label>
+            {t.reviewer}
+            <select value={draft.reviewer} onChange={(e) => set({ reviewer: e.currentTarget.value })}>
+              <option value=""></option>
+              {choices(draft.reviewer).map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
           </label>
           <label>

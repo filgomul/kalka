@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { architectOptions, formatDate, STATUSES, todayIso } from './model.ts'
-import { badgeFor, byDay, byDue, CHEER_EVERY, dayLabel, emptyTask, CHEER_MS, doneThisWeek, filterTaskRows, loadTodoView, saveTodoView, splitDone, TASK_STATUSES, taskState, textOn, type TaskStatus, type TodoView } from './tasks.ts'
+import { byDay, byDue, CHEER_EVERY, dayLabel, dropNeedsReviewer, emptyTask, CHEER_MS, doneThisWeek, filterTaskRows, loadTodoView, saveTodoView, splitDone, TASK_STATUSES, taskState, type TaskStatus, type TodoView } from './tasks.ts'
 import { cheers, statusLabels, t, taskStatusLabels } from './pl.ts'
 import { projectHref, withParam, type ViewProps } from './calendar-view.tsx'
-import { useTaskEdit } from './board.tsx'
+import { hasPeople, People, useTaskEdit } from './board.tsx'
 import type { Loaded as LoadedProject, LoadedTask } from './storage.ts'
 import type { Data } from './main.tsx'
 
@@ -54,7 +54,7 @@ export function TasksView({ data, params, onParams, reloadTasks }: ViewProps & {
 
   const rows = filterTaskRows(data.tasks, data.projects, { architect, unassigned, status, withProject })
   const floors = doneThisWeek(rows, today)
-  const architects = architectOptions(data.settings.architects, data.tasks.map((l) => l.task.assignee))
+  const architects = architectOptions(data.settings.architects, data.tasks.flatMap((l) => [l.task.assignee, l.task.reviewer]))
 
   function setArchitect(value: string) {
     let p = withParam(params, 'n', value === UNASSIGNED ? '1' : '')
@@ -65,6 +65,7 @@ export function TasksView({ data, params, onParams, reloadTasks }: ViewProps & {
   /** Moves a task; one that becomes done lands its stamp and counts towards the next cheer. */
   function move(l: LoadedTask, to: TaskStatus) {
     if (l.task.status === to) return
+    if (dropNeedsReviewer(l.task, to)) return edit.edit(l, to)
     edit.moveTo(l, to)
     if (to !== 'done') return
     setLanded(l.file)
@@ -236,7 +237,6 @@ function Card({ loaded: { task, file, duplicate }, data, project, today, dragged
   const done = task.status === 'done'
   const late = taskState(task, today) === 'overdue'
   const urgent = !!task.urgent && !done
-  const badge = task.assignee ? badgeFor(data.settings.badges, task.assignee) : null
   return (
     <div
       class={'task' + (done ? ' done' : '') + (urgent ? ' urgent' : '') + (dragged ? ' dragging' : '')}
@@ -269,17 +269,13 @@ function Card({ loaded: { task, file, duplicate }, data, project, today, dragged
       </span>
       <span class="task-project" data-none={project === null || undefined}>{project ?? t.noProject}</span>
       {duplicate && <span class="badge">{t.syncConflict}: {file}</span>}
-      {(task.due || badge) && (
+      {(task.due || hasPeople(task)) && (
         <span class="task-foot">
           <span class={late ? 'date late' : 'date'}>
             {formatDate(task.due)}
             {late && <> · {t.overdue}</>}
           </span>
-          {badge && (
-            <span class="avatar" style={{ background: badge.color, color: textOn(badge.color) }} title={task.assignee}>
-              {badge.initials}
-            </span>
-          )}
+          <People task={task} badges={data.settings.badges} />
         </span>
       )}
       {done && <span class={landing ? 'stamp landing' : 'stamp'} aria-hidden="true">{t.taskDone}</span>}

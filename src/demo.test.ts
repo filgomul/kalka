@@ -66,6 +66,16 @@ test('demo: Tasks', async () => {
   assert.ok(tasks.filter((t) => t.status === 'done' && t.doneAt).length > DONE_SHOWN, 'older done folded')
 })
 
+test('demo: Reviewers', async () => {
+  const tasks = (await open()).tasks.map((t) => t.task)
+  const review = tasks.filter((t) => t.status === 'review')
+  assert.ok(review.every((t) => t.reviewer), 'every review task has a reviewer')
+  assert.ok(review.some((t) => t.reviewer === t.assignee), 'one reviews own task')
+  assert.ok(review.some((t) => t.reviewer !== t.assignee), 'others review someone else')
+  assert.ok(review.some((t) => t.reviewNote), 'notes in review')
+  assert.ok(tasks.some((t) => t.status === 'doing' && t.reviewer && t.reviewNote), 'sent back with notes')
+})
+
 test('demo: Leaves and meetings', async () => {
   const { leaves, meetings } = await open()
   const ls = leaves.map((l) => l.leave)

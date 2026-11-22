@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { t } from './pl.ts'
 import { emptyProject, formatDate, type Project } from './model.ts'
-import { byDay, byDue, dayLabel, loadTodoView, saveTodoView, doneThisWeek, filterTaskRows, splitDone, badgeFor, emptyTask, GREY, normalizeTask, placeAt, prepareTaskForSave, sortTasks, stampDone, taskState, textOn, type Task } from './tasks.ts'
+import { byDay, byDue, dropNeedsReviewer, needsReviewer, dayLabel, loadTodoView, saveTodoView, doneThisWeek, filterTaskRows, splitDone, badgeFor, emptyTask, GREY, normalizeTask, placeAt, prepareTaskForSave, sortTasks, stampDone, taskState, textOn, type Task } from './tasks.ts'
 
 const task = (title: string, extra: Partial<Task> = {}): Task => ({ ...emptyTask('p1'), id: title, title, ...extra })
 const row = (title: string, extra: Partial<Task> = {}) => ({ task: task(title, extra), file: `${title}.json` })
@@ -21,7 +21,46 @@ test('tasks: Written file', () => {
   assert.equal(t.title, 'Rysunki elewacji')
   assert.equal(t.due, '2026-11-14')
   assert.equal(t.assignee, 'Anna Nowak')
+  assert.equal(t.reviewer, '')
+  assert.equal(t.reviewNote, '')
   assert.equal(t.status, 'todo')
+})
+
+test('tasks: File without reviewer', () => {
+  for (const raw of [{}, { reviewer: 7 as unknown as string, reviewNote: null as unknown as string }]) {
+    const t = normalizeTask({ id: 'a', projectId: 'p1', title: 'Rysunki', ...raw })
+    assert.equal(t.reviewer, '')
+    assert.equal(t.reviewNote, '')
+  }
+})
+
+test('tasks: Reviewer notes trimmed', () => {
+  assert.equal(prepareTaskForSave(task('A', { reviewNote: '  Popraw wymiary okien.  ' })).reviewNote, 'Popraw wymiary okien.')
+})
+
+test('tasks: State picked without a reviewer', () => {
+  assert.equal(needsReviewer(task('Rysunki elewacji', { status: 'review' })), true)
+  assert.equal(needsReviewer(task('Rysunki elewacji', { status: 'review', reviewer: 'Jan Kowalski' })), false)
+})
+
+test('tasks: Other states', () => {
+  for (const status of ['todo', 'doing', 'done'] as const) assert.equal(needsReviewer(task('A', { status })), false)
+})
+
+test('tasks: Assignee reviews', () => {
+  assert.equal(needsReviewer(task('A', { status: 'review', assignee: 'Anna Nowak', reviewer: 'Anna Nowak' })), false)
+})
+
+test('tasks: Reviewer without an assignee', () => {
+  assert.equal(t.people('Anna Nowak', 'Jan Kowalski'), 'osoba: Anna Nowak, weryfikuje: Jan Kowalski')
+  assert.equal(t.people('', 'Jan Kowalski'), 'osoba: -, weryfikuje: Jan Kowalski')
+})
+
+test('tasks: Back for fixes', () => {
+  const before = task('A', { status: 'review', reviewer: 'Jan Kowalski', reviewNote: 'Popraw wymiary okien.' })
+  const after = prepareTaskForSave(stampDone(before, { ...before, status: 'doing' }, '2026-11-22T10:00:00Z'))
+  assert.equal(after.reviewer, 'Jan Kowalski')
+  assert.equal(after.reviewNote, 'Popraw wymiary okien.')
 })
 
 test('tasks: Hand-edited file', () => {
@@ -74,6 +113,31 @@ test('tasks: Drag to done', () => {
   assert.equal(out.length, 1)
   assert.deepEqual([out[0].task.status, out[0].task.order], ['done', 5])
   assert.equal(placeAt([], moved, 0, 'done')[0].task.order, 0)
+})
+
+test('tasks: Between cards in review', () => {
+  const [d, e] = [row('D', { status: 'review', order: 1 }), row('E', { status: 'review', order: 2 })]
+  const a = row('A', { status: 'doing', reviewer: 'Jan Kowalski' })
+  assert.equal(dropNeedsReviewer(a.task, 'review'), false)
+  const out = placeAt([d, e], a, 1, 'review')
+  assert.deepEqual([out[0].task.status, out[0].task.reviewer], ['review', 'Jan Kowalski'])
+  assert.deepEqual(titles(sortTasks([d, e, ...out])), ['D', 'A', 'E'])
+})
+
+test('tasks: Drag without a reviewer', () => {
+  assert.equal(dropNeedsReviewer(task('Rysunki elewacji', { status: 'doing' }), 'review'), true)
+  assert.equal(dropNeedsReviewer(task('Rysunki elewacji', { status: 'doing' }), 'done'), false)
+})
+
+test('tasks: Reviewer already chosen', () => {
+  assert.equal(dropNeedsReviewer(task('Rysunki elewacji', { status: 'doing', reviewer: 'Jan Kowalski' }), 'review'), false)
+})
+
+test('tasks: Older task waiting for a check', () => {
+  // reordering in review or ticking done does not ask for a reviewer
+  const old = task('A', { status: 'review' })
+  assert.equal(dropNeedsReviewer(old, 'review'), false)
+  assert.equal(dropNeedsReviewer(old, 'done'), false)
 })
 
 test('tasks: Reorder within a column', () => {
@@ -203,6 +267,21 @@ test('tasks: One architect', () => {
 
 test('tasks: Unassigned', () => {
   assert.deepEqual(titles(filterTaskRows(assigned, [lipowa], { ...ALL, unassigned: true })), ['Nikt'])
+  // "Do weryfikacji" goes by reviewer
+  const review = [row('Bez weryfikatora', { status: 'review', assignee: 'Anna Nowak' }), row('Z weryfikatorem', { status: 'review', reviewer: 'Jan Kowalski' })]
+  assert.deepEqual(titles(filterTaskRows(review, [lipowa], { ...ALL, unassigned: true })), ['Bez weryfikatora'])
+})
+
+test('tasks: Tasks to check', () => {
+  const rows = [row('Rzut dachu', { status: 'review', assignee: 'Anna Nowak', reviewer: 'Jan Kowalski' })]
+  assert.deepEqual(titles(filterTaskRows(rows, [lipowa], { ...ALL, architect: 'Jan Kowalski' })), ['Rzut dachu'])
+  assert.deepEqual(titles(filterTaskRows(rows, [lipowa], { ...ALL, architect: 'Anna Nowak' })), [])
+})
+
+test('tasks: Reviewer outside review', () => {
+  const rows = [row('Rysunki elewacji', { status: 'doing', assignee: 'Anna Nowak', reviewer: 'Jan Kowalski' })]
+  assert.deepEqual(titles(filterTaskRows(rows, [lipowa], { ...ALL, architect: 'Jan Kowalski' })), [])
+  assert.deepEqual(titles(filterTaskRows(rows, [lipowa], { ...ALL, architect: 'Anna Nowak' })), ['Rysunki elewacji'])
 })
 
 test('tasks: All architects', () => {

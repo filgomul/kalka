@@ -124,6 +124,10 @@ export const t = {
   description: 'opis',
   due: 'termin',
   assignee: 'osoba',
+  reviewer: 'weryfikuje',
+  reviewNote: 'uwagi z weryfikacji',
+  /** hover text of the circles on a card waiting for a check */
+  people: (assignee: string, reviewer: string) => `osoba: ${assignee || '-'}, weryfikuje: ${reviewer}`,
   taskState: 'stan',
   remove: 'Usuń',
   confirmRemove: (title: string) => `Usunąć zadanie „${title}”?`,
@@ -141,6 +145,7 @@ export const t = {
   milestonesHint: 'Zmiany terminów zapisują się od razu.',
   timelineConflict: 'Ktoś inny zmienił ten projekt w międzyczasie. Terminy wczytano ponownie - powtórz zmianę.',
   taskTitleRequired: 'Podaj tytuł zadania.',
+  reviewerRequired: 'Wybierz osobę, która zweryfikuje zadanie.',
   taskConflict: 'Ktoś inny zmienił to zadanie w międzyczasie. Zadania są odświeżone, wprowadź zmianę ponownie.',
   unassigned: 'nieprzypisane',
   taskDone: 'wykonane',
