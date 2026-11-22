@@ -2,12 +2,12 @@
 
 The studio tracks all projects in one Excel sheet. It has no overview of what is due
 when, no filtering, and the branch-scope columns have grown into unreadable paragraphs.
-Kalka needs a place for the data that stays inside the studio's OneDrive, and a project
+Kalka needs a place for the data that stays inside the studio's synced storage, and a project
 list and form that replace the sheet one to one, before any calendar makes sense.
 
 ## What Changes
 
-- On first use the user picks the Kalka data folder on the synced OneDrive; the browser
+- On first use the user picks the Kalka data folder in the synced storage; the browser
   remembers it, and later visits need one click to reopen it.
 - Every project is one JSON file in that folder. The app reads all of them on open and
   writes one file on save, refusing to overwrite a file someone else changed meanwhile.
@@ -34,11 +34,11 @@ list and form that replace the sheet one to one, before any calendar makes sense
 Settled with the engineer on 2026-10-25:
 
 1. **No delete in the UI.** A finished project is marked `zakończony`; a file can be
-   removed in OneDrive if ever needed.
+   removed from the synced folder if ever needed.
 2. **Lead architects are a fixed list in `kalka.json`** (`"architects": [...]`), edited
    by hand in the data folder; no settings screen. The names are real people, so they
-   live only in the OneDrive folder, never in this public repo or its defaults.
+   live only in the synced folder, never in this public repo or its defaults.
 3. **The list shows l.p.** as its first column. Sorting stays by next milestone.
 4. **"MINIMUM" in branch scopes stays plain text**; no flag.
-5. **OneDrive conflict copies are cleaned up by the user** in OneDrive; the app only
+5. **Sync conflict copies are cleaned up by the user** in the synced folder; the app only
    marks them.

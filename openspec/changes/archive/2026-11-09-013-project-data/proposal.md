@@ -43,7 +43,7 @@ None.
 - Tests: `src/model.test.ts`
 - Docs: `AGENTS.md` (domain terms, project data in "How it fits together")
 - Data: the fields hold real people's contact data. They live only in the project
-  files on the shared OneDrive, like addresses today. Specs, tests and commits use
+  files in the shared folder, like addresses today. Specs, tests and commits use
   made-up names, numbers and plots only.
 - No migration: a file without the fields reads them as empty and gets them when the
   project is next written.

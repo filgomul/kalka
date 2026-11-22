@@ -6,13 +6,13 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
 
 ## How it fits together
 
-- **storage**: opens the data folder on the shared OneDrive (synced to every PC by the
-  OneDrive client) through the File System Access API. One JSON file per project in
+- **storage**: opens the shared data folder (synced to every PC by a file-sync
+  client) through the File System Access API. One JSON file per project in
   `projekty/`, one per task in `zadania/`, one per leave in `urlopy/`, one per meeting in
   `spotkania/`, settings in `kalka.json`. No server, no
-  accounts: whoever has the OneDrive folder has the data. Reading the remembered folder
+  accounts: whoever has the folder has the data. Reading the remembered folder
   (at startup or after "Otwórz folder Kalka") gives up after 5 s (`LOAD_TIMEOUT_MS`), as
-  a stuck OneDrive never answers, and offers picking the folder again.
+  a stuck sync client never answers, and offers picking the folder again.
 - **settings**: `kalka.json` lists the architects, each a name or
   `{ "name", "initials", "color" }` (hex); initials and colour fill the task card and
   meeting circles; the colour also marks the architect's leaves and meetings.

@@ -114,7 +114,7 @@ reads old files without migration.
   own "Zapisz" / "Anuluj", drag saves on drop.
 - [Native drag-and-drop does not work on touch or with a keyboard] -> state select in
   the dialog.
-- [OneDrive sync lag shows a stale board] -> the conflict check refuses stale writes and
+- [Sync lag shows a stale board] -> the conflict check refuses stale writes and
   reloads; "Odśwież" in the list reads everything again.
 - [Check-then-write is not atomic] -> same accepted limit as `saveProject`, now per task,
   so the window is smaller.

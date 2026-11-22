@@ -114,7 +114,7 @@ function App() {
     setData(await read(dir))
   }
 
-  // a stuck OneDrive never answers: after the limit offer picking the folder again,
+  // a stuck sync client never answers: after the limit offer picking the folder again,
   // but still open with the data if the read finishes before the user clicks
   async function loadRemembered(dir: FileSystemDirectoryHandle) {
     const reading = read(dir)

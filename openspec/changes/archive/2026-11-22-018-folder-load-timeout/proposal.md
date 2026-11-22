@@ -2,11 +2,11 @@
 
 ## Why
 
-On a computer where the OneDrive folder is paused, offline or holds cloud-only files,
+On a computer where the synced folder is paused, offline or holds cloud-only files,
 reading the remembered Kalka folder at startup never returns, so the page stays on
 "Wczytywanie…" with nothing to click (Trello card "Kalka wisi na Wczytywanie przy
 zapamiętanym folderze"). A private window works only because it has no remembered
-folder. The browser cannot tell that OneDrive is stuck, so the app has to stop waiting
+folder. The browser cannot tell that the sync is stuck, so the app has to stop waiting
 on its own.
 
 ## What Changes
@@ -16,7 +16,7 @@ on its own.
   the "Otwórz folder Kalka" click (when it did not); there it starts once the browser's
   permission prompt is answered, so time spent on the prompt does not count.
 - **After the limit**: the start screen shows a Polish message (the folder does not
-  answer, check that OneDrive runs and syncs) and the "Wybierz folder Kalka" button,
+  answer, check that file sync runs) and the "Wybierz folder Kalka" button,
   the same screen as when the remembered folder cannot be opened. Picking a folder
   replaces the remembered one, which is the reset; no data is touched.
 - **Late answer**: the read that timed out is not cancelled (the browser offers no
@@ -27,7 +27,7 @@ on its own.
 
 ## Out of scope
 
-- Detecting OneDrive's state (paused, offline): the browser cannot see it.
+- Detecting the sync state (paused, offline): the browser cannot see it.
 - Retrying the read in the background.
 
 ## Capabilities
@@ -61,5 +61,5 @@ Settled with the engineer on 2026-11-22:
    would read the same stuck folder again.
 3. **Late data is shown** if the stuck read finishes before the user clicks.
 4. **"Otwórz folder Kalka" gets the same limit and fallback**: without it, a browser
-   that did not keep access leaves the button disabled forever on a stuck OneDrive.
+   that did not keep access leaves the button disabled forever on a stuck sync.
    This goes beyond the card's "only the startup read".

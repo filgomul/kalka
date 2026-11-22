@@ -4,15 +4,15 @@
 
 ### Requirement: Remembered folder does not answer
 
-The system SHALL stop waiting when reading the remembered folder takes longer than 5 seconds, at startup or after "Otwórz folder Kalka" (counted from the end of the browser's permission prompt), explain in Polish that the folder does not answer and that OneDrive should be checked, and offer "Wybierz folder Kalka". If the read still finishes before the user clicks that button, the system SHALL open with that data. Saves, refreshes and reading a newly picked folder have no limit.
+The system SHALL stop waiting when reading the remembered folder takes longer than 5 seconds, at startup or after "Otwórz folder Kalka" (counted from the end of the browser's permission prompt), explain in Polish that the folder does not answer and that file sync should be checked, and offer "Wybierz folder Kalka". If the read still finishes before the user clicks that button, the system SHALL open with that data. Saves, refreshes and reading a newly picked folder have no limit.
 
-#### Scenario: OneDrive does not answer
+#### Scenario: Sync does not answer
 
-- **WHEN** the app opens on a computer whose browser kept access to the remembered folder, and reading the folder has not finished after 5 seconds (for example OneDrive is paused or the files are cloud-only)
-- **THEN** "Wczytywanie…" is replaced by "Folder Kalka nie odpowiada. Sprawdź, czy OneDrive działa i synchronizuje pliki, albo wybierz folder ponownie."
+- **WHEN** the app opens on a computer whose browser kept access to the remembered folder, and reading the folder has not finished after 5 seconds (for example the sync is paused or the files are cloud-only)
+- **THEN** "Wczytywanie…" is replaced by "Folder Kalka nie odpowiada. Sprawdź, czy synchronizacja plików działa, albo wybierz folder ponownie."
 - **AND** the "Wybierz folder Kalka" button is shown
 
-#### Scenario: OneDrive does not answer after "Otwórz folder Kalka"
+#### Scenario: Sync does not answer after "Otwórz folder Kalka"
 
 - **WHEN** the browser did not keep access, the user clicks "Otwórz folder Kalka" and allows access, and reading the folder has not finished 5 seconds after that
 - **THEN** the same message and the "Wybierz folder Kalka" button are shown instead of the disabled "Otwórz folder Kalka"

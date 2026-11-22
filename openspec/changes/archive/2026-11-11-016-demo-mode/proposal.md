@@ -1,6 +1,6 @@
 ## Why
 
-Kalka shows nothing until someone picks the studio's OneDrive folder, so it cannot be
+Kalka shows nothing until someone picks the studio's synced folder, so it cannot be
 shown to anyone without real data, tried in a browser that lacks the folder API, or
 checked by the engineer and the coding agent without setting up a scratch folder
 (Trello card "Zmockowane dane / strona demo"). A demo version with made-up, varied data

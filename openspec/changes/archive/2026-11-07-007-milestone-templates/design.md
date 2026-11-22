@@ -217,7 +217,7 @@ change ------+--> saveProject(dir, that, file, base.updatedAt) --> base = result
   keys cover keyboard users.
 - ["Anuluj" no longer undoes milestone changes] -> the hint "Zmiany terminów zapisują się
   od razu." under the heading, as on the task board.
-- [Every toggle rewrites the project file and syncs through OneDrive] -> a few writes a
+- [Every toggle rewrites the project file and syncs through the shared folder] -> a few writes a
   minute at most; the date debounce avoids a write per keystroke.
 - [A conflict drops the user's milestone change] -> the message asks to repeat it; the
   milestones on screen already show what the file holds. Merging stays out of scope.
