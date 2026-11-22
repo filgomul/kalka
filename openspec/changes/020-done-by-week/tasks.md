@@ -1,0 +1,21 @@
+# Tasks
+
+## 1. Grouping by week
+
+- [x] 1.1 `src/tasks.ts`: `byWeek(rows, today)` returns `{ key, rows }[]`, `key` being the week's Monday (`YYYY-MM-DD`), newest week first, empty weeks left out. A task's time is `doneAt ?? updatedAt`, its day `todayIso(new Date(time))` (local), its key `monday(day)` capped at `monday(today)`; rows in a group latest time first, then title. Replaces `splitDone` and `DONE_SHOWN` (keep `DONE_SHOWN = 5` as the per-week count). `weekLabel(key, today)`: "ten tydzień" for `monday(today)`, "w zeszłym tygodniu" for the Monday before, else `formatDate(key) + ' - ' + formatDate(addDays(key, 6))`. `src/tasks.test.ts`: replace the `splitDone` tests with "tasks: Groups and counts" (named apart from the day-group test, e.g. "tasks: Week groups and counts"), "tasks: Older week header", "tasks: Week boundary", "tasks: Empty week skipped", "tasks: Done ignores urgency in a week", "tasks: Older file", "tasks: Clock ahead", "tasks: Undo keeps it visible", "tasks: Nothing done". Made-up titles only. Verify: `pnpm test` green
+
+## 2. "Wykonane" in the tab
+
+- [x] 2.1 `src/pl.ts`: `thisWeek: 'ten tydzień'`, `lastWeek: 'w zeszłym tygodniu'`, `showMore: (n) => \`pokaż więcej (${n})\``; `showOlder` stays. `src/tasks-view.tsx`: "Wykonane" renders `byWeek(cards, today)`; the first groups whose key is this or last Monday always, the rest only after `showOlder`, with "pokaż starsze (N)" (N = tasks in the hidden groups) below while hidden; each group a `section.day-group` (alternating `data-alt`, header with `weekLabel` and count) showing `rows.slice(0, DONE_SHOWN)` plus the rest when its key is in a `Set` state of opened weeks, else "pokaż więcej (N)". Column header count unchanged. `src/style.css`: reuse `.day-group`; style the "pokaż więcej" button like `.older` inside a group. Verify: `pnpm build` type-checks
+- [x] 2.2 `src/demo.ts`: one more done task with `doneAt` today, so "ten tydzień" always shows in the demo. Verify: `pnpm test` green (demo tests)
+- [x] 2.3 `AGENTS.md`: the **tasks** line says done tasks by week (this and last week open, older folded) instead of "the five most recently done tasks". Verify: `git diff AGENTS.md` shows only that line
+
+## 3. Completion date in the dialog
+
+- [ ] 3.1 `src/tasks.ts`: `stampDone` uses a `doneAt` already on `after` when the task becomes done (`after.doneAt ?? now`) and keeps `after.doneAt` while it stays done, so a picked day survives; leaving done still drops it. `doneDay(task)` gives the local day the task counts as done (`doneAt || updatedAt`, as `byWeek`), `doneAtOn(day)` the ISO time of local noon that day. `src/tasks.test.ts`: "tasks: Back to its old week", "tasks: Picked when becoming done", "tasks: Unchanged", "tasks: Old file unchanged", with "tasks: Done time set/kept/removed" still green. Verify: `pnpm test` green
+- [ ] 3.2 `src/board.tsx` `TaskDialog`: while `draft.status === 'done'`, a row below the people and state row with `<input type="date" required max={todayIso()}>` labelled `t.doneDate`; its value is `doneDay(draft)` when `draft.doneAt` is set or the task was done when opened, else today; `onInput` with a value sets `draft.doneAt = doneAtOn(value)`, an empty value leaves it (and `required` blocks the save). Untouched, `draft.doneAt` stays as read (none for a task becoming done, so `stampDone` stamps now). `src/pl.ts`: `doneDate: 'data wykonania'`. Verify: `pnpm build` type-checks
+
+## 4. Verify
+
+- [ ] 4.1 `pnpm test` and `pnpm build` are green; `openspec validate --all --strict` passes
+- [ ] 4.2 Verify in the running dev environment (`pnpm dev`, Chrome or Edge, `?demo` or a scratch data folder outside the repo, made-up data only): "Wykonane" shows "ten tydzień" and "w zeszłym tygodniu" with counts and bands; older weeks behind "pokaż starsze (N)" and dated "dd.mm.rrrr - dd.mm.rrrr" when opened; a week with more than five tasks shows "pokaż więcej (N)" and opens only that group; ticking "wykonane" puts the task first in "ten tydzień" and unticking takes it back out; the architect filter changes the groups and counts; the project board's "Wykonane" is unchanged; in the dialog "data wykonania" shows only for "Wykonane", shows the stored day, offers no future day, and picking an old day moves a task dragged out of "Wykonane" and back into that week's group
