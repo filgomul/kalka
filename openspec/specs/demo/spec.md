@@ -105,6 +105,12 @@ The system SHALL fill the demo with made-up data that shows every feature. It ho
 - **THEN** every column has tasks, "Do weryfikacji" included, among them urgent ones, overdue ones, ones due today and this week, ones without a due date, ones without an assignee and ones without a project
 - **AND** "Wykonane" has more than five done tasks, so older ones are folded
 
+#### Scenario: Reviewers
+
+- **WHEN** the demo opens "Zadania"
+- **THEN** every task in "Do weryfikacji" has a reviewer, one of them its own assignee and the others someone else
+- **AND** one task in "Do weryfikacji" and one in "W trakcie", sent back for fixes, have reviewer notes
+
 #### Scenario: Leaves and meetings
 
 - **WHEN** the demo opens "Urlopy" and "Spotkania"
