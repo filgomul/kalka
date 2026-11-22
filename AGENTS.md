@@ -26,8 +26,9 @@ replaces an Excel sheet. Used by the studio owner and a few employees. Polish UI
   tab shows all tasks in the same columns, filtered by assignee (or "nieprzypisane";
   "Do weryfikacji" goes by reviewer instead), project status and having a project, ordered by due date ("Do zrobienia" switches to
   groups by day, the choice remembered per browser), with a "wykonane" checkbox,
-  the five most recently done tasks and the week's tenement on the right. It also adds
-  tasks; a task may have no project (then it shows only in that tab).
+  done tasks grouped by week (this and last week open, older weeks folded) and the
+  week's tenement on the right. It also adds tasks; a task may have no project (then it
+  shows only in that tab).
 - **calendar**: three modes, "Miesiąc" (month grid), "Przegląd" (blocks of a month range)
   and "Harmonogram" (one row per project over the same range: a bar from its first to
   its last date, circles for days, rounded bands for months), plus the "Terminy" list of

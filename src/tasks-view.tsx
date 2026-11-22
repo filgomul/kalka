@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { architectOptions, formatDate, STATUSES, todayIso } from './model.ts'
-import { byDay, byDue, CHEER_EVERY, dayLabel, dropNeedsReviewer, emptyTask, CHEER_MS, doneThisWeek, filterTaskRows, loadTodoView, saveTodoView, splitDone, TASK_STATUSES, taskState, type TaskStatus, type TodoView } from './tasks.ts'
+import { byDay, byDue, byWeek, CHEER_EVERY, dayLabel, DONE_SHOWN, dropNeedsReviewer, emptyTask, CHEER_MS, doneThisWeek, filterTaskRows, loadTodoView, saveTodoView, TASK_STATUSES, taskState, weekLabel, type TaskStatus, type TodoView } from './tasks.ts'
 import { cheers, statusLabels, t, taskStatusLabels } from './pl.ts'
 import { projectHref, withParam, type ViewProps } from './calendar-view.tsx'
 import { hasPeople, People, useTaskEdit } from './board.tsx'
+import { addDays, monday } from './calendar.ts'
 import type { Loaded as LoadedProject, LoadedTask } from './storage.ts'
 import type { Data } from './main.tsx'
 
@@ -22,6 +23,8 @@ function browserStore(): Storage | undefined {
 /** The "Zadania" tab: tasks of all projects by state, ordered by due date. */
 export function TasksView({ data, params, onParams, reloadTasks }: ViewProps & { reloadTasks: () => Promise<void> }) {
   const today = todayIso()
+  // "Wykonane" shows this week and last week; older weeks wait for "pokaż starsze"
+  const lastWeek = addDays(monday(today), -7)
   const architect = params.get('a') ?? ''
   const unassigned = params.get('n') === '1'
   const status = params.get('s') ?? ''
@@ -40,6 +43,7 @@ export function TasksView({ data, params, onParams, reloadTasks }: ViewProps & {
   const [dragging, setDragging] = useState<LoadedTask | null>(null)
   const [over, setOver] = useState<TaskStatus | null>(null)
   const [showOlder, setShowOlder] = useState(false)
+  const [openWeeks, setOpenWeeks] = useState<Set<string>>(new Set())
   const [todoView, setTodoView] = useState<TodoView>(() => loadTodoView(browserStore()))
   function pickView(view: TodoView) {
     setTodoView(view)
@@ -147,7 +151,8 @@ export function TasksView({ data, params, onParams, reloadTasks }: ViewProps & {
         <div class="board tasks-tab">
           {TASK_STATUSES.map((s) => {
             const cards = rows.filter((l) => l.task.status === s)
-            const done = s === 'done' ? splitDone(cards) : null
+            const weeks = s === 'done' ? byWeek(cards, today) : null
+            const olderCount = weeks?.filter((g) => g.key < lastWeek).reduce((n, g) => n + g.rows.length, 0) ?? 0
             return (
               <div
                 key={s}
@@ -183,12 +188,27 @@ export function TasksView({ data, params, onParams, reloadTasks }: ViewProps & {
                     {cheer[1]}
                   </p>
                 )}
-                {done ? (
+                {weeks ? (
                   <>
-                    {done.recent.map(card)}
-                    {showOlder && done.older.map(card)}
-                    {!showOlder && done.older.length > 0 && (
-                      <button type="button" class="older" onClick={() => setShowOlder(true)}>{t.showOlder(done.older.length)}</button>
+                    {weeks.filter((g) => showOlder || g.key >= lastWeek).map((g, i) => {
+                      const open = openWeeks.has(g.key)
+                      return (
+                        <section key={g.key} class="day-group" data-alt={i % 2 === 1 || undefined}>
+                          <h4>
+                            {weekLabel(g.key, today)}
+                            <span class="count">{g.rows.length}</span>
+                          </h4>
+                          {(open ? g.rows : g.rows.slice(0, DONE_SHOWN)).map(card)}
+                          {!open && g.rows.length > DONE_SHOWN && (
+                            <button type="button" class="older" onClick={() => setOpenWeeks(new Set(openWeeks).add(g.key))}>
+                              {t.showMore(g.rows.length - DONE_SHOWN)}
+                            </button>
+                          )}
+                        </section>
+                      )
+                    })}
+                    {!showOlder && olderCount > 0 && (
+                      <button type="button" class="older" onClick={() => setShowOlder(true)}>{t.showOlder(olderCount)}</button>
                     )}
                   </>
                 ) : s === 'todo' && todoView === 'days' ? (

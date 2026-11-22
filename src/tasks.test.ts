@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { t } from './pl.ts'
 import { emptyProject, formatDate, type Project } from './model.ts'
-import { byDay, byDue, dropNeedsReviewer, needsReviewer, dayLabel, loadTodoView, saveTodoView, doneThisWeek, filterTaskRows, splitDone, badgeFor, emptyTask, GREY, normalizeTask, placeAt, prepareTaskForSave, sortTasks, stampDone, taskState, textOn, type Task } from './tasks.ts'
+import { byDay, byDue, byWeek, weekLabel, dropNeedsReviewer, needsReviewer, dayLabel, loadTodoView, saveTodoView, doneThisWeek, filterTaskRows, doneAtOn, doneDay, badgeFor, emptyTask, GREY, normalizeTask, placeAt, prepareTaskForSave, sortTasks, stampDone, taskState, textOn, type Task } from './tasks.ts'
 
 const task = (title: string, extra: Partial<Task> = {}): Task => ({ ...emptyTask('p1'), id: title, title, ...extra })
 const row = (title: string, extra: Partial<Task> = {}) => ({ task: task(title, extra), file: `${title}.json` })
@@ -316,31 +316,86 @@ test('tasks: Project order ignored', () => {
   assert.deepEqual(titles(byDue(rows)), ['B', 'A'])
 })
 
-const done = (title: string, day: number) => row(title, { status: 'done', doneAt: `2026-11-${String(day).padStart(2, '0')}T10:00:00.000Z` })
-const eight = [1, 2, 3, 4, 5, 6, 7, 8].map((d) => done(`T${d}`, d))
+const done = (title: string, day: number, extra: Partial<Task> = {}) =>
+  row(title, { status: 'done', doneAt: `2026-11-${String(day).padStart(2, '0')}T10:00:00.000Z`, ...extra })
+/** Wednesday; this week is 2026-11-16 - 2026-11-22 */
+const WED = '2026-11-18'
+const weeks = (rows: { task: Task }[], today = WED) => byWeek(rows, today).map((g) => [weekLabel(g.key, today), titles(g.rows)])
 
-test('tasks: More than five', () => {
-  const { recent, older } = splitDone(eight)
-  assert.deepEqual(titles(recent), ['T8', 'T7', 'T6', 'T5', 'T4'])
-  assert.equal(older.length, 3)
+test('tasks: Week groups and counts', () => {
+  assert.deepEqual(weeks([done('A', 17), done('B', 18), done('C', 12), done('D', 3)]), [
+    ['ten tydzień', ['B', 'A']],
+    ['w zeszłym tygodniu', ['C']],
+    ['02.11.2026 - 08.11.2026', ['D']],
+  ])
 })
 
-test('tasks: Show older', () => {
-  assert.deepEqual(titles(splitDone(eight).older), ['T3', 'T2', 'T1'])
+test('tasks: Older week header', () => {
+  assert.equal(weekLabel('2026-10-26', WED), '26.10.2026 - 01.11.2026')
 })
 
-test('tasks: Undo keeps it visible', () => {
-  const ticked = row('Nowe', { status: 'done', doneAt: NOW })
-  assert.equal(splitDone([...eight, ticked]).recent[0], ticked)
+test('tasks: Week boundary', () => {
+  const local = (d: number, h: number, m: number) => new Date(2026, 10, d, h, m).toISOString()
+  const rows = [row('Niedziela', { status: 'done', doneAt: local(15, 23, 30) }), row('Poniedziałek', { status: 'done', doneAt: local(16, 0, 10) })]
+  assert.deepEqual(weeks(rows, '2026-11-16'), [['ten tydzień', ['Poniedziałek']], ['w zeszłym tygodniu', ['Niedziela']]])
+})
+
+test('tasks: Empty week skipped', () => {
+  assert.deepEqual(weeks([done('A', 18), done('B', 4)]).map((g) => g[0]), ['ten tydzień', '02.11.2026 - 08.11.2026'])
+})
+
+test('tasks: Done ignores urgency in a week', () => {
+  assert.deepEqual(weeks([done('Pilne', 17, { urgent: true }), done('Inne', 18)]), [['ten tydzień', ['Inne', 'Pilne']]])
 })
 
 test('tasks: Older file', () => {
-  const old = row('Stare', { status: 'done', updatedAt: '2026-11-02T09:00:00.000Z' })
-  assert.deepEqual(titles(splitDone([old, done('Nowsze', 5)]).recent), ['Nowsze', 'Stare'])
+  const old = row('Stare', { status: 'done', updatedAt: '2026-11-17T09:00:00.000Z' })
+  assert.deepEqual(weeks([old, done('Nowsze', 18)]), [['ten tydzień', ['Nowsze', 'Stare']]])
 })
 
-test('tasks: Done ignores urgency', () => {
-  assert.deepEqual(titles(splitDone([row('Pilne', { status: 'done', urgent: true, doneAt: '2026-11-05T10:00:00.000Z' }), done('Inne', 6)]).recent), ['Inne', 'Pilne'])
+test('tasks: Clock ahead', () => {
+  assert.deepEqual(weeks([done('A', 18), done('Z przyszłości', 24)]), [['ten tydzień', ['Z przyszłości', 'A']]])
+})
+
+test('tasks: Undo keeps it visible', () => {
+  const eight = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => row(`T${n}`, { status: 'done', doneAt: `2026-11-17T0${n}:00:00.000Z` }))
+  const ticked = row('Nowe', { status: 'done', doneAt: '2026-11-18T10:00:00.000Z' })
+  assert.equal(byWeek([...eight, ticked], WED)[0].rows[0], ticked)
+})
+
+test('tasks: File without any time', () => {
+  const bare = row('Bez czasu', { status: 'done', doneAt: '', updatedAt: '' })
+  const groups = byWeek([bare, done('A', 18)], WED)
+  assert.deepEqual(groups.map((g) => titles(g.rows)), [['A'], ['Bez czasu']])
+})
+
+test('tasks: Back to its old week', () => {
+  // dragged out and back: done again today; then 2026-11-03 picked in the dialog
+  const before = task('Stara', { status: 'done', doneAt: '2026-11-18T09:00:00.000Z' })
+  const saved = stampDone(before, { ...before, doneAt: doneAtOn('2026-11-03') }, NOW)
+  assert.equal(doneDay(saved), '2026-11-03')
+  assert.deepEqual(weeks([{ task: saved }]), [['02.11.2026 - 08.11.2026', ['Stara']]])
+})
+
+test('tasks: Picked when becoming done', () => {
+  const before = task('A', { status: 'doing' })
+  const saved = stampDone(before, { ...before, status: 'done', doneAt: doneAtOn('2026-11-10') }, NOW)
+  assert.equal(doneDay(saved), '2026-11-10')
+})
+
+test('tasks: Unchanged', () => {
+  const before = task('A', { status: 'done', doneAt: '2026-11-03T13:20:00.000Z' })
+  assert.equal(stampDone(before, { ...before, title: 'B' }, NOW).doneAt, '2026-11-03T13:20:00.000Z')
+})
+
+test('tasks: Old file unchanged', () => {
+  const before = task('A', { status: 'done', updatedAt: '2026-11-05T10:00:00.000Z' })
+  assert.equal(doneDay(before), '2026-11-05')
+  assert.equal('doneAt' in stampDone(before, { ...before, title: 'B' }, NOW), false)
+})
+
+test('tasks: Nothing done', () => {
+  assert.deepEqual(byWeek([], WED), [])
 })
 
 // Building of the week (local noon, so no time zone moves the day)
