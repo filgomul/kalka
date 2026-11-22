@@ -69,6 +69,18 @@ export async function reopenFolder(dir: FileSystemDirectoryHandle): Promise<void
   if ((await dir.requestPermission({ mode: 'readwrite' })) !== 'granted') throw new Error('permission denied')
 }
 
+/** How long reading the remembered folder may take before the app offers picking it again. */
+export const LOAD_TIMEOUT_MS = 5000
+
+/** Settles like `promise`, or rejects with a `TimeoutError` after `ms`; `promise` itself keeps running. */
+export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new DOMException('folder did not answer', 'TimeoutError')), ms)
+  })
+  return Promise.race([promise, limit]).finally(() => clearTimeout(timer))
+}
+
 // Folder contents
 
 /** Reads kalka.json, creating it, projekty/, zadania/, urlopy/ and spotkania/ when missing. */

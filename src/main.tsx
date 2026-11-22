@@ -1,10 +1,11 @@
 import { render, type ComponentChildren } from 'preact'
-import { useEffect, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { t } from './pl.ts'
 import { parseSort, sortParam, todayIso, type Filter, type Sort } from './model.ts'
 import {
   hasAccess,
   isSupported,
+  LOAD_TIMEOUT_MS,
   openFolder,
   pickFolder,
   readLeaves,
@@ -15,6 +16,7 @@ import {
   reopenFolder,
   type ReadResult,
   type Settings,
+  withTimeout,
 } from './storage.ts'
 import { ProjectList } from './list.tsx'
 import { ProjectForm } from './form.tsx'
@@ -79,6 +81,8 @@ function App() {
   const [busy, setBusy] = useState(false)
   // true until we know whether the remembered folder opens without a click, or the demo is loaded
   const [checking, setChecking] = useState(() => demo || isSupported())
+  // set by "Wybierz folder Kalka": a remembered folder that answers after that is ignored
+  const picked = useRef(false)
 
   useEffect(() => {
     if (demo) {
@@ -92,7 +96,7 @@ function App() {
     if (!isSupported()) return
     ;(async () => {
       const dir = await rememberedFolder()
-      if (dir && (await hasAccess(dir))) await load(dir)
+      if (dir && (await hasAccess(dir))) await loadRemembered(dir)
       else setRemembered(dir ?? null)
     })()
       .catch(fail)
@@ -101,9 +105,34 @@ function App() {
 
   if (!isSupported() && !demo) return <Screen><p>{t.unsupported}</p>{demoLink}</Screen>
 
-  async function load(dir: FileSystemDirectoryHandle) {
+  async function read(dir: FileSystemDirectoryHandle): Promise<Data> {
     const settings = await openFolder(dir)
-    setData({ dir, settings, ...(await readProjects(dir)) })
+    return { dir, settings, ...(await readProjects(dir)) }
+  }
+
+  async function load(dir: FileSystemDirectoryHandle) {
+    setData(await read(dir))
+  }
+
+  // a stuck OneDrive never answers: after the limit offer picking the folder again,
+  // but still open with the data if the read finishes before the user clicks
+  async function loadRemembered(dir: FileSystemDirectoryHandle) {
+    const reading = read(dir)
+    try {
+      setData(await withTimeout(reading, LOAD_TIMEOUT_MS))
+    } catch (e) {
+      if ((e as Error).name !== 'TimeoutError') throw e
+      setError(t.folderNotAnswering)
+      setRemembered(null)
+      reading.then(
+        (late) => {
+          if (picked.current) return
+          setError('')
+          setData(late)
+        },
+        () => {},
+      )
+    }
   }
 
   function fail(e: unknown) {
@@ -117,9 +146,13 @@ function App() {
     setBusy(true)
     setError('')
     try {
-      const dir = how === 'pick' ? await pickFolder() : remembered!
-      if (how === 'reopen') await reopenFolder(dir)
-      await load(dir)
+      if (how === 'pick') {
+        picked.current = true
+        await load(await pickFolder())
+      } else {
+        await reopenFolder(remembered!)
+        await loadRemembered(remembered!)
+      }
     } catch (e) {
       fail(e)
     } finally {

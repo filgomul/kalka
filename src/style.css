@@ -443,7 +443,8 @@ td.title a:hover {
 }
 
 .screen .demo-link {
-  display: inline-block;
+  display: block;
+  width: fit-content;
   margin-top: 16px;
 }
 
