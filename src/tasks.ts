@@ -17,6 +17,10 @@ export type Task = {
   due?: string
   /** an architect's name; empty when nobody is assigned */
   assignee: string
+  /** the architect who checks it in "Do weryfikacji"; empty when none, kept when the task leaves review */
+  reviewer: string
+  /** what the reviewer found; empty when nothing */
+  reviewNote: string
   status: TaskStatus
   /** place in its column, smaller first; absent until someone places the task */
   order?: number
@@ -33,7 +37,7 @@ export type Badge = { initials?: string; color?: string }
 type Row = { task: Task }
 
 export function emptyTask(projectId: string): Task {
-  return { id: newId(), projectId, title: '', description: '', assignee: '', status: 'todo', updatedAt: '' }
+  return { id: newId(), projectId, title: '', description: '', assignee: '', reviewer: '', reviewNote: '', status: 'todo', updatedAt: '' }
 }
 
 /** Fills fields a hand-edited file lacks; the caller has checked `id` and `projectId`. */
@@ -45,6 +49,8 @@ export function normalizeTask(raw: Partial<Task> & { id: string }): Task {
     title: text(raw.title),
     description: text(raw.description),
     assignee: text(raw.assignee),
+    reviewer: text(raw.reviewer),
+    reviewNote: text(raw.reviewNote),
     status: TASK_STATUSES.includes(raw.status as TaskStatus) ? raw.status! : 'todo',
     updatedAt: text(raw.updatedAt),
   }
@@ -65,10 +71,16 @@ export function stampDone(before: Task | undefined, after: Task, now: string): T
 
 /** Trims text and drops a date that is not a day or a month before a save. */
 export function prepareTaskForSave(task: Task): Task {
-  const out = { ...task, title: task.title.trim(), description: task.description.trim() }
+  const out = { ...task, title: task.title.trim(), description: task.description.trim(), reviewNote: task.reviewNote.trim() }
   if (!parseDate(out.due)) delete out.due
   return out
 }
+
+/** A task in "Do weryfikacji" must name who checks it. */
+export const needsReviewer = (task: Task) => task.status === 'review' && !task.reviewer
+
+/** A drop onto `to` from another column that would leave the task in review without a reviewer: ask for one instead. */
+export const dropNeedsReviewer = (task: Task, to: TaskStatus) => task.status !== to && needsReviewer({ ...task, status: to })
 
 /** Like a calendar entry: done, overdue (due before `today`, not done) or open. */
 export function taskState(task: Task, today: string): 'done' | 'overdue' | 'open' {
@@ -121,7 +133,7 @@ export type TaskFilter = { architect: string; unassigned: boolean; status: strin
 /** The task's project id, or '' without one or when no project file has that id. */
 export const taskProjectId = (task: Task, projectIds: Set<string>) => (task.projectId && projectIds.has(task.projectId) ? task.projectId : '')
 
-/** Tasks narrowed by having a project, by the status of their project (tasks without one pass), and by assignee. */
+/** Tasks narrowed by having a project, by the status of their project (tasks without one pass), and by person: the reviewer in "Do weryfikacji", the assignee elsewhere. */
 export function filterTaskRows<T extends Row>(rows: T[], projects: { project: Project }[], f: TaskFilter): T[] {
   const ids = new Set(projects.map((l) => l.project.id))
   const shown = new Set(filterProjects(projects, { architect: '', status: f.status, q: '' }).map((l) => l.project.id))
@@ -129,8 +141,9 @@ export function filterTaskRows<T extends Row>(rows: T[], projects: { project: Pr
     const id = taskProjectId(task, ids)
     if (f.withProject === 'z' ? !id : f.withProject === 'bez' ? !!id : false) return false
     if (id && !shown.has(id)) return false
-    if (f.unassigned) return !task.assignee
-    return !f.architect || task.assignee === f.architect
+    const who = task.status === 'review' ? task.reviewer : task.assignee
+    if (f.unassigned) return !who
+    return !f.architect || who === f.architect
   })
 }
 

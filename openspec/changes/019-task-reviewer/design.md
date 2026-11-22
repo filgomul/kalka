@@ -25,9 +25,9 @@ reviewer; any per-round history of reviewer notes.
    keys would need `delete` handling everywhere for no gain.
 2. **One pure check** in `src/tasks.ts`: `needsReviewer(task)` is true when
    `task.status === 'review'` and `task.reviewer` is empty. The dialog runs it on the
-   draft before saving. The drops run it on `{ ...task, status: 'review' }` only when
-   the task comes from another column, so reordering or ticking an older reviewer-less
-   task in review keeps working.
+   draft before saving. The drops use `dropNeedsReviewer(task, to)`, which runs it on
+   `{ ...task, status: to }` only when the task comes from another column, so
+   reordering or ticking an older reviewer-less task in review keeps working.
 3. **Opening the dialog with a preset state**: `useTaskEdit.edit` takes an optional
    initial state for the draft, and keeps the task as read as `before`. Then
    `saveDialog` sees the state change and puts the task at the bottom of "Do

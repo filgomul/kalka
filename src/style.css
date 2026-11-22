@@ -950,6 +950,25 @@ button.task.urgent:hover,
   letter-spacing: 0.02em;
 }
 
+/* the reviewer's circle on a card waiting for a check: a small check badge on its corner */
+.avatar.reviewer {
+  position: relative;
+}
+
+.avatar.reviewer::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--surface);
+  background: var(--lane-review)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 6.2 5.1 8.3 9 4' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    center / 100% no-repeat;
+}
+
 /* Zadania tab: the card is a div holding a checkbox and a title button */
 .tasks-tab .task {
   display: flex;
