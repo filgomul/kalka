@@ -20,4 +20,4 @@
 
 - [x] 4.1 `pnpm test` and `pnpm build` are green; `openspec validate --all --strict` passes
 - [x] 4.2 Verify in the running dev environment (`pnpm dev`, Chrome or Edge, `?demo` and a scratch data folder outside the repo, made-up data only): reviewer and notes in the dialog and in the task file; the reviewer error; drag to "Do weryfikacji" with and without a reviewer on a project board and in "Zadania", "Anuluj" and "Zapisz"; back to "W trakcie" keeps reviewer and notes; both circles and hover text; "Zadania" filtered to an architect and to "nieprzypisane"; an older file with `"status": "review"` and no reviewer
-- [ ] 4.3 Before the archive commit: rebase on `main` and check the MODIFIED requirements still match `openspec/specs/` (no other change touched the tasks or demo requirements this change modifies)
+- [x] 4.3 Before the archive commit: rebase on `main` and check the MODIFIED requirements still match `openspec/specs/` (no other change touched the tasks or demo requirements this change modifies)

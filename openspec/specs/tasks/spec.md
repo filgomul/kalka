@@ -29,7 +29,7 @@ The system SHALL show a section "Zadania" on the page of a saved project, betwee
 
 ### Requirement: Task fields
 
-The system SHALL hold for each task a title, a description, a due date with day or month precision stored and shown like a milestone date, an assignee and a state. Only the title is required. The assignee is picked from the architects in `kalka.json`, whoever leads the project.
+The system SHALL hold for each task a title, a description, a due date with day or month precision stored and shown like a milestone date, an assignee, a reviewer ("weryfikuje"), reviewer notes ("uwagi z weryfikacji") and a state. Only the title is required, and the reviewer in "Do weryfikacji". The assignee and the reviewer are picked from the architects in `kalka.json`, whoever leads the project; the reviewer may be the assignee. The dialog always shows both reviewer fields, and the reviewer and the notes stay when the task changes state.
 
 #### Scenario: Assignee other than the lead architect
 
@@ -51,6 +51,27 @@ The system SHALL hold for each task a title, a description, a due date with day 
 
 - **WHEN** a task's assignee is "Piotr Zieliński", who is not in `kalka.json`
 - **THEN** the dialog shows "Piotr Zieliński" as the selected assignee and saving without touching the field keeps it
+
+#### Scenario: Assignee reviews
+
+- **WHEN** "Rysunki elewacji" is assigned to "Anna Nowak" and the user picks "Anna Nowak" in "weryfikuje"
+- **THEN** the task can be saved in "Do weryfikacji"
+
+#### Scenario: Reviewer no longer listed
+
+- **WHEN** a task's reviewer is "Piotr Zieliński", who is not in `kalka.json`
+- **THEN** the dialog shows "Piotr Zieliński" as the selected reviewer and saving without touching the field keeps it
+
+#### Scenario: Back for fixes
+
+- **WHEN** a task in "Do weryfikacji" reviewed by "Jan Kowalski" gets "Popraw wymiary okien." in "uwagi z weryfikacji" and is moved to "W trakcie"
+- **THEN** the task file still holds `"reviewer": "Jan Kowalski"` and `"reviewNote": "Popraw wymiary okien."`
+- **AND** opening the task shows both in the dialog
+
+#### Scenario: Reviewer on a task not yet in review
+
+- **WHEN** the user picks "Jan Kowalski" in "weryfikuje" on a task in "Do zrobienia" and saves
+- **THEN** the task file holds `"reviewer": "Jan Kowalski"` and the task stays in "Do zrobienia"
 
 ### Requirement: Add task
 
@@ -84,7 +105,7 @@ The system SHALL open a dialog with all fields of a task when its card is clicke
 
 ### Requirement: Move task by dragging
 
-The system SHALL let the user drag a card above or below another card, in its own column or in another one, or onto a column's empty space, which puts it at the bottom. While dragging, the board marks where the card will land. A drop sets the task to that column's state and that place and saves at once; a drop where the card already is changes nothing.
+The system SHALL let the user drag a card above or below another card, in its own column or in another one, or onto a column's empty space, which puts it at the bottom. While dragging, the board marks where the card will land. A drop sets the task to that column's state and that place and saves at once; a drop where the card already is changes nothing. A task without a reviewer dropped on "Do weryfikacji" from another column opens the dialog instead, as "Reviewer asked for on the way to Do weryfikacji" says.
 
 #### Scenario: Drag to done
 
@@ -101,6 +122,11 @@ The system SHALL let the user drag a card above or below another card, in its ow
 
 - **WHEN** "W trakcie" shows "D", "E" and the user drags "A" from "Do zrobienia" between "D" and "E"
 - **THEN** "W trakcie" shows "D", "A", "E" and "A" has the state `doing`
+
+#### Scenario: Between cards in review
+
+- **WHEN** "Do weryfikacji" shows "D", "E" and the user drags "A", reviewed by "Jan Kowalski", from "W trakcie" between "D" and "E"
+- **THEN** "Do weryfikacji" shows "D", "A", "E" and "A" has the state `review`
 
 #### Scenario: Same place
 
@@ -142,7 +168,7 @@ The system SHALL write every task change (add, edit, move, delete) at once to th
 
 ### Requirement: Task card
 
-The system SHALL show each task as a card with its title, its due date in the bottom-left corner and, when it has an assignee, a circle with the assignee's initials in the assignee's colour in the bottom-right corner. Text in the circle is light or dark, whichever contrasts more with the colour.
+The system SHALL show each task as a card with its title, its due date in the bottom-left corner and, when it has an assignee, a circle with the assignee's initials in the assignee's colour in the bottom-right corner. Text in the circle is light or dark, whichever contrasts more with the colour. A card in "Do weryfikacji" whose task has a reviewer also shows, after the assignee's circle, the reviewer's circle with a small check mark; hovering either circle shows "osoba: <assignee>, weryfikuje: <reviewer>" ("osoba: -" without an assignee). Cards in the other columns show no reviewer.
 
 #### Scenario: Full card
 
@@ -163,6 +189,22 @@ The system SHALL show each task as a card with its title, its due date in the bo
 
 - **WHEN** today is 2026-11-20 and a task in "Wykonane" is due 2026-11-14
 - **THEN** its date is not marked "po terminie"
+
+#### Scenario: Waiting for a check
+
+- **WHEN** "Rysunki elewacji" in "Do weryfikacji" is assigned to "Anna Nowak" ("AN") and reviewed by "Jan Kowalski" ("JK")
+- **THEN** the card shows the "AN" circle and then the "JK" circle with a check mark
+- **AND** hovering either shows "osoba: Anna Nowak, weryfikuje: Jan Kowalski"
+
+#### Scenario: Reviewer without an assignee
+
+- **WHEN** a task in "Do weryfikacji" has no assignee and is reviewed by "Jan Kowalski"
+- **THEN** the card shows only the "JK" circle with a check mark, and hovering it shows "osoba: -, weryfikuje: Jan Kowalski"
+
+#### Scenario: Reviewer outside review
+
+- **WHEN** a task in "W trakcie" assigned to "Anna Nowak" has "Jan Kowalski" as reviewer
+- **THEN** the card shows only the "AN" circle
 
 ### Requirement: Assignee initials and colour
 
@@ -219,12 +261,12 @@ The system SHALL refuse to write or delete a task whose file changed on disk sin
 
 ### Requirement: Task file
 
-The system SHALL keep each task as `zadania/<id>.json` holding `id`, `projectId` (empty for a task without a project), `title`, `description`, `due` (absent without a date), `assignee` (empty when none), `status` (`todo`, `doing`, `review` or `done`), `order` (a number for its place in its column), `urgent` (`true` for an urgent task, absent otherwise), `doneAt` (the time the task last became done, absent unless done) and `updatedAt`. A file with an unknown status counts as `todo`; missing text fields, `projectId` included, count as empty; a `projectId` that matches no project file counts as no project; without a numeric `order` the task has no place yet; any `urgent` other than `true` counts as not urgent. `doneAt` is set when a task's state becomes `done`, kept while it stays done, and removed when it leaves `done`.
+The system SHALL keep each task as `zadania/<id>.json` holding `id`, `projectId` (empty for a task without a project), `title`, `description`, `due` (absent without a date), `assignee` (empty when none), `reviewer` (empty when none), `reviewNote` (empty when none), `status` (`todo`, `doing`, `review` or `done`), `order` (a number for its place in its column), `urgent` (`true` for an urgent task, absent otherwise), `doneAt` (the time the task last became done, absent unless done) and `updatedAt`. A file with an unknown status counts as `todo`; missing text fields, `projectId`, `reviewer` and `reviewNote` included, count as empty; a `projectId` that matches no project file counts as no project; without a numeric `order` the task has no place yet; any `urgent` other than `true` counts as not urgent. `doneAt` is set when a task's state becomes `done`, kept while it stays done, and removed when it leaves `done`.
 
 #### Scenario: Written file
 
 - **WHEN** the user adds "Rysunki elewacji" due 2026-11-14 for Anna Nowak to "Dom Lipowa"
-- **THEN** the file holds `"projectId"` equal to the project's `id`, `"due": "2026-11-14"`, `"assignee": "Anna Nowak"` and `"status": "todo"`
+- **THEN** the file holds `"projectId"` equal to the project's `id`, `"due": "2026-11-14"`, `"assignee": "Anna Nowak"`, `"reviewer": ""`, `"reviewNote": ""` and `"status": "todo"`
 - **AND** it holds no `urgent`
 
 #### Scenario: Waiting for a check
@@ -232,10 +274,20 @@ The system SHALL keep each task as `zadania/<id>.json` holding `id`, `projectId`
 - **WHEN** a task file has `"status": "review"`
 - **THEN** the task shows in "Do weryfikacji" and its file holds no `doneAt`
 
+#### Scenario: Reviewer notes trimmed
+
+- **WHEN** the user saves "  Popraw wymiary okien.  " in "uwagi z weryfikacji"
+- **THEN** the file holds `"reviewNote": "Popraw wymiary okien."`
+
 #### Scenario: Hand-edited file
 
 - **WHEN** a task file has `"status": "gotowe"` and no `description`
 - **THEN** the task shows in "Do zrobienia" with an empty description
+
+#### Scenario: File without reviewer
+
+- **WHEN** a task file has no `reviewer` and no `reviewNote`, or `"reviewer": 7`
+- **THEN** the task has no reviewer and empty reviewer notes
 
 #### Scenario: Hand-edited urgent mark
 
@@ -293,7 +345,7 @@ The system SHALL show a header tab "Zadania" listing all tasks, of every project
 
 ### Requirement: Tasks tab filters
 
-The system SHALL filter the tab by "Architekt", "Status projektu" and "Projekt", side by side, all kept in the URL so the view survives a refresh and can be bookmarked. "Architekt" offers "wszyscy architekci", the architects from `kalka.json` followed by assignees no longer listed, and "nieprzypisane" last; it narrows by the task's assignee. "Status projektu" has the choices and default of the calendar's status filter and narrows the tasks that have a project by that project's status. "Projekt" offers "wszystkie zadania", "z projektem" and "bez projektu"; "Status projektu" is disabled while "bez projektu" is chosen.
+The system SHALL filter the tab by "Architekt", "Status projektu" and "Projekt", side by side, all kept in the URL so the view survives a refresh and can be bookmarked. "Architekt" offers "wszyscy architekci", the architects from `kalka.json` followed by assignees and reviewers no longer listed, and "nieprzypisane" last; it narrows "Do weryfikacji" by the task's reviewer and the other columns by the task's assignee. "Status projektu" has the choices and default of the calendar's status filter and narrows the tasks that have a project by that project's status. "Projekt" offers "wszystkie zadania", "z projektem" and "bez projektu"; "Status projektu" is disabled while "bez projektu" is chosen.
 
 #### Scenario: One architect
 
@@ -301,10 +353,22 @@ The system SHALL filter the tab by "Architekt", "Status projektu" and "Projekt",
 - **THEN** "Rysunki elewacji" is shown
 - **AND** tasks assigned to "Jan Kowalski" or to nobody are not
 
+#### Scenario: Tasks to check
+
+- **WHEN** "Rzut dachu" in "Do weryfikacji" is assigned to "Anna Nowak" and reviewed by "Jan Kowalski", and the user picks "Jan Kowalski"
+- **THEN** "Rzut dachu" is shown in "Do weryfikacji"
+- **AND** with "Anna Nowak" picked it is not shown
+
+#### Scenario: Reviewer outside review
+
+- **WHEN** "Rysunki elewacji" in "W trakcie" is assigned to "Anna Nowak" with "Jan Kowalski" as reviewer, and the user picks "Jan Kowalski"
+- **THEN** "Rysunki elewacji" is not shown
+
 #### Scenario: Unassigned
 
 - **WHEN** the user picks "nieprzypisane"
-- **THEN** only tasks without an assignee are shown
+- **THEN** "Do zrobienia", "W trakcie" and "Wykonane" show only tasks without an assignee
+- **AND** "Do weryfikacji" shows only tasks without a reviewer
 
 #### Scenario: All architects
 
@@ -314,6 +378,11 @@ The system SHALL filter the tab by "Architekt", "Status projektu" and "Projekt",
 #### Scenario: Assignee no longer listed
 
 - **WHEN** a task is assigned to "Piotr Zieliński", who is not in `kalka.json`
+- **THEN** "Architekt" offers "Piotr Zieliński" after the listed architects and before "nieprzypisane"
+
+#### Scenario: Reviewer no longer listed
+
+- **WHEN** a task is reviewed by "Piotr Zieliński", who is not in `kalka.json`
 - **THEN** "Architekt" offers "Piotr Zieliński" after the listed architects and before "nieprzypisane"
 
 #### Scenario: Default status
@@ -387,7 +456,7 @@ The system SHALL order "W trakcie", "Do weryfikacji", and "Do zrobienia" while i
 
 ### Requirement: Tasks tab card
 
-The system SHALL show each task in the tab as a card with its title, its project's title (or "bez projektu"), a "wykonane" checkbox, its due date bottom-left (marked "po terminie" when overdue and not done) and the assignee's initials circle bottom-right when it has one. Cards in "Wykonane" are greyed and their checkbox is ticked. A sync conflict copy carries the "konflikt synchronizacji" badge.
+The system SHALL show each task in the tab as a card with its title, its project's title (or "bez projektu"), a "wykonane" checkbox, its due date bottom-left (marked "po terminie" when overdue and not done) and the assignee's initials circle bottom-right when it has one, followed in "Do weryfikacji" by the reviewer's circle with its check mark and hover text as on the project board. Cards in "Wykonane" are greyed and their checkbox is ticked. A sync conflict copy carries the "konflikt synchronizacji" badge.
 
 #### Scenario: Full card
 
@@ -403,6 +472,11 @@ The system SHALL show each task in the tab as a card with its title, its project
 
 - **WHEN** "Zamówić próbki" has no project
 - **THEN** its card shows "bez projektu" where the project's title would be
+
+#### Scenario: Waiting for a check
+
+- **WHEN** "Rzut dachu" in "Do weryfikacji" is assigned to "Anna Nowak" ("AN") and reviewed by "Jan Kowalski" ("JK")
+- **THEN** its card shows the "AN" circle and then the "JK" circle with a check mark
 
 ### Requirement: Done checkbox
 
@@ -426,13 +500,18 @@ The system SHALL mark a task done when its "wykonane" checkbox is ticked and put
 
 ### Requirement: Change state in the tasks tab
 
-The system SHALL let the user drag a card in the tab onto another column, which sets the task to that column's state and saves at once, putting it at the bottom of that column on its project's board. While dragging, the column under the pointer is marked. A conflict shows the task conflict message above the columns and reads the tasks again.
+The system SHALL let the user drag a card in the tab onto another column, which sets the task to that column's state and saves at once, putting it at the bottom of that column on its project's board. While dragging, the column under the pointer is marked. A conflict shows the task conflict message above the columns and reads the tasks again. A task without a reviewer dropped on "Do weryfikacji" opens the dialog instead, as "Reviewer asked for on the way to Do weryfikacji" says.
 
 #### Scenario: Drag to "W trakcie"
 
 - **WHEN** the user drags "Rysunki elewacji" from "Do zrobienia" onto "W trakcie"
 - **THEN** the task file holds `"status": "doing"`
 - **AND** on "Dom Lipowa"'s board it is at the bottom of "W trakcie"
+
+#### Scenario: Drag to "Do weryfikacji" without a reviewer
+
+- **WHEN** the user drags "Rysunki elewacji", which has no reviewer, from "W trakcie" onto "Do weryfikacji" in the tab
+- **THEN** nothing is written and the task dialog opens with the state "Do weryfikacji"
 
 #### Scenario: Someone else changed the task
 
@@ -697,3 +776,49 @@ The system SHALL show "Do zrobienia" in the "Dni" view as groups, each headed by
 
 - **WHEN** the user drags a card from a day group onto "W trakcie"
 - **THEN** the task gets the state `doing` as before, and its group's number goes down by one, the group disappearing when it was the last
+
+### Requirement: Reviewer required in "Do weryfikacji"
+
+The system SHALL refuse to save a task from its dialog while its state is "Do weryfikacji" and it has no reviewer: nothing is written and the dialog shows "Wybierz osobę, która zweryfikuje zadanie.". In the other states the reviewer is optional. A task already in "Do weryfikacji" without a reviewer stays there until it is saved from the dialog.
+
+#### Scenario: State picked without a reviewer
+
+- **WHEN** the user opens "Rysunki elewacji", which has no reviewer, picks "Do weryfikacji" in the dialog's state choice and clicks "Zapisz"
+- **THEN** nothing is written and the dialog shows "Wybierz osobę, która zweryfikuje zadanie."
+- **AND** after picking "Jan Kowalski" in "weryfikuje" and clicking "Zapisz" the task file holds `"status": "review"` and `"reviewer": "Jan Kowalski"`
+
+#### Scenario: Other states
+
+- **WHEN** the user saves a task in "W trakcie" without a reviewer
+- **THEN** the task is saved
+
+#### Scenario: Older task waiting for a check
+
+- **WHEN** a task file has `"status": "review"` and no `reviewer`
+- **THEN** the task shows in "Do weryfikacji" with only its assignee's circle
+- **AND** dragging it within "Do weryfikacji" on its project board or ticking "wykonane" saves without asking for a reviewer
+
+### Requirement: Reviewer asked for on the way to "Do weryfikacji"
+
+The system SHALL, when a task without a reviewer is dragged from another column onto "Do weryfikacji", on the project board or in the "Zadania" tab, write nothing and open the task dialog with the state set to "Do weryfikacji". "Zapisz" with a reviewer puts the task at the bottom of "Do weryfikacji" on its project's board; "Anuluj" leaves the task where it was. A task that has a reviewer moves at once, as in any other column.
+
+#### Scenario: Drag without a reviewer
+
+- **WHEN** the user drags "Rysunki elewacji", which has no reviewer, from "W trakcie" onto "Do weryfikacji"
+- **THEN** nothing is written and the task dialog opens with the state "Do weryfikacji" and an empty "weryfikuje"
+
+#### Scenario: Reviewer picked
+
+- **WHEN** in that dialog the user picks "Jan Kowalski" in "weryfikuje" and clicks "Zapisz"
+- **THEN** the task file holds `"status": "review"` and `"reviewer": "Jan Kowalski"`
+- **AND** the task is at the bottom of "Do weryfikacji" on its project's board
+
+#### Scenario: Cancelled
+
+- **WHEN** in that dialog the user clicks "Anuluj"
+- **THEN** nothing is written and the task stays in "W trakcie"
+
+#### Scenario: Reviewer already chosen
+
+- **WHEN** "Rysunki elewacji" was sent back from "Do weryfikacji" to "W trakcie" with "Jan Kowalski" as reviewer and the user drags it onto "Do weryfikacji" again
+- **THEN** no dialog opens and the task file holds `"status": "review"` and `"reviewer": "Jan Kowalski"`
