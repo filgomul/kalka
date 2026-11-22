@@ -49,6 +49,7 @@ export const t = {
   openFolder: 'Otwórz folder Kalka',
   pickHint: 'Wskaż folder Kalka na wspólnym OneDrive. Przeglądarka zapamięta wybór na tym komputerze.',
   folderUnavailable: 'Nie udało się otworzyć zapamiętanego folderu (przeniesiony, usunięty albo brak zgody). Wybierz go ponownie.',
+  folderNotAnswering: 'Folder Kalka nie odpowiada. Sprawdź, czy OneDrive działa i synchronizuje pliki, albo wybierz folder ponownie.',
   loading: 'Wczytywanie…',
   demoName: 'Wersja demo',
   demoLink: 'Wersja demo',

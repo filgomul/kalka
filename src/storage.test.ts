@@ -4,7 +4,7 @@ import { emptyProject, withTimeline } from './model.ts'
 import { emptyTask } from './tasks.ts'
 import { emptyLeave } from './leaves.ts'
 import { emptyMeeting } from './meetings.ts'
-import { ConflictError, deleteLeave, deleteMeeting, deleteTask, openFolder, readLeaves, readMeetings, readProjects, readTasks, saveLeave, saveMeeting, saveProject, saveTask } from './storage.ts'
+import { ConflictError, deleteLeave, deleteMeeting, deleteTask, openFolder, readLeaves, readMeetings, readProjects, readTasks, saveLeave, saveMeeting, saveProject, saveTask, withTimeout } from './storage.ts'
 import { memoryFolder as dirHandle, type Tree } from './demo.ts'
 
 const json = (v: unknown) => JSON.stringify(v)
@@ -337,4 +337,14 @@ test('meetings: Two copies', async () => {
   assert.deepEqual((await readMeetings(dir)).meetings.map((l) => [l.file, l.duplicate]), [['m1.json', true], ['m1-LAPTOP.json', true]])
   await deleteMeeting(dir, 'm1-LAPTOP.json', 'y')
   assert.deepEqual((await readMeetings(dir)).meetings.map((l) => [l.file, l.duplicate]), [['m1.json', false]])
+})
+
+test('storage: OneDrive does not answer', async () => {
+  await assert.rejects(withTimeout(new Promise(() => {}), 5), { name: 'TimeoutError' })
+})
+
+test('storage: Slow but healthy folder', async () => {
+  const later = <T>(v: T, ms: number) => new Promise<T>((r) => setTimeout(() => r(v), ms))
+  assert.equal(await withTimeout(later('dane', 5), 200), 'dane')
+  await assert.rejects(withTimeout(Promise.reject(new Error('brak zgody')), 200), { message: 'brak zgody' })
 })
