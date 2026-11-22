@@ -2,8 +2,8 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { demoFolder } from './demo.ts'
 import { openFolder, readProjects, saveProject } from './storage.ts'
-import { addDays, addMonths } from './calendar.ts'
-import { DONE_SHOWN, TASK_STATUSES } from './tasks.ts'
+import { addDays, addMonths, monday } from './calendar.ts'
+import { byWeek, TASK_STATUSES } from './tasks.ts'
 import { MEETING_TYPES } from './meetings.ts'
 
 const TODAY = '2026-11-11'
@@ -63,7 +63,9 @@ test('demo: Tasks', async () => {
   assert.ok(tasks.some((t) => !t.due), 'no due date')
   assert.ok(tasks.some((t) => !t.assignee), 'no assignee')
   assert.ok(tasks.some((t) => !t.projectId), 'no project')
-  assert.ok(tasks.filter((t) => t.status === 'done' && t.doneAt).length > DONE_SHOWN, 'older done folded')
+  const weeks = byWeek(tasks.filter((t) => t.status === 'done').map((task) => ({ task })), TODAY).map((g) => g.key)
+  assert.equal(weeks[0], monday(TODAY), 'done this week')
+  assert.ok(weeks.some((w) => w < addDays(monday(TODAY), -7)), 'older weeks folded')
 })
 
 test('demo: Reviewers', async () => {

@@ -2,7 +2,7 @@
 // One file per task in zadania/, pointing at its project by projectId.
 
 import { filterProjects, formatDate, newId, parseDate, todayIso, type Project } from './model.ts'
-import { monday } from './calendar.ts'
+import { addDays, monday } from './calendar.ts'
 import { t, weekdays } from './pl.ts'
 
 export const TASK_STATUSES = ['todo', 'doing', 'review', 'done'] as const
@@ -65,7 +65,8 @@ export function normalizeTask(raw: Partial<Task> & { id: string }): Task {
 export function stampDone(before: Task | undefined, after: Task, now: string): Task {
   const out = { ...after }
   if (out.status !== 'done') delete out.doneAt
-  else if (before?.status !== 'done') out.doneAt = now
+  // a day picked in "data wykonania" wins over the time of the change
+  else if (before?.status !== 'done') out.doneAt = after.doneAt ?? now
   return out
 }
 
@@ -154,13 +155,42 @@ export function byDue<T extends Row>(rows: T[]): T[] {
   )
 }
 
+/** The local day a done task counts as done: `doneAt`, else its last change. */
+export function doneDay(task: Task): string {
+  // ponytail: a hand-edited file without any valid time counts as done on 1970-01-01
+  const ms = Date.parse(task.doneAt || task.updatedAt)
+  return todayIso(new Date(Number.isNaN(ms) ? 0 : ms))
+}
+
+/** A day picked in "data wykonania" as a completion time: noon that day, local time. */
+export const doneAtOn = (day: string) => new Date(`${day}T12:00:00`).toISOString()
+
+/** Tasks a week group of "Wykonane" shows before "pokaż więcej". */
 export const DONE_SHOWN = 5
 
-/** Done tasks latest first (`doneAt`, else `updatedAt`), split into the first `n` and the rest. */
-export function splitDone<T extends Row>(rows: T[], n = DONE_SHOWN): { recent: T[]; older: T[] } {
-  const when = (t: Task) => t.doneAt ?? t.updatedAt
+/**
+ * Done tasks by the week (local time) they were done in (`doneAt`, else `updatedAt`), keyed by
+ * its Monday, newest week first, each latest first. Times after `today`'s week count as that week.
+ */
+export function byWeek<T extends Row>(rows: T[], today: string): { key: string; rows: T[] }[] {
+  const when = (t: Task) => t.doneAt || t.updatedAt
   const sorted = [...rows].sort((a, b) => when(b.task).localeCompare(when(a.task)) || a.task.title.localeCompare(b.task.title, 'pl'))
-  return { recent: sorted.slice(0, n), older: sorted.slice(n) }
+  const now = monday(today)
+  const groups = new Map<string, T[]>()
+  for (const r of sorted) {
+    const week = monday(doneDay(r.task))
+    const key = week > now ? now : week
+    groups.set(key, [...(groups.get(key) ?? []), r])
+  }
+  return [...groups].sort(([a], [b]) => b.localeCompare(a)).map(([key, rows]) => ({ key, rows }))
+}
+
+/** A `byWeek` key as its header: "ten tydzień", "w zeszłym tygodniu" or "02.11.2026 - 08.11.2026". */
+export function weekLabel(key: string, today: string): string {
+  const now = monday(today)
+  if (key === now) return t.currentWeek
+  if (key === addDays(now, -7)) return t.lastWeek
+  return `${formatDate(key)} - ${formatDate(addDays(key, 6))}`
 }
 
 /**

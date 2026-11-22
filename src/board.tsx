@@ -4,7 +4,7 @@ import { formatDate, parseDate, todayIso } from './model.ts'
 import { projectIdChoices } from './calendar.ts'
 import { t, taskStatusLabels } from './pl.ts'
 import { ConflictError, deleteTask, saveTask, type LoadedTask } from './storage.ts'
-import { badgeFor, dropNeedsReviewer, emptyTask, needsReviewer, placeAt, prepareTaskForSave, sortTasks, stampDone, TASK_STATUSES, taskState, textOn, type Badge, type Task, type TaskStatus } from './tasks.ts'
+import { badgeFor, dropNeedsReviewer, emptyTask, needsReviewer, placeAt, prepareTaskForSave, sortTasks, stampDone, doneAtOn, doneDay, TASK_STATUSES, taskState, textOn, type Badge, type Task, type TaskStatus } from './tasks.ts'
 import type { Data } from './main.tsx'
 
 type Props = {
@@ -402,6 +402,19 @@ function TaskDialog({ loaded, status, architects, link, projects, onSave, onRemo
             </select>
           </label>
         </div>
+        {draft.status === 'done' && (
+          <label class="done-date">
+            {t.doneDate}
+            {/* untouched, the completion time stays as read; a task becoming done gets the time of the save */}
+            <input
+              type="date"
+              required
+              max={todayIso()}
+              value={draft.doneAt || loaded.task.status === 'done' ? doneDay(draft) : todayIso()}
+              onInput={(e) => e.currentTarget.value && set({ doneAt: doneAtOn(e.currentTarget.value) })}
+            />
+          </label>
+        )}
         {architects.length === 0 && <small class="hint">{t.noArchitects}</small>}
         <div class="dialog-actions">
           {error && <p class="error" role="alert">{error}</p>}

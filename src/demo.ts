@@ -273,6 +273,7 @@ export function demoFiles(today: string) {
     task('demo-p4', 'Mapa do celów projektowych', EWA, 'done', { doneAt: at(-7, '09:15') }),
     task('', 'Odnowić licencję programu CAD', PIOTR, 'done', { doneAt: at(-3, '11:00') }),
     task('demo-p7', 'Zebrać archiwalną dokumentację', JAN, 'done', { doneAt: at(-2, '14:45') }),
+    task('demo-p5', 'Karta doboru oświetlenia', MARTA, 'done', { doneAt: at(0, '08:30') }),
     task('demo-p6', 'Protokół z odbioru', PIOTR, 'done', { doneAt: at(-100, '13:00') }),
   ]
 
