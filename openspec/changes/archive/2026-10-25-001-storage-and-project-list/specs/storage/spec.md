@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Keeps all Kalka data as files in a folder the studio chooses on its shared OneDrive, so
+Keeps all Kalka data as files in a folder the studio chooses in shared, synced storage, so
 nothing leaves the studio's computers and no server is needed.
 
 ## ADDED Requirements
@@ -80,10 +80,10 @@ The system SHALL write a project to its own file and refuse to overwrite a file 
 
 ### Requirement: Duplicate ids
 
-The system SHALL show every file that shares an id with another file (for example a OneDrive conflict copy) and mark them, rather than silently picking one.
+The system SHALL show every file that shares an id with another file (for example a sync conflict copy) and mark them, rather than silently picking one.
 
-#### Scenario: OneDrive conflict copy
+#### Scenario: Sync conflict copy
 
 - **WHEN** `projekty/` holds two files with the same `id`
 - **THEN** both appear in the list with a "konflikt synchronizacji" badge and their file names
-- **AND** the app deletes neither; the user removes the unwanted copy in OneDrive
+- **AND** the app deletes neither; the user removes the unwanted copy in the synced folder

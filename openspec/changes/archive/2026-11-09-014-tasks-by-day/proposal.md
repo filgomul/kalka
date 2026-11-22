@@ -42,7 +42,7 @@ None.
 - Tests: `src/tasks.test.ts`
 - Docs: `AGENTS.md` (the **tasks** line)
 - Storage: the view is kept in the browser's `localStorage`, under one key with no
-  project data in it. It isn't shared through OneDrive, so each PC and browser keeps its
+  project data in it. It isn't shared through the synced folder, so each PC and browser keeps its
   own choice. This is the app's first use of `localStorage`.
 - No new dependency, no change to task files
 

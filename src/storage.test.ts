@@ -88,7 +88,7 @@ test('storage: One broken file', async () => {
   assert.deepEqual(broken.map((b) => b.file), ['b.json', 'c.json'])
 })
 
-test('storage: OneDrive conflict copy', async () => {
+test('storage: Sync conflict copy', async () => {
   const root: Tree = new Map([
     ['projekty', new Map([
       ['a.json', json({ id: 'a', title: 'Dom' })],
@@ -339,7 +339,7 @@ test('meetings: Two copies', async () => {
   assert.deepEqual((await readMeetings(dir)).meetings.map((l) => [l.file, l.duplicate]), [['m1.json', false]])
 })
 
-test('storage: OneDrive does not answer', async () => {
+test('storage: Sync does not answer', async () => {
   await assert.rejects(withTimeout(new Promise(() => {}), 5), { name: 'TimeoutError' })
 })
 

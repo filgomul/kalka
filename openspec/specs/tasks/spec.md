@@ -231,7 +231,7 @@ The system SHALL show the cards of each column in the order users arranged them,
 
 #### Scenario: Order kept
 
-- **WHEN** one user arranges "Do zrobienia" as "C", "A", "B" and another user opens the project after OneDrive synced the files
+- **WHEN** one user arranges "Do zrobienia" as "C", "A", "B" and another user opens the project after the sync client synced the files
 - **THEN** the other user sees "C", "A", "B"
 
 #### Scenario: Date changed

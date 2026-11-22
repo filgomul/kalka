@@ -1,4 +1,4 @@
-// The Kalka data folder on the synced OneDrive, opened through the File System Access API.
+// The Kalka data folder, synced between the studio's PCs, opened through the File System Access API.
 // kalka.json holds settings, projekty/<id>.json one project each, zadania/<id>.json one task each,
 // urlopy/<id>.json one leave each, spotkania/<id>.json one meeting each.
 
