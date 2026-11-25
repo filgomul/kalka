@@ -95,8 +95,9 @@ function App() {
     }
     if (!isSupported()) return
     ;(async () => {
-      const dir = await rememberedFolder()
-      if (dir && (await hasAccess(dir))) await loadRemembered(dir)
+      // the IndexedDB lookup and the permission check can hang as well, so they get the same limit
+      const dir = await withTimeout(rememberedFolder(), LOAD_TIMEOUT_MS)
+      if (dir && (await withTimeout(hasAccess(dir), LOAD_TIMEOUT_MS))) await loadRemembered(dir)
       else setRemembered(dir ?? null)
     })()
       .catch(fail)
@@ -138,7 +139,7 @@ function App() {
   function fail(e: unknown) {
     // closing the picker is not an error
     if ((e as Error).name === 'AbortError') return
-    setError(`${t.folderUnavailable} (${(e as Error).message})`)
+    setError((e as Error).name === 'TimeoutError' ? t.folderNotAnswering : `${t.folderUnavailable} (${(e as Error).message})`)
     setRemembered(null)
   }
 

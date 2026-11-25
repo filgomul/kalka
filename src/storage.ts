@@ -43,9 +43,14 @@ function handles<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) => IDBReq
     open.onupgradeneeded = () => open.result.createObjectStore('handles')
     open.onerror = () => reject(open.error)
     open.onsuccess = () => {
-      const req = run(open.result.transaction('handles', mode).objectStore('handles'))
-      req.onsuccess = () => resolve(req.result)
-      req.onerror = () => reject(req.error)
+      // a throw here would otherwise leave the promise pending forever
+      try {
+        const req = run(open.result.transaction('handles', mode).objectStore('handles'))
+        req.onsuccess = () => resolve(req.result)
+        req.onerror = () => reject(req.error)
+      } catch (e) {
+        reject(e)
+      }
     }
   })
 }
@@ -55,7 +60,8 @@ export const rememberedFolder = () =>
 
 export async function pickFolder(): Promise<FileSystemDirectoryHandle> {
   const dir = await window.showDirectoryPicker({ id: 'kalka', mode: 'readwrite' })
-  await handles('readwrite', (s) => s.put(dir, 'folder'))
+  // not awaited: a stuck IndexedDB must not keep the picked folder from opening
+  handles('readwrite', (s) => s.put(dir, 'folder')).catch(() => {})
   return dir
 }
 
